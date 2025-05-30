@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API调试工具</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .container { max-width: 800px; margin: 0 auto; }
+        .input-group { margin: 10px 0; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea { width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; }
+        button { background: #007bff; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; margin: 5px; }
+        button:hover { background: #0056b3; }
+        .result { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 4px; background: #f9f9f9; }
+        .success { border-color: #28a745; background: #d4edda; }
+        .error { border-color: #dc3545; background: #f8d7da; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 4px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API调试工具</h1>
+        
+        <div class="input-group">
+            <label for="apiUrl">API URL:</label>
+            <input type="text" id="apiUrl" value="http://yunwu.ai">
+        </div>
+        
+        <div class="input-group">
+            <label for="apiKey">API Key:</label>
+            <input type="text" id="apiKey" value="">
+        </div>
+        
+        <div class="input-group">
+            <button onclick="testModels()">测试获取模型列表</button>
+            <button onclick="testChat()">测试聊天API</button>
+            <button onclick="clearResults()">清除结果</button>
+        </div>
+        
+        <div id="results"></div>
+        
+        <div class="input-group">
+            <label for="testMessage">测试消息:</label>
+            <textarea id="testMessage" rows="3" placeholder="请输入要测试的消息">你好，请简单回复一下测试</textarea>
+        </div>
+        
+        <div class="input-group">
+            <label for="modelSelect">选择模型:</label>
+            <select id="modelSelect" style="width: 100%; padding: 8px;">
+                <option value="gpt-4o-mini">gpt-4o-mini</option>
+                <option value="gpt-3.5-turbo">gpt-3.5-turbo</option>
+                <option value="claude-3-5-sonnet-20241022">claude-3-5-sonnet-20241022</option>
+                <option value="qwen-plus">qwen-plus</option>
+            </select>
+        </div>
+    </div>
+
+    <script>
+        function logResult(message, isError = false) {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = `result ${isError ? 'error' : 'success'}`;
+            div.innerHTML = `
+                <strong>${new Date().toLocaleTimeString()}</strong><br>
+                ${message}
+            `;
+            results.appendChild(div);
+            results.scrollTop = results.scrollHeight;
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testModels() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            
+            logResult('正在测试获取模型列表...');
+            
+            try {
+                const response = await fetch(`${apiUrl}/v1/models`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    logResult(`✅ 模型列表获取成功！<br>状态码: ${response.status}<br>找到 ${data.data ? data.data.length : 0} 个模型<br><pre>${JSON.stringify(data, null, 2).substring(0, 500)}...</pre>`);
+                    
+                    // 更新模型选择器
+                    updateModelSelect(data.data || []);
+                } else {
+                    logResult(`❌ 获取模型列表失败<br>状态码: ${response.status}<br>错误: <pre>${JSON.stringify(data, null, 2)}</pre>`, true);
+                }
+            } catch (error) {
+                logResult(`❌ 网络错误: ${error.message}`, true);
+            }
+        }
+
+        async function testChat() {
+            const apiUrl = document.getElementById('apiUrl').value;
+            const apiKey = document.getElementById('apiKey').value;
+            const message = document.getElementById('testMessage').value;
+            const model = document.getElementById('modelSelect').value;
+            
+            logResult(`正在测试聊天API (模型: ${model})...`);
+            
+            try {
+                const requestData = {
+                    model: model,
+                    messages: [
+                        {
+                            role: "user",
+                            content: message
+                        }
+                    ],
+                    max_tokens: 100
+                };
+                
+                const startTime = Date.now();
+                const response = await fetch(`${apiUrl}/v1/chat/completions`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${apiKey}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestData)
+                });
+                
+                const endTime = Date.now();
+                const data = await response.json();
+                
+                if (response.ok) {
+                    const reply = data.choices?.[0]?.message?.content || '无回复内容';
+                    logResult(`✅ 聊天测试成功！<br>耗时: ${endTime - startTime}ms<br>模型: ${model}<br>回复: ${reply}<br><pre>${JSON.stringify(data, null, 2)}</pre>`);
+                } else {
+                    logResult(`❌ 聊天测试失败<br>状态码: ${response.status}<br>错误: <pre>${JSON.stringify(data, null, 2)}</pre>`, true);
+                }
+            } catch (error) {
+                logResult(`❌ 网络错误: ${error.message}`, true);
+            }
+        }
+
+        function updateModelSelect(models) {
+            const select = document.getElementById('modelSelect');
+            select.innerHTML = '';
+            
+            // 添加一些常用模型
+            const commonModels = ['gpt-4o-mini', 'gpt-3.5-turbo', 'claude-3-5-sonnet-20241022', 'qwen-plus'];
+            
+            models.slice(0, 20).forEach(model => {
+                if (model.id) {
+                    const option = document.createElement('option');
+                    option.value = model.id;
+                    option.textContent = model.id;
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        // 页面加载时自动测试模型列表
+        window.onload = function() {
+            testModels();
+        };
+    </script>
+</body>
+</html> 

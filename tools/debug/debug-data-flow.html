@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据流调试工具</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        button { 
+            margin: 5px; 
+            padding: 8px 16px; 
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #1890ff;
+            color: white;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button.success {
+            background: #52c41a;
+        }
+        button.danger {
+            background: #ff4d4f;
+        }
+        pre { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            overflow: auto; 
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            max-height: 400px;
+            font-size: 12px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .status.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .status.warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #faad14;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        h1, h2 {
+            color: #262626;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        .stat-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #d9d9d9;
+            text-align: center;
+            flex: 1;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1890ff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-top: 5px;
+        }
+        .log-entry {
+            padding: 5px 10px;
+            margin: 2px 0;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .log-info { background: #e6f7ff; }
+        .log-success { background: #f6ffed; }
+        .log-warning { background: #fffbe6; }
+        .log-error { background: #fff2f0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 数据流调试工具</h1>
+        <p>专门用于诊断TestingPanel无法获取提示词和模型的问题</p>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="promptCount">0</div>
+                <div class="stat-label">提示词数量</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="configCount">0</div>
+                <div class="stat-label">API配置数量</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modelCount">0</div>
+                <div class="stat-label">可用模型数量</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="issueCount">0</div>
+                <div class="stat-label">发现问题</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎯 快速操作</h2>
+            <button onclick="runFullDiagnosis()">完整诊断</button>
+            <button onclick="testStorageFunctions()">测试存储函数</button>
+            <button onclick="simulateTestingPanel()">模拟TestingPanel加载</button>
+            <button onclick="createTestData()">创建测试数据</button>
+            <button onclick="fixCommonIssues()" class="success">修复常见问题</button>
+            <button onclick="clearAllData()" class="danger">清空所有数据</button>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h2>📊 诊断结果</h2>
+                <div id="diagnosisResult"></div>
+            </div>
+            
+            <div class="section">
+                <h2>🔧 修复建议</h2>
+                <div id="fixSuggestions"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 详细数据</h2>
+            <div id="dataDetails"></div>
+        </div>
+
+        <div class="section">
+            <h2>📝 操作日志</h2>
+            <div id="logDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+        let issues = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = { timestamp, message, type };
+            logs.unshift(logEntry);
+            if (logs.length > 100) logs.pop();
+            
+            updateLogDisplay();
+            console.log(`[DataFlow Debug] ${message}`);
+        }
+
+        function updateLogDisplay() {
+            const logDiv = document.getElementById('logDisplay');
+            logDiv.innerHTML = logs.map(entry => 
+                `<div class="log-entry log-${entry.type}">[${entry.timestamp}] ${entry.message}</div>`
+            ).join('');
+        }
+
+        function addIssue(issue) {
+            issues.push(issue);
+            document.getElementById('issueCount').textContent = issues.length;
+        }
+
+        function clearIssues() {
+            issues = [];
+            document.getElementById('issueCount').textContent = '0';
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 测试存储函数
+        function testStorageFunctions() {
+            log('开始测试存储函数...', 'info');
+            clearIssues();
+
+            try {
+                // 测试localStorage基本功能
+                const testKey = 'storage_test';
+                const testValue = { test: true, timestamp: Date.now() };
+                
+                localStorage.setItem(testKey, JSON.stringify(testValue));
+                const retrieved = JSON.parse(localStorage.getItem(testKey));
+                
+                if (JSON.stringify(retrieved) === JSON.stringify(testValue)) {
+                    log('✅ localStorage基本功能正常', 'success');
+                } else {
+                    log('❌ localStorage基本功能异常', 'error');
+                    addIssue('localStorage基本功能异常');
+                }
+                
+                localStorage.removeItem(testKey);
+
+                // 测试应用数据结构
+                const keys = ['prompts', 'apiConfigs', 'models', 'defaultTestInputs'];
+                keys.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data === null) {
+                            log(`⚠️ ${key} 数据不存在`, 'warning');
+                        } else {
+                            const parsed = JSON.parse(data);
+                            if (Array.isArray(parsed)) {
+                                log(`✅ ${key} 数据格式正确，包含 ${parsed.length} 项`, 'success');
+                            } else {
+                                log(`❌ ${key} 数据格式错误，不是数组`, 'error');
+                                addIssue(`${key} 数据格式错误`);
+                            }
+                        }
+                    } catch (e) {
+                        log(`❌ ${key} 数据解析失败: ${e.message}`, 'error');
+                        addIssue(`${key} 数据解析失败`);
+                    }
+                });
+
+                updateStats();
+                
+            } catch (error) {
+                log(`❌ 存储函数测试失败: ${error.message}`, 'error');
+                addIssue('存储函数测试失败');
+            }
+        }
+
+        // 模拟TestingPanel的数据加载过程
+        function simulateTestingPanel() {
+            log('开始模拟TestingPanel数据加载...', 'info');
+            
+            try {
+                // 模拟promptStorage.getAll()
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                log(`promptStorage.getAll() 返回: ${prompts.length} 个提示词`, 'info');
+                
+                // 模拟apiConfigStorage.getAllModels()
+                const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                const models = [];
+                
+                apiConfigs.forEach(config => {
+                    if (config.models && Array.isArray(config.models)) {
+                        config.models.forEach(model => {
+                            if (model.enabled) {
+                                models.push({
+                                    id: `${config.id}_${model.id}`,
+                                    name: model.name,
+                                    displayName: model.displayName,
+                                    apiConfigName: config.name,
+                                });
+                            }
+                        });
+                    }
+                });
+                
+                log(`apiConfigStorage.getAllModels() 返回: ${models.length} 个可用模型`, 'info');
+                
+                // 模拟defaultTestInputStorage.getAll()
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                log(`defaultTestInputStorage.getAll() 返回: ${defaultInputs.length} 个默认输入`, 'info');
+                
+                // 检查问题
+                if (prompts.length === 0) {
+                    log('⚠️ 没有可用的提示词', 'warning');
+                    addIssue('没有可用的提示词');
+                }
+                
+                if (models.length === 0) {
+                    log('⚠️ 没有可用的模型', 'warning');
+                    addIssue('没有可用的模型');
+                    
+                    if (apiConfigs.length === 0) {
+                        log('⚠️ 没有API配置', 'warning');
+                        addIssue('没有API配置');
+                    } else {
+                        log(`有 ${apiConfigs.length} 个API配置，但没有启用的模型`, 'warning');
+                        addIssue('API配置存在但没有启用的模型');
+                    }
+                }
+                
+                // 显示详细数据
+                const details = {
+                    prompts: prompts.map(p => ({ id: p.id, name: p.name })),
+                    apiConfigs: apiConfigs.map(c => ({ 
+                        id: c.id, 
+                        name: c.name, 
+                        modelCount: c.models ? c.models.length : 0,
+                        enabledModelCount: c.models ? c.models.filter(m => m.enabled).length : 0
+                    })),
+                    availableModels: models,
+                    defaultInputs: defaultInputs.map(d => ({ id: d.id, name: d.name, category: d.category }))
+                };
+                
+                document.getElementById('dataDetails').innerHTML = 
+                    '<pre>' + JSON.stringify(details, null, 2) + '</pre>';
+                
+                updateStats();
+                
+            } catch (error) {
+                log(`❌ 模拟TestingPanel失败: ${error.message}`, 'error');
+                addIssue('模拟TestingPanel失败');
+            }
+        }
+
+        // 创建测试数据
+        function createTestData() {
+            log('开始创建测试数据...', 'info');
+            
+            try {
+                // 创建测试提示词
+                const testPrompt = {
+                    id: generateId(),
+                    name: "测试提示词",
+                    content: "你是一个有用的AI助手，请简洁明了地回答用户的问题。",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                prompts.push(testPrompt);
+                localStorage.setItem('prompts', JSON.stringify(prompts));
+                log(`✅ 创建测试提示词: ${testPrompt.name}`, 'success');
+                
+                // 创建测试API配置
+                const testApiConfig = {
+                    id: generateId(),
+                    name: "测试API配置",
+                    requestMode: "url",
+                    directUrl: "http://127.0.0.1:8008/req",
+                    models: [
+                        {
+                            id: "model-1",
+                            name: "gpt-4o",
+                            displayName: "GPT-4o",
+                            enabled: true
+                        },
+                        {
+                            id: "model-2",
+                            name: "claude-3-5-sonnet-20241022",
+                            displayName: "Claude 3.5 Sonnet",
+                            enabled: true
+                        }
+                    ],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                apiConfigs.push(testApiConfig);
+                localStorage.setItem('apiConfigs', JSON.stringify(apiConfigs));
+                log(`✅ 创建测试API配置: ${testApiConfig.name}`, 'success');
+                
+                // 确保默认测试输入存在
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                if (defaultInputs.length === 0) {
+                    const initialInputs = [
+                        {
+                            id: 'default-1',
+                            name: '简单问候',
+                            content: '你好，请介绍一下你自己。',
+                            category: '基础测试',
+                            createdAt: new Date().toISOString(),
+                        }
+                    ];
+                    localStorage.setItem('defaultTestInputs', JSON.stringify(initialInputs));
+                    log('✅ 创建默认测试输入', 'success');
+                }
+                
+                log('✅ 测试数据创建完成', 'success');
+                updateStats();
+                simulateTestingPanel();
+                
+            } catch (error) {
+                log(`❌ 创建测试数据失败: ${error.message}`, 'error');
+                addIssue('创建测试数据失败');
+            }
+        }
+
+        // 修复常见问题
+        function fixCommonIssues() {
+            log('开始修复常见问题...', 'info');
+            
+            try {
+                let fixed = 0;
+                
+                // 修复空数组问题
+                const keys = ['prompts', 'apiConfigs', 'models', 'defaultTestInputs'];
+                keys.forEach(key => {
+                    const data = localStorage.getItem(key);
+                    if (data === null) {
+                        localStorage.setItem(key, '[]');
+                        log(`✅ 修复 ${key} 空数据问题`, 'success');
+                        fixed++;
+                    }
+                });
+                
+                // 修复损坏的JSON数据
+                keys.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data) {
+                            JSON.parse(data);
+                        }
+                    } catch (e) {
+                        localStorage.setItem(key, '[]');
+                        log(`✅ 修复 ${key} 损坏的JSON数据`, 'success');
+                        fixed++;
+                    }
+                });
+                
+                // 确保默认测试输入存在
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                if (defaultInputs.length === 0) {
+                    const initialInputs = [
+                        {
+                            id: 'default-1',
+                            name: '简单问候',
+                            content: '你好，请介绍一下你自己。',
+                            category: '基础测试',
+                            createdAt: new Date().toISOString(),
+                        },
+                        {
+                            id: 'default-2',
+                            name: '逻辑推理',
+                            content: '如果所有的猫都是动物，而小花是一只猫，那么小花是什么？',
+                            category: '逻辑测试',
+                            createdAt: new Date().toISOString(),
+                        }
+                    ];
+                    localStorage.setItem('defaultTestInputs', JSON.stringify(initialInputs));
+                    log('✅ 修复默认测试输入缺失问题', 'success');
+                    fixed++;
+                }
+                
+                log(`✅ 修复完成，共修复 ${fixed} 个问题`, 'success');
+                clearIssues();
+                updateStats();
+                
+            } catch (error) {
+                log(`❌ 修复失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 完整诊断
+        function runFullDiagnosis() {
+            log('开始完整诊断...', 'info');
+            clearIssues();
+            
+            testStorageFunctions();
+            setTimeout(() => {
+                simulateTestingPanel();
+                setTimeout(() => {
+                    generateDiagnosisReport();
+                }, 500);
+            }, 500);
+        }
+
+        // 生成诊断报告
+        function generateDiagnosisReport() {
+            const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+            const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+            
+            let report = '<div>';
+            
+            if (issues.length === 0) {
+                report += '<div class="status success">✅ 未发现问题，数据流正常</div>';
+            } else {
+                report += '<div class="status error">❌ 发现以下问题：</div>';
+                issues.forEach(issue => {
+                    report += `<div class="status warning">• ${issue}</div>`;
+                });
+            }
+            
+            report += '</div>';
+            document.getElementById('diagnosisResult').innerHTML = report;
+            
+            // 生成修复建议
+            let suggestions = '<div>';
+            
+            if (prompts.length === 0) {
+                suggestions += '<div class="status warning">建议：在"提示词管理"中添加至少一个提示词</div>';
+            }
+            
+            if (apiConfigs.length === 0) {
+                suggestions += '<div class="status warning">建议：在"API配置"中添加至少一个API配置</div>';
+            } else {
+                const hasEnabledModels = apiConfigs.some(config => 
+                    config.models && config.models.some(model => model.enabled)
+                );
+                if (!hasEnabledModels) {
+                    suggestions += '<div class="status warning">建议：在API配置中启用至少一个模型</div>';
+                }
+            }
+            
+            if (issues.length > 0) {
+                suggestions += '<div class="status success">建议：点击"修复常见问题"按钮自动修复</div>';
+            }
+            
+            suggestions += '</div>';
+            document.getElementById('fixSuggestions').innerHTML = suggestions;
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+            const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+            
+            let modelCount = 0;
+            apiConfigs.forEach(config => {
+                if (config.models) {
+                    modelCount += config.models.filter(m => m.enabled).length;
+                }
+            });
+            
+            document.getElementById('promptCount').textContent = prompts.length;
+            document.getElementById('configCount').textContent = apiConfigs.length;
+            document.getElementById('modelCount').textContent = modelCount;
+        }
+
+        // 清空所有数据
+        function clearAllData() {
+            if (confirm('⚠️ 确定要清空所有数据吗？此操作不可恢复！')) {
+                const keys = ['prompts', 'apiConfigs', 'models', 'defaultTestInputs'];
+                keys.forEach(key => {
+                    localStorage.removeItem(key);
+                });
+                log('🧹 所有数据已清空', 'success');
+                clearIssues();
+                updateStats();
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            log('🚀 数据流调试工具已启动', 'info');
+            updateStats();
+            
+            // 自动运行基本检查
+            setTimeout(() => {
+                testStorageFunctions();
+            }, 500);
+        };
+    </script>
+</body>
+</html> 

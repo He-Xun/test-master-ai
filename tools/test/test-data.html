@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据存储测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; }
+        button { margin: 5px; padding: 8px 16px; }
+        pre { background: #f5f5f5; padding: 10px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>API测试工具 - 数据存储测试</h1>
+    
+    <div class="section">
+        <h2>测试API配置存储</h2>
+        <button onclick="createTestApiConfig()">创建测试API配置</button>
+        <button onclick="createTestPrompt()">创建测试提示词</button>
+        <button onclick="showData()">显示所有数据</button>
+        <button onclick="clearData()">清空所有数据</button>
+    </div>
+    
+    <div class="section">
+        <h2>当前数据状态</h2>
+        <div id="dataDisplay"></div>
+    </div>
+
+    <script>
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 创建测试API配置
+        function createTestApiConfig() {
+            const config = {
+                id: generateId(),
+                name: "测试本地服务",
+                requestMode: "url",
+                directUrl: "http://127.0.0.1:8008/req",
+                models: [
+                    {
+                        id: "model-1",
+                        name: "gpt-4o",
+                        displayName: "GPT-4o",
+                        enabled: true
+                    },
+                    {
+                        id: "model-2",
+                        name: "claude-3-5-sonnet-20241022",
+                        displayName: "Claude 3.5 Sonnet",
+                        enabled: true
+                    },
+                    {
+                        id: "model-3",
+                        name: "claude-3-7-sonnet-20250219",
+                        displayName: "Claude 3.7 Sonnet",
+                        enabled: true
+                    }
+                ],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            const configs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+            configs.push(config);
+            localStorage.setItem('apiConfigs', JSON.stringify(configs));
+            
+            alert('测试API配置已创建');
+            showData();
+        }
+
+        // 创建测试提示词
+        function createTestPrompt() {
+            const prompt = {
+                id: generateId(),
+                name: "测试提示词",
+                content: "你是一个有用的AI助手，请简洁明了地回答用户的问题。",
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+            prompts.push(prompt);
+            localStorage.setItem('prompts', JSON.stringify(prompts));
+            
+            alert('测试提示词已创建');
+            showData();
+        }
+
+        // 显示所有数据
+        function showData() {
+            const data = {
+                prompts: JSON.parse(localStorage.getItem('prompts') || '[]'),
+                apiConfigs: JSON.parse(localStorage.getItem('apiConfigs') || '[]'),
+                models: JSON.parse(localStorage.getItem('models') || '[]'),
+                defaultTestInputs: JSON.parse(localStorage.getItem('defaultTestInputs') || '[]')
+            };
+
+            // 计算可用模型
+            const availableModels = [];
+            data.apiConfigs.forEach(config => {
+                config.models.forEach(model => {
+                    if (model.enabled) {
+                        availableModels.push({
+                            id: `${config.id}_${model.id}`,
+                            name: model.name,
+                            displayName: model.displayName,
+                            apiConfigId: config.id,
+                            apiConfigName: config.name
+                        });
+                    }
+                });
+            });
+
+            const displayData = {
+                ...data,
+                availableModels,
+                summary: {
+                    prompts: data.prompts.length,
+                    apiConfigs: data.apiConfigs.length,
+                    availableModels: availableModels.length,
+                    defaultTestInputs: data.defaultTestInputs.length
+                }
+            };
+
+            document.getElementById('dataDisplay').innerHTML = 
+                '<pre>' + JSON.stringify(displayData, null, 2) + '</pre>';
+        }
+
+        // 清空所有数据
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？')) {
+                localStorage.removeItem('prompts');
+                localStorage.removeItem('apiConfigs');
+                localStorage.removeItem('models');
+                localStorage.removeItem('defaultTestInputs');
+                alert('所有数据已清空');
+                showData();
+            }
+        }
+
+        // 页面加载时显示数据
+        window.onload = function() {
+            showData();
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速配置工具</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .container { 
+            text-align: center;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 600px;
+        }
+        .button { 
+            background: #4CAF50; 
+            color: white; 
+            padding: 15px 30px; 
+            border: none; 
+            border-radius: 8px; 
+            cursor: pointer; 
+            margin: 10px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        .button:hover { 
+            background: #45a049; 
+            transform: translateY(-2px);
+        }
+        .status {
+            margin: 20px 0;
+            padding: 15px;
+            border-radius: 8px;
+            background: rgba(255,255,255,0.1);
+        }
+        .success { background: rgba(76, 175, 80, 0.3); }
+        .warning { background: rgba(255, 193, 7, 0.3); }
+        .error { background: rgba(244, 67, 54, 0.3); }
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid #fff;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🚀 快速配置API</h1>
+        <p>这个工具将自动为你的应用添加API配置</p>
+        
+        <div id="status" class="status">
+            <strong>配置信息：</strong><br>
+            API地址: http://yunwu.ai<br>
+            API Key: <br>
+            模型: gpt-4o-mini, claude-3-5-sonnet-20241022, qwen-plus 等
+        </div>
+        
+        <button class="button" onclick="addConfigAndOpen()">
+            📱 添加配置并打开应用
+        </button>
+        
+        <button class="button" onclick="testApiOnly()">
+            🔧 仅测试API连接
+        </button>
+        
+        <button class="button" onclick="openApp()">
+            🌐 直接打开应用
+        </button>
+        
+        <div id="result"></div>
+    </div>
+
+    <script>
+        function showResult(message, type = 'success') {
+            const result = document.getElementById('result');
+            result.className = `status ${type}`;
+            result.innerHTML = message;
+        }
+
+        function showLoading(message) {
+            const result = document.getElementById('result');
+            result.className = 'status';
+            result.innerHTML = `<span class="spinner"></span>${message}`;
+        }
+
+        async function testApiOnly() {
+            showLoading('正在测试API连接...');
+            
+            try {
+                const response = await fetch('http://yunwu.ai/v1/models', {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ',
+                        'Content-Type': 'application/json'
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    showResult(`✅ API连接成功！<br>找到 ${data.data ? data.data.length : 0} 个可用模型`, 'success');
+                } else {
+                    showResult(`❌ API测试失败: ${data.error?.message || response.statusText}`, 'error');
+                }
+            } catch (error) {
+                showResult(`❌ 网络错误: ${error.message}`, 'error');
+            }
+        }
+
+        function addConfigAndOpen() {
+            showLoading('正在添加配置...');
+            
+            // 创建API配置
+            const apiConfig = {
+                id: `api-config-${Date.now()}`,
+                name: "云雾AI (真实配置)",
+                requestMode: "api",
+                baseUrl: "http://yunwu.ai",
+                apiKey: "",
+                models: [
+                    {
+                        id: `model-${Date.now()}-1`,
+                        modelId: "gpt-4o-mini",
+                        name: "GPT-4o Mini",
+                        enabled: true
+                    },
+                    {
+                        id: `model-${Date.now()}-2`,
+                        modelId: "gpt-3.5-turbo",
+                        name: "GPT-3.5 Turbo",
+                        enabled: true
+                    },
+                    {
+                        id: `model-${Date.now()}-3`,
+                        modelId: "claude-3-5-sonnet-20241022",
+                        name: "Claude 3.5 Sonnet",
+                        enabled: true
+                    },
+                    {
+                        id: `model-${Date.now()}-4`,
+                        modelId: "qwen-plus",
+                        name: "Qwen Plus",
+                        enabled: true
+                    }
+                ],
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+
+            // 打开应用页面并传递配置
+            const appUrl = 'http://localhost:5678';
+            const newWindow = window.open(appUrl, '_blank');
+            
+            if (newWindow) {
+                // 等待页面加载后添加配置
+                setTimeout(() => {
+                    try {
+                        // 通过postMessage发送配置
+                        newWindow.postMessage({
+                            type: 'ADD_API_CONFIG',
+                            config: apiConfig
+                        }, 'http://localhost:5678');
+                        
+                        showResult('✅ 配置已发送到应用！<br>请在新打开的窗口中查看。', 'success');
+                    } catch (error) {
+                        showResult('⚠️ 应用已打开，请手动添加API配置。', 'warning');
+                    }
+                }, 2000);
+            } else {
+                showResult('❌ 无法打开应用窗口，请检查弹窗拦截设置。', 'error');
+            }
+        }
+
+        function openApp() {
+            const appUrl = 'http://localhost:5678';
+            window.open(appUrl, '_blank');
+            showResult('✅ 应用已在新窗口中打开！', 'success');
+        }
+
+        // 页面加载完成后的提示
+        window.onload = function() {
+            console.log('快速配置工具已就绪');
+        };
+    </script>
+</body>
+</html> 

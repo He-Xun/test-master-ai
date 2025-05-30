@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>快速测试</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { margin: 10px; padding: 10px 20px; }
+        .success { background: #52c41a; color: white; }
+        .error { background: #ff4d4f; color: white; }
+        pre { background: #f5f5f5; padding: 15px; overflow: auto; }
+    </style>
+</head>
+<body>
+    <h1>快速测试 - 数据保存和读取</h1>
+    
+    <div>
+        <button onclick="createTestData()">1. 创建测试数据</button>
+        <button onclick="readData()">2. 读取数据</button>
+        <button onclick="testStorageFunctions()">3. 测试存储函数</button>
+        <button onclick="clearData()">4. 清空数据</button>
+    </div>
+    
+    <div id="result"></div>
+    
+    <script>
+        function log(message, type = 'info') {
+            const div = document.getElementById('result');
+            const p = document.createElement('p');
+            p.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            p.className = type;
+            div.appendChild(p);
+            console.log(message);
+        }
+        
+        function createTestData() {
+            log('开始创建测试数据...');
+            
+            try {
+                // 创建提示词
+                const prompt = {
+                    id: 'test-prompt-' + Date.now(),
+                    name: '测试提示词',
+                    content: '你是一个有用的AI助手。',
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                prompts.push(prompt);
+                localStorage.setItem('prompts', JSON.stringify(prompts));
+                log(`✅ 创建提示词成功: ${prompt.name}`, 'success');
+                
+                // 创建API配置
+                const apiConfig = {
+                    id: 'test-config-' + Date.now(),
+                    name: '测试API配置',
+                    requestMode: 'url',
+                    directUrl: 'http://127.0.0.1:8008/req',
+                    models: [
+                        {
+                            id: 'model-1',
+                            name: 'gpt-4o',
+                            displayName: 'GPT-4o',
+                            enabled: true
+                        }
+                    ],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+                
+                const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                apiConfigs.push(apiConfig);
+                localStorage.setItem('apiConfigs', JSON.stringify(apiConfigs));
+                log(`✅ 创建API配置成功: ${apiConfig.name}`, 'success');
+                
+                // 创建默认测试输入
+                const defaultInput = {
+                    id: 'test-input-' + Date.now(),
+                    name: '测试输入',
+                    content: '你好，请介绍一下你自己。',
+                    category: '基础测试',
+                    createdAt: new Date().toISOString()
+                };
+                
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                defaultInputs.push(defaultInput);
+                localStorage.setItem('defaultTestInputs', JSON.stringify(defaultInputs));
+                log(`✅ 创建默认输入成功: ${defaultInput.name}`, 'success');
+                
+                log('✅ 所有测试数据创建完成！', 'success');
+                
+            } catch (error) {
+                log(`❌ 创建测试数据失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function readData() {
+            log('开始读取数据...');
+            
+            try {
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                
+                log(`📊 提示词数量: ${prompts.length}`);
+                log(`📊 API配置数量: ${apiConfigs.length}`);
+                log(`📊 默认输入数量: ${defaultInputs.length}`);
+                
+                // 计算可用模型
+                let modelCount = 0;
+                apiConfigs.forEach(config => {
+                    if (config.models) {
+                        modelCount += config.models.filter(m => m.enabled).length;
+                    }
+                });
+                log(`📊 可用模型数量: ${modelCount}`);
+                
+                // 显示详细数据
+                const data = {
+                    prompts: prompts.map(p => ({ id: p.id, name: p.name })),
+                    apiConfigs: apiConfigs.map(c => ({ 
+                        id: c.id, 
+                        name: c.name, 
+                        modelCount: c.models ? c.models.length : 0 
+                    })),
+                    defaultInputs: defaultInputs.map(d => ({ id: d.id, name: d.name }))
+                };
+                
+                const pre = document.createElement('pre');
+                pre.textContent = JSON.stringify(data, null, 2);
+                document.getElementById('result').appendChild(pre);
+                
+                if (prompts.length > 0 && modelCount > 0) {
+                    log('✅ 数据读取成功，TestingPanel应该能正常工作！', 'success');
+                } else {
+                    log('⚠️ 数据不完整，TestingPanel可能无法正常工作', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ 读取数据失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function testStorageFunctions() {
+            log('开始测试存储函数...');
+            
+            try {
+                // 模拟storage-simple.ts中的函数
+                const promptStorage = {
+                    getAll: () => JSON.parse(localStorage.getItem('prompts') || '[]')
+                };
+                
+                const apiConfigStorage = {
+                    getAll: () => JSON.parse(localStorage.getItem('apiConfigs') || '[]'),
+                    getAllModels: () => {
+                        const configs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                        const models = [];
+                        configs.forEach(config => {
+                            if (config.models && Array.isArray(config.models)) {
+                                config.models.forEach(model => {
+                                    if (model.enabled) {
+                                        models.push({
+                                            id: `${config.id}_${model.id}`,
+                                            name: model.name,
+                                            displayName: model.displayName,
+                                            apiConfigName: config.name,
+                                        });
+                                    }
+                                });
+                            }
+                        });
+                        return models;
+                    }
+                };
+                
+                const defaultTestInputStorage = {
+                    getAll: () => JSON.parse(localStorage.getItem('defaultTestInputs') || '[]')
+                };
+                
+                // 测试函数调用
+                const prompts = promptStorage.getAll();
+                const models = apiConfigStorage.getAllModels();
+                const defaultInputs = defaultTestInputStorage.getAll();
+                
+                log(`🔧 promptStorage.getAll(): ${prompts.length} 个`);
+                log(`🔧 apiConfigStorage.getAllModels(): ${models.length} 个`);
+                log(`🔧 defaultTestInputStorage.getAll(): ${defaultInputs.length} 个`);
+                
+                if (prompts.length > 0 && models.length > 0) {
+                    log('✅ 存储函数测试通过！', 'success');
+                } else {
+                    log('❌ 存储函数测试失败，数据不足', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ 存储函数测试失败: ${error.message}`, 'error');
+            }
+        }
+        
+        function clearData() {
+            if (confirm('确定要清空所有数据吗？')) {
+                localStorage.removeItem('prompts');
+                localStorage.removeItem('apiConfigs');
+                localStorage.removeItem('models');
+                localStorage.removeItem('defaultTestInputs');
+                log('🧹 所有数据已清空', 'success');
+                document.getElementById('result').innerHTML = '';
+            }
+        }
+        
+        // 页面加载时自动读取数据
+        window.onload = function() {
+            log('🚀 快速测试工具已启动');
+            readData();
+        };
+    </script>
+</body>
+</html> 

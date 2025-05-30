@@ -1,0 +1,91 @@
+{
+  "name": "test-master-ai",
+  "version": "1.3.1",
+  "private": true,
+  "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
+  "main": "dist/main.js",
+  "homepage": "./",
+  "scripts": {
+    "start": "vite",
+    "dev": "vite",
+    "build": "vite build && npm run build:electron",
+    "preview": "vite preview",
+    "build:electron": "tsc -p tsconfig.electron.json",
+    "pack": "electron-builder",
+    "dist": "npm run build && electron-builder",
+    "postinstall": "electron-builder install-app-deps"
+  },
+  "keywords": [
+    "api-testing",
+    "prompt-engineering",
+    "llm",
+    "electron",
+    "react"
+  ],
+  "author": "hexun",
+  "license": "GPL",
+  "devDependencies": {
+    "@types/node": "^18.0.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "@types/react-router-dom": "^5.3.3",
+    "@types/sql.js": "^1.4.9",
+    "@vitejs/plugin-react": "^4.2.0",
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^8.2.0",
+    "electron": "^25.0.0",
+    "electron-builder": "^24.0.0",
+    "postcss": "^8.5.4",
+    "typescript": "^5.0.0",
+    "vite": "^5.2.0",
+    "wait-on": "^7.0.0"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^5.2.0",
+    "antd": "^5.8.0",
+    "axios": "^1.5.0",
+    "electron-store": "^8.1.0",
+    "i18next": "^25.2.1",
+    "i18next-browser-languagedetector": "^8.1.0",
+    "playwright": "^1.52.0",
+    "puppeteer": "^24.9.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-i18next": "^15.5.2",
+    "react-router-dom": "^7.6.1",
+    "sql.js": "^1.13.0",
+    "tailwindcss": "^3.3.0",
+    "xlsx": "^0.18.5"
+  },
+  "build": {
+    "appId": "com.apitestingtool.app",
+    "productName": "test-master-ai",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "build/**/*",
+      "dist/main.js",
+      "node_modules/**/*"
+    ],
+    "mac": {
+      "category": "public.app-category.developer-tools"
+    },
+    "win": {
+      "target": "nsis"
+    }
+  },
+  "browserslist": {
+    "production": [
+      ">0.2%",
+      "not dead",
+      "not op_mini all"
+    ],
+    "development": [
+      "last 1 chrome version",
+      "last 1 firefox version",
+      "last 1 safari version"
+    ]
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}

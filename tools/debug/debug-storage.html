@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>存储调试工具</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 6px;
+            background: #fafafa;
+        }
+        button { 
+            margin: 5px; 
+            padding: 8px 16px; 
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #1890ff;
+            color: white;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button.danger {
+            background: #ff4d4f;
+        }
+        button.danger:hover {
+            background: #ff7875;
+        }
+        pre { 
+            background: #f5f5f5; 
+            padding: 15px; 
+            overflow: auto; 
+            border-radius: 4px;
+            border: 1px solid #d9d9d9;
+            max-height: 400px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .status.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        h1, h2 {
+            color: #262626;
+        }
+        .stats {
+            display: flex;
+            gap: 20px;
+            margin: 15px 0;
+        }
+        .stat-item {
+            background: white;
+            padding: 10px 15px;
+            border-radius: 6px;
+            border: 1px solid #d9d9d9;
+            text-align: center;
+        }
+        .stat-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #1890ff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 API测试工具 - 存储调试</h1>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="promptCount">0</div>
+                <div class="stat-label">提示词</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="configCount">0</div>
+                <div class="stat-label">API配置</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="modelCount">0</div>
+                <div class="stat-label">可用模型</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="inputCount">0</div>
+                <div class="stat-label">默认输入</div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🎯 快速操作</h2>
+            <button onclick="createSampleData()">创建示例数据</button>
+            <button onclick="showAllData()">显示所有数据</button>
+            <button onclick="testPersistence()">测试数据持久化</button>
+            <button onclick="exportData()">导出数据</button>
+            <button onclick="importData()">导入数据</button>
+            <button class="danger" onclick="clearAllData()">清空所有数据</button>
+        </div>
+
+        <div class="grid">
+            <div class="section">
+                <h2>📊 数据状态</h2>
+                <div id="dataStatus"></div>
+            </div>
+            
+            <div class="section">
+                <h2>🔍 存储检查</h2>
+                <div id="storageCheck"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 详细数据</h2>
+            <div id="dataDisplay"></div>
+        </div>
+
+        <div class="section">
+            <h2>📝 操作日志</h2>
+            <div id="logDisplay"></div>
+        </div>
+    </div>
+
+    <script>
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            logs.unshift(`[${timestamp}] ${message}`);
+            if (logs.length > 50) logs.pop();
+            
+            const logDiv = document.getElementById('logDisplay');
+            logDiv.innerHTML = logs.map(log => `<div>${log}</div>`).join('');
+            
+            console.log(`[Storage Debug] ${message}`);
+        }
+
+        // 生成唯一ID
+        function generateId() {
+            return Date.now().toString(36) + Math.random().toString(36).substr(2);
+        }
+
+        // 创建示例数据
+        function createSampleData() {
+            try {
+                // 创建示例API配置
+                const apiConfig = {
+                    id: generateId(),
+                    name: "本地测试服务",
+                    requestMode: "url",
+                    directUrl: "http://127.0.0.1:8008/req",
+                    models: [
+                        {
+                            id: "model-1",
+                            name: "gpt-4o",
+                            displayName: "GPT-4o",
+                            enabled: true
+                        },
+                        {
+                            id: "model-2", 
+                            name: "claude-3-5-sonnet-20241022",
+                            displayName: "Claude 3.5 Sonnet",
+                            enabled: true
+                        },
+                        {
+                            id: "model-3",
+                            name: "claude-3-7-sonnet-20250219", 
+                            displayName: "Claude 3.7 Sonnet",
+                            enabled: true
+                        }
+                    ],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // 创建示例提示词
+                const prompt = {
+                    id: generateId(),
+                    name: "通用助手",
+                    content: "你是一个有用的AI助手，请简洁明了地回答用户的问题。",
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                };
+
+                // 保存到localStorage
+                const configs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                configs.push(apiConfig);
+                localStorage.setItem('apiConfigs', JSON.stringify(configs));
+
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                prompts.push(prompt);
+                localStorage.setItem('prompts', JSON.stringify(prompts));
+
+                log('✅ 示例数据创建成功', 'success');
+                updateStats();
+                showAllData();
+            } catch (error) {
+                log(`❌ 创建示例数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 显示所有数据
+        function showAllData() {
+            try {
+                const data = {
+                    prompts: JSON.parse(localStorage.getItem('prompts') || '[]'),
+                    apiConfigs: JSON.parse(localStorage.getItem('apiConfigs') || '[]'),
+                    models: JSON.parse(localStorage.getItem('models') || '[]'),
+                    defaultTestInputs: JSON.parse(localStorage.getItem('defaultTestInputs') || '[]')
+                };
+
+                // 计算可用模型
+                const availableModels = [];
+                data.apiConfigs.forEach(config => {
+                    if (config.models) {
+                        config.models.forEach(model => {
+                            if (model.enabled) {
+                                availableModels.push({
+                                    id: `${config.id}_${model.id}`,
+                                    name: model.name,
+                                    displayName: model.displayName,
+                                    apiConfigId: config.id,
+                                    apiConfigName: config.name
+                                });
+                            }
+                        });
+                    }
+                });
+
+                const displayData = {
+                    ...data,
+                    availableModels,
+                    summary: {
+                        prompts: data.prompts.length,
+                        apiConfigs: data.apiConfigs.length,
+                        availableModels: availableModels.length,
+                        defaultTestInputs: data.defaultTestInputs.length
+                    }
+                };
+
+                document.getElementById('dataDisplay').innerHTML = 
+                    '<pre>' + JSON.stringify(displayData, null, 2) + '</pre>';
+                
+                updateStats();
+                log('📊 数据显示已更新');
+            } catch (error) {
+                log(`❌ 显示数据失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 更新统计信息
+        function updateStats() {
+            try {
+                const prompts = JSON.parse(localStorage.getItem('prompts') || '[]');
+                const apiConfigs = JSON.parse(localStorage.getItem('apiConfigs') || '[]');
+                const defaultInputs = JSON.parse(localStorage.getItem('defaultTestInputs') || '[]');
+                
+                let modelCount = 0;
+                apiConfigs.forEach(config => {
+                    if (config.models) {
+                        modelCount += config.models.filter(m => m.enabled).length;
+                    }
+                });
+
+                document.getElementById('promptCount').textContent = prompts.length;
+                document.getElementById('configCount').textContent = apiConfigs.length;
+                document.getElementById('modelCount').textContent = modelCount;
+                document.getElementById('inputCount').textContent = defaultInputs.length;
+
+                // 数据状态检查
+                const statusDiv = document.getElementById('dataStatus');
+                let status = '<div class="status success">✅ 数据状态正常</div>';
+                
+                if (prompts.length === 0) {
+                    status += '<div class="status error">⚠️ 没有提示词数据</div>';
+                }
+                if (apiConfigs.length === 0) {
+                    status += '<div class="status error">⚠️ 没有API配置数据</div>';
+                }
+                if (modelCount === 0) {
+                    status += '<div class="status error">⚠️ 没有可用模型</div>';
+                }
+
+                statusDiv.innerHTML = status;
+
+                // 存储检查
+                const storageDiv = document.getElementById('storageCheck');
+                const storageInfo = {
+                    localStorage可用: typeof(Storage) !== "undefined",
+                    数据大小: JSON.stringify(localStorage).length + ' 字符',
+                    存储项数量: localStorage.length,
+                    浏览器: navigator.userAgent.split(' ')[0]
+                };
+                
+                storageDiv.innerHTML = '<pre>' + JSON.stringify(storageInfo, null, 2) + '</pre>';
+                
+            } catch (error) {
+                log(`❌ 更新统计失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 测试数据持久化
+        function testPersistence() {
+            try {
+                const testKey = 'persistence_test';
+                const testValue = { timestamp: Date.now(), test: true };
+                
+                // 写入测试数据
+                localStorage.setItem(testKey, JSON.stringify(testValue));
+                log('📝 写入测试数据');
+                
+                // 立即读取
+                const readValue = JSON.parse(localStorage.getItem(testKey));
+                if (JSON.stringify(readValue) === JSON.stringify(testValue)) {
+                    log('✅ 数据读写测试通过', 'success');
+                } else {
+                    log('❌ 数据读写测试失败', 'error');
+                }
+                
+                // 清理测试数据
+                localStorage.removeItem(testKey);
+                log('🧹 清理测试数据');
+                
+                // 检查现有数据完整性
+                const keys = ['prompts', 'apiConfigs', 'models', 'defaultTestInputs'];
+                keys.forEach(key => {
+                    try {
+                        const data = localStorage.getItem(key);
+                        if (data) {
+                            JSON.parse(data);
+                            log(`✅ ${key} 数据格式正确`);
+                        } else {
+                            log(`⚠️ ${key} 数据为空`);
+                        }
+                    } catch (e) {
+                        log(`❌ ${key} 数据格式错误: ${e.message}`, 'error');
+                    }
+                });
+                
+            } catch (error) {
+                log(`❌ 持久化测试失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 导出数据
+        function exportData() {
+            try {
+                const data = {
+                    prompts: JSON.parse(localStorage.getItem('prompts') || '[]'),
+                    apiConfigs: JSON.parse(localStorage.getItem('apiConfigs') || '[]'),
+                    models: JSON.parse(localStorage.getItem('models') || '[]'),
+                    defaultTestInputs: JSON.parse(localStorage.getItem('defaultTestInputs') || '[]'),
+                    exportTime: new Date().toISOString()
+                };
+                
+                const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `api-tool-data-${new Date().toISOString().split('T')[0]}.json`;
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                log('📤 数据导出成功', 'success');
+            } catch (error) {
+                log(`❌ 数据导出失败: ${error.message}`, 'error');
+            }
+        }
+
+        // 导入数据
+        function importData() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json';
+            input.onchange = function(e) {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    try {
+                        const data = JSON.parse(e.target.result);
+                        
+                        if (data.prompts) localStorage.setItem('prompts', JSON.stringify(data.prompts));
+                        if (data.apiConfigs) localStorage.setItem('apiConfigs', JSON.stringify(data.apiConfigs));
+                        if (data.models) localStorage.setItem('models', JSON.stringify(data.models));
+                        if (data.defaultTestInputs) localStorage.setItem('defaultTestInputs', JSON.stringify(data.defaultTestInputs));
+                        
+                        log('📥 数据导入成功', 'success');
+                        showAllData();
+                    } catch (error) {
+                        log(`❌ 数据导入失败: ${error.message}`, 'error');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
+        }
+
+        // 清空所有数据
+        function clearAllData() {
+            if (confirm('⚠️ 确定要清空所有数据吗？此操作不可恢复！')) {
+                try {
+                    localStorage.removeItem('prompts');
+                    localStorage.removeItem('apiConfigs');
+                    localStorage.removeItem('models');
+                    localStorage.removeItem('defaultTestInputs');
+                    
+                    log('🧹 所有数据已清空', 'success');
+                    showAllData();
+                } catch (error) {
+                    log(`❌ 清空数据失败: ${error.message}`, 'error');
+                }
+            }
+        }
+
+        // 页面加载时初始化
+        window.onload = function() {
+            log('🚀 存储调试工具已启动');
+            showAllData();
+            
+            // 监听localStorage变化
+            window.addEventListener('storage', function(e) {
+                log(`📡 检测到存储变化: ${e.key}`);
+                showAllData();
+            });
+        };
+    </script>
+</body>
+</html> 

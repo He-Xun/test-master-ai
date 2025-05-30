@@ -1,0 +1,46 @@
+{
+  "name": "本地测试服务",
+  "requestMode": "url",
+  "directUrl": "http://127.0.0.1:8008/req",
+  "models": [
+    {
+      "id": "model-1",
+      "name": "gpt-4o",
+      "displayName": "GPT-4o",
+      "enabled": true
+    },
+    {
+      "id": "model-2", 
+      "name": "claude-3-5-sonnet-20241022",
+      "displayName": "Claude 3.5 Sonnet",
+      "enabled": true
+    },
+    {
+      "id": "model-3",
+      "name": "claude-3-7-sonnet-20250219", 
+      "displayName": "Claude 3.7 Sonnet",
+      "enabled": true
+    },
+    {
+      "id": "model-4",
+      "name": "gemini-2.5-pro-exp-03-25",
+      "displayName": "Gemini 2.5 Pro Experimental",
+      "enabled": true
+    },
+    {
+      "id": "model-5",
+      "name": "gemini-2.5-pro-preview-03-25", 
+      "displayName": "Gemini 2.5 Pro Preview",
+      "enabled": true
+    },
+    {
+      "id": "model-6",
+      "name": "gemini-2.5-flash-preview-04-17",
+      "displayName": "Gemini 2.5 Flash Preview", 
+      "enabled": true
+    }
+  ],
+  "defaultModel": "claude-3-7-sonnet-20250219",
+  "defaultInterval": 1000,
+  "defaultTimes": 1
+} 

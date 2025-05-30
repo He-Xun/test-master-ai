@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复验证测试页面</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            padding: 20px; 
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .container { 
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 15px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.2);
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .test-section {
+            background: rgba(255,255,255,0.05);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 15px 0;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .button { 
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            color: white; 
+            padding: 12px 30px; 
+            border: none; 
+            border-radius: 25px; 
+            cursor: pointer; 
+            margin: 10px; 
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        }
+        .button:hover { 
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
+        }
+        .success { color: #2ecc71; font-weight: bold; }
+        .error { color: #e74c3c; font-weight: bold; }
+        .info { color: #3498db; font-weight: bold; }
+        .log { 
+            background: rgba(0,0,0,0.2); 
+            padding: 15px; 
+            border-radius: 8px; 
+            font-family: monospace; 
+            white-space: pre-wrap; 
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 Bug修复验证测试</h1>
+        <p>本页面用于验证以下两个问题的修复情况：</p>
+        <ul>
+            <li><strong>问题1：</strong>重复次数设置为3时，下面的提示没有同步更新</li>
+            <li><strong>问题2：</strong>测试时所有请求都失败（API代理问题）</li>
+        </ul>
+
+        <div class="test-section">
+            <h2>📱 应用访问测试</h2>
+            <p>点击下面的按钮访问主应用并进行测试：</p>
+            <button class="button" onclick="openApp()">🚀 打开测试应用</button>
+            <div id="appStatus" class="log">应用状态检查中...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>🔗 API代理测试</h2>
+            <p>测试API代理是否正常工作：</p>
+            <button class="button" onclick="testApiProxy()">🧪 测试API代理</button>
+            <div id="apiResult" class="log">等待测试...</div>
+        </div>
+
+        <div class="test-section">
+            <h2>📋 测试步骤</h2>
+            <ol style="line-height: 1.8;">
+                <li><strong>响应式更新测试：</strong>
+                    <ul>
+                        <li>在应用中进入"测试面板"</li>
+                        <li>将重复次数改为3</li>
+                        <li>观察页面中的"每次重复数"和"总测试数"是否立即更新</li>
+                        <li>在测试输入卡片中观察"将测试 X 次"是否更新为"将测试 3 次"</li>
+                    </ul>
+                </li>
+                <li><strong>API调用测试：</strong>
+                    <ul>
+                        <li>配置一个提示词和模型（应该已经有默认配置）</li>
+                        <li>输入一个简单的测试内容，如"你好"</li>
+                        <li>点击"开始测试"</li>
+                        <li>观察是否能成功调用API并获取响应</li>
+                    </ul>
+                </li>
+            </ol>
+        </div>
+
+        <div class="test-section">
+            <h2>🎯 预期结果</h2>
+            <div class="success">✅ 重复次数改变时，所有相关显示立即更新</div>
+            <div class="success">✅ API调用成功，返回正确的模型响应</div>
+            <div class="success">✅ 代理日志显示正常的请求和响应</div>
+        </div>
+    </div>
+
+    <script>
+        function openApp() {
+            document.getElementById('appStatus').innerHTML = '<span class="info">正在打开应用...</span>';
+            window.open('http://localhost:5678', '_blank');
+            setTimeout(() => {
+                document.getElementById('appStatus').innerHTML = '<span class="success">✅ 应用已在新标签页中打开</span>';
+            }, 1000);
+        }
+
+        async function testApiProxy() {
+            const resultDiv = document.getElementById('apiResult');
+            resultDiv.innerHTML = '<span class="info">🔄 正在测试API代理...</span>';
+            
+            try {
+                // 检测当前是否通过开发服务器访问
+                const isFromDevServer = window.location.origin.includes('localhost:5678');
+                const apiUrl = isFromDevServer 
+                    ? '/api-proxy/v1/chat/completions'
+                    : 'http://localhost:5678/api-proxy/v1/chat/completions';
+                
+                console.log('测试URL:', apiUrl);
+                console.log('当前origin:', window.location.origin);
+                console.log('是否从开发服务器访问:', isFromDevServer);
+                
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        model: 'gpt-4o-mini',
+                        messages: [
+                            {
+                                role: 'user',
+                                content: '你好，这是一个测试消息。'
+                            }
+                        ],
+                        max_tokens: 20
+                    })
+                });
+
+                console.log('响应状态:', response.status);
+                console.log('响应头:', [...response.headers.entries()]);
+
+                if (response.ok) {
+                    const data = await response.json();
+                    console.log('响应数据:', data);
+                    resultDiv.innerHTML = `<span class="success">✅ API代理测试成功！</span>\n\n模型响应: "${data.choices[0]?.message?.content || '无响应内容'}"\n\n完整响应数据：\n${JSON.stringify(data, null, 2)}`;
+                } else {
+                    const errorText = await response.text();
+                    console.error('API错误:', errorText);
+                    resultDiv.innerHTML = `<span class="error">❌ API代理测试失败</span>\n\n状态: ${response.status} ${response.statusText}\n\n错误详情: ${errorText}\n\n请确保:\n1. 通过 http://localhost:5678 访问此页面\n2. 开发服务器正在运行\n3. API Key 有效`;
+                }
+            } catch (error) {
+                console.error('网络错误:', error);
+                let errorMessage = error.message;
+                if (error.message.includes('fetch')) {
+                    errorMessage += '\n\n可能的原因:\n• 请通过 http://localhost:5678 访问此页面，而不是直接打开HTML文件\n• 开发服务器未运行\n• CORS限制';
+                }
+                resultDiv.innerHTML = `<span class="error">❌ API代理测试失败</span>\n\n网络错误: ${errorMessage}`;
+            }
+        }
+
+        // 页面加载时检查应用状态
+        window.addEventListener('load', async () => {
+            try {
+                const response = await fetch('http://localhost:5678', { method: 'HEAD' });
+                if (response.ok) {
+                    document.getElementById('appStatus').innerHTML = '<span class="success">✅ 应用服务正常运行</span>';
+                } else {
+                    document.getElementById('appStatus').innerHTML = '<span class="error">❌ 应用服务异常</span>';
+                }
+            } catch (error) {
+                document.getElementById('appStatus').innerHTML = '<span class="error">❌ 无法连接到应用服务</span>';
+            }
+        });
+    </script>
+</body>
+</html> 

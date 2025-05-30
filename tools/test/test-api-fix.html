@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API修复测试</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        button { 
+            margin: 10px; 
+            padding: 10px 20px; 
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #1890ff;
+            color: white;
+        }
+        button:hover {
+            background: #40a9ff;
+        }
+        button.danger {
+            background: #ff4d4f;
+        }
+        button:disabled {
+            background: #d9d9d9;
+            cursor: not-allowed;
+        }
+        .log {
+            background: #f5f5f5;
+            padding: 15px;
+            border-radius: 4px;
+            margin: 10px 0;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .status.success {
+            background: #f6ffed;
+            border: 1px solid #b7eb8f;
+            color: #52c41a;
+        }
+        .status.error {
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            color: #ff4d4f;
+        }
+        .status.warning {
+            background: #fffbe6;
+            border: 1px solid #ffe58f;
+            color: #faad14;
+        }
+        .config-section {
+            border: 1px solid #d9d9d9;
+            border-radius: 6px;
+            padding: 15px;
+            margin: 15px 0;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px;
+            margin: 5px 0;
+            border: 1px solid #d9d9d9;
+            border-radius: 4px;
+        }
+        label {
+            display: block;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔧 API修复测试工具</h1>
+        <p>测试停止按钮和第三方API兼容性修复效果</p>
+        
+        <div class="config-section">
+            <h3>测试配置</h3>
+            <label>API类型:</label>
+            <select id="apiType">
+                <option value="url">URL模式（直接请求）</option>
+                <option value="api">API模式（OpenAI兼容）</option>
+            </select>
+            
+            <label>请求URL/BaseURL:</label>
+            <input type="text" id="apiUrl" placeholder="例如: http://127.0.0.1:8008/req 或 https://yunwu.ai/v1" value="http://127.0.0.1:8008/req">
+            
+            <label>API Key (API模式需要):</label>
+            <input type="text" id="apiKey" placeholder="sk-...">
+            
+            <label>模型名称:</label>
+            <input type="text" id="modelName" placeholder="gpt-4o" value="gpt-4o">
+            
+            <label>测试内容:</label>
+            <input type="text" id="testInput" placeholder="你好，请介绍一下你自己" value="你好，请介绍一下你自己">
+        </div>
+        
+        <div>
+            <button onclick="startTest()" id="startBtn">开始测试</button>
+            <button onclick="stopTest()" id="stopBtn" class="danger" disabled>停止测试</button>
+            <button onclick="clearLog()">清空日志</button>
+        </div>
+        
+        <div class="status" id="status">准备就绪</div>
+        
+        <div class="log" id="logArea"></div>
+    </div>
+
+    <script>
+        let abortController = null;
+        let isRunning = false;
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logArea = document.getElementById('logArea');
+            const logEntry = document.createElement('div');
+            logEntry.textContent = `[${timestamp}] ${message}`;
+            logEntry.style.color = type === 'error' ? '#ff4d4f' : type === 'success' ? '#52c41a' : '#262626';
+            logArea.appendChild(logEntry);
+            logArea.scrollTop = logArea.scrollHeight;
+            console.log(`[API Test] ${message}`);
+        }
+
+        function updateStatus(message, type = 'info') {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        function updateButtons(running) {
+            document.getElementById('startBtn').disabled = running;
+            document.getElementById('stopBtn').disabled = !running;
+            isRunning = running;
+        }
+
+        async function delay(ms) {
+            return new Promise((resolve, reject) => {
+                if (abortController?.signal.aborted) {
+                    reject(new Error('操作已中止'));
+                    return;
+                }
+                
+                const timeout = setTimeout(resolve, ms);
+                
+                if (abortController) {
+                    abortController.signal.addEventListener('abort', () => {
+                        clearTimeout(timeout);
+                        reject(new Error('操作已中止'));
+                    });
+                }
+            });
+        }
+
+        async function callAPI(config, model, prompt, userInput) {
+            const requestData = config.requestMode === 'url' ? {
+                model,
+                prompt,
+                user_input: userInput,
+                temperature: 0.7,
+                max_tokens: 2000,
+            } : {
+                model,
+                messages: [
+                    { role: 'system', content: prompt },
+                    { role: 'user', content: userInput }
+                ],
+                temperature: 0.7,
+                max_tokens: 2000,
+            };
+
+            let requestUrl = config.requestMode === 'url' ? config.directUrl : config.baseUrl;
+            
+            // 处理API模式的URL
+            if (config.requestMode === 'api') {
+                if (!requestUrl.includes('/chat/completions') && !requestUrl.includes('/v1')) {
+                    requestUrl = `${requestUrl.replace(/\/$/, '')}/chat/completions`;
+                } else if (requestUrl.includes('/v1') && !requestUrl.includes('/chat/completions')) {
+                    requestUrl = `${requestUrl.replace(/\/$/, '')}/chat/completions`;
+                }
+            }
+
+            log(`请求URL: ${requestUrl}`);
+            log(`请求数据: ${JSON.stringify(requestData, null, 2)}`);
+
+            const headers = {
+                'Content-Type': 'application/json',
+            };
+
+            if (config.requestMode === 'api' && config.apiKey) {
+                headers['Authorization'] = `Bearer ${config.apiKey}`;
+            }
+
+            const response = await fetch(requestUrl, {
+                method: 'POST',
+                headers,
+                body: JSON.stringify(requestData),
+                signal: abortController?.signal
+            });
+
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const data = await response.json();
+            log(`响应数据: ${JSON.stringify(data, null, 2)}`);
+
+            // 提取响应内容
+            if (config.requestMode === 'url') {
+                if (typeof data === 'string') {
+                    return data;
+                } else if (data.content) {
+                    return data.content;
+                } else if (data.response) {
+                    return data.response;
+                } else if (data.text) {
+                    return data.text;
+                } else {
+                    return JSON.stringify(data);
+                }
+            } else {
+                if (data.choices && data.choices.length > 0) {
+                    return data.choices[0].message.content || '';
+                }
+                return '';
+            }
+        }
+
+        async function startTest() {
+            try {
+                updateButtons(true);
+                updateStatus('测试进行中...', 'warning');
+                
+                abortController = new AbortController();
+                
+                const config = {
+                    requestMode: document.getElementById('apiType').value,
+                    directUrl: document.getElementById('apiUrl').value,
+                    baseUrl: document.getElementById('apiUrl').value,
+                    apiKey: document.getElementById('apiKey').value,
+                };
+                
+                const model = document.getElementById('modelName').value;
+                const testInput = document.getElementById('testInput').value;
+                const prompt = '你是一个有用的AI助手，请简洁明了地回答用户的问题。';
+
+                log('开始API测试...');
+                log(`配置: ${JSON.stringify(config, null, 2)}`);
+
+                // 模拟多次请求测试停止功能
+                for (let i = 1; i <= 3; i++) {
+                    if (abortController.signal.aborted) {
+                        log('检测到中止信号，停止测试', 'warning');
+                        break;
+                    }
+
+                    log(`开始第 ${i} 次请求...`);
+                    
+                    try {
+                        const result = await callAPI(config, model, prompt, `${testInput} (第${i}次测试)`);
+                        log(`第 ${i} 次请求成功: ${result}`, 'success');
+                    } catch (error) {
+                        if (error.name === 'AbortError' || error.message === '操作已中止') {
+                            log(`第 ${i} 次请求被中止`, 'warning');
+                            break;
+                        } else {
+                            log(`第 ${i} 次请求失败: ${error.message}`, 'error');
+                        }
+                    }
+
+                    // 等待间隔
+                    if (i < 3) {
+                        try {
+                            log('等待2秒...');
+                            await delay(2000);
+                        } catch (delayError) {
+                            log('等待期间被中止', 'warning');
+                            break;
+                        }
+                    }
+                }
+
+                if (!abortController.signal.aborted) {
+                    log('所有测试完成！', 'success');
+                    updateStatus('测试完成', 'success');
+                } else {
+                    log('测试被用户停止', 'warning');
+                    updateStatus('测试已停止', 'warning');
+                }
+
+            } catch (error) {
+                log(`测试失败: ${error.message}`, 'error');
+                updateStatus('测试失败', 'error');
+            } finally {
+                updateButtons(false);
+                abortController = null;
+            }
+        }
+
+        function stopTest() {
+            if (abortController) {
+                log('用户点击停止按钮', 'warning');
+                abortController.abort();
+                updateStatus('正在停止测试...', 'warning');
+            }
+        }
+
+        function clearLog() {
+            document.getElementById('logArea').innerHTML = '';
+            updateStatus('日志已清空', 'info');
+        }
+
+        // 页面加载时的初始化
+        window.onload = function() {
+            log('API修复测试工具已启动');
+            updateStatus('准备就绪', 'success');
+        };
+    </script>
+</body>
+</html> 

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>修复验证 - API配置Modal</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 8px; }
+        .test-case { margin: 15px 0; padding: 10px; background: #f8f9fa; border-left: 4px solid #007bff; }
+        .success { background: #d4edda; border-left-color: #28a745; }
+        .warning { background: #fff3cd; border-left-color: #ffc107; }
+        .error { background: #f8d7da; border-left-color: #dc3545; }
+        button { padding: 10px 20px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f1f1f1; padding: 10px; border-radius: 4px; overflow-x: auto; font-size: 12px; }
+        .step { margin: 10px 0; padding: 8px; background: #e3f2fd; border-radius: 4px; }
+        .result { margin: 10px 0; padding: 8px; background: #f3e5f5; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>API配置Modal修复验证</h1>
+        <p>本页面用于验证"添加模型后切换tab丢失配置"问题的修复效果</p>
+        
+        <div class="section">
+            <h2>🔧 修复方案概述</h2>
+            <div class="test-case">
+                <h3>主要修复措施：</h3>
+                <ul>
+                    <li><strong>Form.List Ref管理</strong>：使用useRef保存Form.List的add/remove操作接口</li>
+                    <li><strong>表单数据备份</strong>：在Tab切换时备份和恢复表单数据</li>
+                    <li><strong>状态同步检测</strong>：检测模型数据丢失并自动恢复</li>
+                    <li><strong>Tab状态管理</strong>：使用受控的activeKey防止状态冲突</li>
+                    <li><strong>嵌套Tabs优化</strong>：将模型分组的嵌套Tabs改为Collapse避免冲突</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🧪 测试步骤</h2>
+            <div class="step">
+                <strong>步骤1：</strong> 打开应用
+                <button onclick="openApp()">打开应用</button>
+                <div id="step1-result"></div>
+            </div>
+            
+            <div class="step">
+                <strong>步骤2：</strong> 测试API配置管理
+                <button onclick="testApiConfig()">测试配置管理</button>
+                <div id="step2-result"></div>
+            </div>
+            
+            <div class="step">
+                <strong>步骤3：</strong> 验证控制台日志
+                <button onclick="checkConsole()">检查控制台</button>
+                <div id="step3-result"></div>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>📋 测试清单</h2>
+            <div class="test-case">
+                <h3>需要验证的功能点：</h3>
+                <div class="checklist">
+                    <label><input type="checkbox" id="check1"> 1. 添加API配置基本信息</label><br>
+                    <label><input type="checkbox" id="check2"> 2. 切换到模型配置Tab</label><br>
+                    <label><input type="checkbox" id="check3"> 3. 获取可用模型列表</label><br>
+                    <label><input type="checkbox" id="check4"> 4. 选择并添加多个模型</label><br>
+                    <label><input type="checkbox" id="check5"> 5. 切换回基本配置Tab</label><br>
+                    <label><input type="checkbox" id="check6"> 6. 再次切换到模型配置Tab</label><br>
+                    <label><input type="checkbox" id="check7"> 7. 验证添加的模型仍然存在</label><br>
+                    <label><input type="checkbox" id="check8"> 8. 保存配置成功</label><br>
+                    <label><input type="checkbox" id="check9"> 9. 配置在TestingPanel中可见</label><br>
+                </div>
+                <br>
+                <button onclick="resetChecklist()">重置清单</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>🐛 调试信息</h2>
+            <div class="test-case">
+                <h3>关键调试点：</h3>
+                <pre id="debug-info">
+打开浏览器开发者工具(F12)，查看控制台中的以下日志：
+
+1. [ApiConfigManagement] Tab切换: basic -> models
+2. [ApiConfigManagement] 备份表单数据: {name: "...", models: [...]}
+3. [ApiConfigManagement] Tab切换后的表单数据: {...}
+4. [ApiConfigManagement] 开始添加选中的模型: [...]
+5. [ApiConfigManagement] 使用Form.List ref的add方法
+6. [ApiConfigManagement] 验证表单设置结果: [...]
+
+如果看到"检测到模型数据丢失，从备份恢复"说明修复机制已生效。
+                </pre>
+            </div>
+            
+            <div class="test-case">
+                <h3>常见问题排查：</h3>
+                <ul>
+                    <li><strong>模型仍然丢失</strong>：检查控制台是否有错误，确认备份恢复机制是否触发</li>
+                    <li><strong>添加模型无效果</strong>：确认Form.List ref是否正确设置</li>
+                    <li><strong>Tab切换异常</strong>：检查activeKey状态管理是否正常</li>
+                </ul>
+            </div>
+        </div>
+        
+        <div class="section">
+            <h2>✅ 预期结果</h2>
+            <div class="test-case success">
+                <h3>成功标准：</h3>
+                <ul>
+                    <li>✅ 在"模型配置"Tab中添加模型后，切换Tab不会丢失模型数据</li>
+                    <li>✅ 保存配置成功，所有模型都被正确保存</li>
+                    <li>✅ 在TestingPanel中可以看到并选择新添加的模型</li>
+                    <li>✅ 控制台显示正确的调试日志，无错误信息</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function openApp() {
+            const result = document.getElementById('step1-result');
+            window.open('http://localhost:5678/#/api-config', '_blank');
+            result.innerHTML = '<div class="result">✅ 已打开API配置管理页面</div>';
+        }
+        
+        function testApiConfig() {
+            const result = document.getElementById('step2-result');
+            result.innerHTML = `
+                <div class="result">
+                    <p>📝 请按照以下步骤测试：</p>
+                    <ol>
+                        <li>点击"添加配置"按钮</li>
+                        <li>填写配置名称："修复测试配置"</li>
+                        <li>选择"API接口"模式</li>
+                        <li>Base URL: "https://yunwu.ai/v1"</li>
+                        <li>API Key: ""</li>
+                        <li>切换到"模型配置"tab</li>
+                        <li>点击"获取模型"</li>
+                        <li>选择几个模型并添加</li>
+                        <li>切换回"基本配置"tab</li>
+                        <li>再次切换到"模型配置"tab</li>
+                        <li>验证模型是否还在</li>
+                    </ol>
+                </div>
+            `;
+        }
+        
+        function checkConsole() {
+            const result = document.getElementById('step3-result');
+            result.innerHTML = `
+                <div class="result">
+                    <p>🔍 打开浏览器开发者工具(F12)，在Console标签页中查看日志：</p>
+                    <p>正常情况下应该看到以"[ApiConfigManagement]"开头的调试信息。</p>
+                    <p>如果看到"从备份恢复"的日志，说明修复机制正在工作。</p>
+                </div>
+            `;
+        }
+        
+        function resetChecklist() {
+            for (let i = 1; i <= 9; i++) {
+                document.getElementById('check' + i).checked = false;
+            }
+        }
+        
+        // 自动检查所有复选框状态
+        setInterval(() => {
+            let checkedCount = 0;
+            for (let i = 1; i <= 9; i++) {
+                if (document.getElementById('check' + i).checked) {
+                    checkedCount++;
+                }
+            }
+            
+            if (checkedCount === 9) {
+                if (!document.getElementById('success-message')) {
+                    const msg = document.createElement('div');
+                    msg.id = 'success-message';
+                    msg.className = 'test-case success';
+                    msg.innerHTML = '<h3>🎉 恭喜！所有测试项目都已完成！</h3><p>修复验证成功，问题已解决。</p>';
+                    document.querySelector('.checklist').after(msg);
+                }
+            }
+        }, 1000);
+    </script>
+</body>
+</html> 
