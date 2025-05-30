@@ -101,7 +101,9 @@
       ],
       "darkModeSupport": true,
       "hardenedRuntime": false,
-      "gatekeeperAssess": false
+      "gatekeeperAssess": false,
+      "identity": null,
+      "signIgnore": ".*"
     },
     "win": {
       "target": [

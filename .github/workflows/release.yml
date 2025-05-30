@@ -72,6 +72,13 @@ jobs:
           DEBUG: electron-builder
           # 禁用macOS公证以避免签名问题
           CSC_LINK: ""
+          CSC_KEY_PASSWORD: ""
+          CSC_NAME: ""
+          APPLEID: ""
+          APPLEIDPASS: ""
+          ASC_PROVIDER: ""
+          # 完全跳过代码签名
+          SKIP_NOTARIZATION: true
 
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
