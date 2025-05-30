@@ -34,8 +34,8 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
 
-  // 默认头像URL（卡通风格的可爱头像）
-  const defaultAvatarUrl = 'https://api.dicebear.com/7.x/avataaars/svg?seed=happy&backgroundColor=b6e3f4&eyes=happy&mouth=smile&top=shortHair&topChance=100&accessories=glasses&accessoriesChance=30';
+  // 默认头像URL（本地图片）
+  const defaultAvatarUrl = '/avatar/default.png';
   
   // 获取实际显示的头像URL
   const getDisplayAvatarUrl = () => {

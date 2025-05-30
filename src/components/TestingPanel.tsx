@@ -295,6 +295,9 @@ const TestingPanel: React.FC = () => {
     }
   };
 
+  const [todayTestCount, setTodayTestCount] = useState(0);
+  const [totalTestCount, setTotalTestCount] = useState(0);
+
   useEffect(() => {
     console.log('[TestingPanel] 组件挂载，开始加载数据');
     // 只保留加载数据和恢复session，不再自动写入任何测试数据
@@ -303,6 +306,21 @@ const TestingPanel: React.FC = () => {
     if (restored) {
       console.log('[TestingPanel] session状态已恢复');
     }
+    // 统计今日和累计测试次数
+    (async () => {
+      const history = await storageAdapter.getTestSessionHistory(100);
+      let today = 0;
+      let total = 0;
+      const todayStr = new Date().toISOString().slice(0, 10);
+      history.forEach(h => {
+        total += h.totalTests || 0;
+        if (h.startTime && h.startTime.slice(0, 10) === todayStr) {
+          today += h.totalTests || 0;
+        }
+      });
+      setTodayTestCount(today);
+      setTotalTestCount(total);
+    })();
     return () => {
       console.log('[TestingPanel] 组件卸载');
     };
@@ -1181,21 +1199,35 @@ const TestingPanel: React.FC = () => {
     <div className="space-y-6">
       {/* 配置区域 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 数据概览卡片 */}
-        <Card className="col-span-1">
-          <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600 mb-1">
-              {prompts.length + models.length}
+        {/* 数据统计卡片优化 */}
+        <Card className="col-span-1 bg-gradient-to-br from-blue-50 to-green-50 border-0 shadow-lg">
+          <div className="flex flex-col gap-2 py-6">
+            <div className="flex items-center gap-2 mb-2">
+              <AppstoreOutlined className="text-2xl text-blue-500 bg-white/80 rounded-full p-2 shadow" />
+              <span className="text-lg font-bold text-blue-700">{t('testing.statistics')}</span>
             </div>
-            <div className="text-sm text-gray-500 mb-4">{t('testing.configTotal')}</div>
-            <div className="grid grid-cols-2 gap-4 text-sm">
-              <div className="bg-green-50 p-3 rounded-lg">
-                <div className="font-semibold text-green-700">{prompts.length}</div>
-                <div className="text-green-600">{t('testing.prompts')}</div>
+            <div className="grid grid-cols-3 gap-2 mb-2">
+              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-blue-100">
+                <div className="text-xl font-bold text-blue-600">{todayTestCount}</div>
+                <div className="text-xs text-gray-500 mt-1">{t('testing.todayTestCount')}</div>
               </div>
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="font-semibold text-blue-700">{models.length}</div>
-                <div className="text-blue-600">{t('testing.models')}</div>
+              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-green-100">
+                <div className="text-xl font-bold text-green-600">{totalTestCount}</div>
+                <div className="text-xs text-gray-500 mt-1">{t('testing.totalTestCount')}</div>
+              </div>
+              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-indigo-100">
+                <div className="text-xl font-bold text-indigo-600">{prompts.length + models.length}</div>
+                <div className="text-xs text-gray-500 mt-1">{t('testing.configTotal')}</div>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <div className="bg-white/80 p-2 rounded-lg border border-green-100 shadow-sm flex flex-col items-center">
+                <div className="font-bold text-green-700 text-base">{prompts.length}</div>
+                <div className="text-green-600 text-xs">{t('testing.prompts')}</div>
+              </div>
+              <div className="bg-white/80 p-2 rounded-lg border border-blue-100 shadow-sm flex flex-col items-center">
+                <div className="font-bold text-blue-700 text-base">{models.length}</div>
+                <div className="text-blue-600 text-xs">{t('testing.models')}</div>
               </div>
             </div>
           </div>

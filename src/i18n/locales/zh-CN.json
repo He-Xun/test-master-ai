@@ -135,7 +135,10 @@
     "input": "输入",
     "status": "状态",
     "timestamp": "时间戳",
-    "metadata": "元数据"
+    "metadata": "元数据",
+    "statistics": "测试统计",
+    "todayTestCount": "今日测试",
+    "totalTestCount": "累计测试"
   },
   "results": {
     "viewDetails": "查看详情",

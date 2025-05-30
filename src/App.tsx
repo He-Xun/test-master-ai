@@ -454,7 +454,7 @@ const AppLayout: React.FC = () => {
 
           <div className="flex items-center space-x-4">
             {/* 语言切换 */}
-            <LanguageSwitcher style="button" size="small" />
+            <LanguageSwitcher style="select" size="small" />
 
             {/* 检查更新 */}
             <Tooltip title={t('notification.checkForUpdates')}>

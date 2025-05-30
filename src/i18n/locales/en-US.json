@@ -135,7 +135,10 @@
     "executionTime": "Execution Time",
     "repetitionIndex": "Run {{index}}",
     "errorMessage": "Error Message",
-    "pleaseInputAtLeastOne": "Please input at least one test content"
+    "pleaseInputAtLeastOne": "Please input at least one test content",
+    "statistics": "Statistics",
+    "todayTestCount": "Today's Tests",
+    "totalTestCount": "Total Tests"
   },
   "results": {
     "viewDetails": "View Details",

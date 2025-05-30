@@ -23,6 +23,7 @@ import {
   Tabs,
   Badge,
   Empty,
+  Drawer,
 } from 'antd';
 import {
   PlusOutlined,
@@ -594,7 +595,7 @@ const ApiConfigManagement: React.FC = () => {
         />
       </Card>
 
-      <Modal
+      <Drawer
         title={
           <div className="flex items-center space-x-2">
             <ApiOutlined className="text-blue-500" />
@@ -602,18 +603,16 @@ const ApiConfigManagement: React.FC = () => {
           </div>
         }
         open={isModalVisible}
-        onOk={handleSubmit}
-        onCancel={handleCancel}
-        width={1000}
-        style={{ top: 20 }}
-        bodyStyle={{ maxHeight: 'calc(100vh - 200px)', overflowY: 'auto', padding: 0 }}
-        okText={t('api.save')}
-        cancelText={t('api.cancel')}
-        okButtonProps={{
-          size: 'large',
-          className: 'bg-gradient-to-r from-blue-500 to-indigo-500 border-none'
-        }}
-        cancelButtonProps={{ size: 'large' }}
+        onClose={handleCancel}
+        width="70%"
+        bodyStyle={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', padding: 0 }}
+        footer={
+          <div style={{ textAlign: 'right', padding: '16px 24px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
+            <Button onClick={handleCancel} style={{ marginRight: 8 }} size="large">{t('api.cancel')}</Button>
+            <Button onClick={handleSubmit} type="primary" size="large" className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none">{t('api.save')}</Button>
+          </div>
+        }
+        destroyOnClose
       >
         <Form form={form} layout="vertical">
           <Tabs 
@@ -722,7 +721,7 @@ const ApiConfigManagement: React.FC = () => {
                             label={t('api.apiKey')}
                             rules={[{ required: true, message: t('api.pleaseEnterApiKey') }]}
                           >
-                            <Input.Password placeholder={t('api.pleaseEnterApiKey')} size="large" />
+                            <Input.Password placeholder={t('api.pleaseEnterApiKey')} size="large" visibilityToggle />
                           </Form.Item>
                         </>
                       );
@@ -1019,7 +1018,7 @@ const ApiConfigManagement: React.FC = () => {
             </TabPane>
           </Tabs>
         </Form>
-      </Modal>
+      </Drawer>
     </div>
   );
 };
