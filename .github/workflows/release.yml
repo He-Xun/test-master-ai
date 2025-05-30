@@ -12,53 +12,24 @@ permissions:
   pages: write
   id-token: write
 
+env:
+  NODE_VERSION: '18'
+
 jobs:
-  # 测试构建 - 仅在推送到main时运行，不打包
-  test-build:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '18'
-          cache: 'npm'
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build renderer and main process
-        run: npm run build
-        env:
-          NODE_ENV: production
-          CI: true
-
-      - name: Build Electron main process
-        run: npm run build:electron
-
-      - name: Verify build output
-        run: |
-          echo "Checking build directory..."
-          ls -la build/
-          echo "Checking dist directory..."
-          ls -la dist/
-
-  # 完整构建和打包 - 仅在发布时运行
+  # 跨平台构建 - 推送到main或创建release时都运行
   build:
-    if: github.event_name == 'release'
     runs-on: ${{ matrix.os }}
     strategy:
       matrix:
         include:
           - os: macos-latest
             platform: mac
-            artifact-name: 'mac-build'
+            artifact-name: 'macos-build'
+            icon-ext: 'icns'
           - os: windows-latest
             platform: win
-            artifact-name: 'win-build'
+            artifact-name: 'windows-build'
+            icon-ext: 'ico'
     
     steps:
       - name: Checkout code
@@ -69,18 +40,14 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
-
-      - name: Debug Node version
-        run: |
-          node --version
-          npm --version
 
       - name: Install dependencies
         run: npm ci
         env:
           npm_config_cache: .npm
+          npm_config_prefer-offline: true
 
       - name: Build renderer and main process
         run: npm run build
@@ -88,12 +55,14 @@ jobs:
           NODE_ENV: production
           CI: true
 
-      - name: Debug build output
+      - name: Verify build output
         run: |
-          echo "Checking build directory..."
+          echo "=== Build directory contents ==="
           ls -la build/ || echo "Build directory not found"
-          echo "Checking dist directory..."
+          echo "=== Dist directory contents ==="  
           ls -la dist/ || echo "Dist directory not found"
+          echo "=== Icon files ==="
+          ls -la electron/icon.${{ matrix.icon-ext }} || echo "Icon file not found"
 
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'
@@ -101,6 +70,8 @@ jobs:
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           DEBUG: electron-builder
+          # 禁用macOS公证以避免签名问题
+          CSC_LINK: ""
 
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
@@ -109,11 +80,12 @@ jobs:
           CSC_LINK: ""
           DEBUG: electron-builder
 
-      - name: Debug release output
+      - name: List build artifacts
         run: |
-          echo "Checking release directory..."
+          echo "=== Release directory contents ==="
           ls -la release/ || echo "Release directory not found"
-          find release/ -type f -name "*.dmg" -o -name "*.exe" -o -name "*.zip" || echo "No build artifacts found"
+          echo "=== Build artifacts ==="
+          find release/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.zip" -o -name "*.AppImage" \) -exec ls -lh {} \; || echo "No build artifacts found"
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
@@ -123,7 +95,68 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  release:
+  # 自动发布 - 仅在推送到main时运行（创建预发布版本）
+  auto-release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: dist-artifacts/mac
+
+      - name: Download Windows Artifacts  
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: dist-artifacts/win
+
+      - name: List all artifacts
+        run: |
+          echo "=== Downloaded artifacts ==="
+          find dist-artifacts/ -type f -exec ls -lh {} \;
+
+      - name: Get package version
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION-$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+
+      - name: Create Auto Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.package-version.outputs.tag }}
+          name: "Auto Build v${{ steps.package-version.outputs.version }} - $(date '+%Y-%m-%d %H:%M:%S')"
+          body: |
+            🤖 **自动构建版本**
+            
+            📅 构建时间: $(date '+%Y-%m-%d %H:%M:%S')
+            📝 提交: ${{ github.sha }}
+            🔗 分支: ${{ github.ref_name }}
+            
+            ## 下载链接
+            - 🍎 **macOS**: 下载 `.dmg` 文件
+            - 🪟 **Windows**: 下载 `.exe` 文件
+            
+            > ⚠️ 这是自动构建版本，可能包含未完全测试的功能。
+          files: |
+            dist-artifacts/**/*.dmg
+            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.zip
+            dist-artifacts/**/*.blockmap
+          prerelease: true
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 正式发布 - 仅在手动创建release时运行
+  official-release:
     needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'release'
@@ -131,21 +164,21 @@ jobs:
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: mac-build
+          name: macos-build
           path: dist-artifacts/mac
 
       - name: Download Windows Artifacts  
         uses: actions/download-artifact@v4
         with:
-          name: win-build
+          name: windows-build
           path: dist-artifacts/win
 
-      - name: List downloaded artifacts
+      - name: List all artifacts
         run: |
-          echo "Downloaded artifacts:"
-          find dist-artifacts/ -type f
+          echo "=== Downloaded artifacts for official release ==="
+          find dist-artifacts/ -type f -exec ls -lh {} \;
 
-      - name: Create Release
+      - name: Attach to Official Release
         uses: softprops/action-gh-release@v2
         with:
           files: |
