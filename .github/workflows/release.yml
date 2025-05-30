@@ -7,48 +7,151 @@ on:
   release:
     types: [published]
 
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
 jobs:
-  build:
-    runs-on: ${{ matrix.os }}
-    strategy:
-      matrix:
-        os: [macos-latest, windows-latest]
+  # 测试构建 - 仅在推送到main时运行，不打包
+  test-build:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-      - name: Use Node.js
+
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: '18'
+          cache: 'npm'
+
       - name: Install dependencies
-        run: npm install
+        run: npm ci
+
       - name: Build renderer and main process
         run: npm run build
-      - name: Build Electron app (mac/win)
+        env:
+          NODE_ENV: production
+          CI: true
+
+      - name: Build Electron main process
+        run: npm run build:electron
+
+      - name: Verify build output
         run: |
-          if [ "$RUNNER_OS" == "macOS" ]; then
-            npx electron-builder --mac --win --publish never
-          else
-            npx electron-builder --win --publish never
-          fi
-        shell: bash
-      - name: Upload Artifacts
+          echo "Checking build directory..."
+          ls -la build/
+          echo "Checking dist directory..."
+          ls -la dist/
+
+  # 完整构建和打包 - 仅在发布时运行
+  build:
+    if: github.event_name == 'release'
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: macos-latest
+            platform: mac
+            artifact-name: 'mac-build'
+          - os: windows-latest
+            platform: win
+            artifact-name: 'win-build'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+          cache: 'npm'
+
+      - name: Debug Node version
+        run: |
+          node --version
+          npm --version
+
+      - name: Install dependencies
+        run: npm ci
+        env:
+          npm_config_cache: .npm
+
+      - name: Build renderer and main process
+        run: npm run build
+        env:
+          NODE_ENV: production
+          CI: true
+
+      - name: Debug build output
+        run: |
+          echo "Checking build directory..."
+          ls -la build/ || echo "Build directory not found"
+          echo "Checking dist directory..."
+          ls -la dist/ || echo "Dist directory not found"
+
+      - name: Build Electron app for macOS
+        if: matrix.platform == 'mac'
+        run: npx electron-builder --mac --publish never
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+          DEBUG: electron-builder
+
+      - name: Build Electron app for Windows  
+        if: matrix.platform == 'win'
+        run: npx electron-builder --win --publish never
+        env:
+          CSC_LINK: ""
+          DEBUG: electron-builder
+
+      - name: Debug release output
+        run: |
+          echo "Checking release directory..."
+          ls -la release/ || echo "Release directory not found"
+          find release/ -type f -name "*.dmg" -o -name "*.exe" -o -name "*.zip" || echo "No build artifacts found"
+
+      - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: electron-app-${{ matrix.os }}
-          path: release/*
+          name: ${{ matrix.artifact-name }}
+          path: release/
+          retention-days: 30
+          if-no-files-found: error
 
   release:
     needs: build
     runs-on: ubuntu-latest
+    if: github.event_name == 'release'
     steps:
-      - name: Download Artifacts
+      - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: dist-artifacts
+          name: mac-build
+          path: dist-artifacts/mac
+
+      - name: Download Windows Artifacts  
+        uses: actions/download-artifact@v4
+        with:
+          name: win-build
+          path: dist-artifacts/win
+
+      - name: List downloaded artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          find dist-artifacts/ -type f
+
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          files: dist-artifacts/**/*.dmg,dist-artifacts/**/*.exe,dist-artifacts/**/*.zip
+          files: |
+            dist-artifacts/**/*.dmg
+            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.zip
+            dist-artifacts/**/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

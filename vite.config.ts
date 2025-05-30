@@ -33,19 +33,14 @@ export default defineConfig({
   build: {
     outDir: 'build',
     target: 'chrome112',
+    assetsDir: 'assets',
+    assetsInlineLimit: 0,
     rollupOptions: {
       output: {
-        manualChunks(id) {
-          if (id.includes('node_modules')) {
-            if (id.includes('antd')) return 'antd';
-            if (id.includes('@ant-design/icons')) return 'ant-icons';
-            if (id.includes('xlsx')) return 'xlsx';
-            if (id.includes('react')) return 'react';
-            if (id.includes('lodash')) return 'lodash';
-            if (id.includes('moment')) return 'moment';
-            if (id.includes('axios')) return 'axios';
-            return 'vendor';
-          }
+        manualChunks: {
+          // 将大型第三方库单独分包，但保持依赖关系简单
+          'xlsx': ['xlsx'],
+          'antd': ['antd', '@ant-design/icons']
         }
       }
     }

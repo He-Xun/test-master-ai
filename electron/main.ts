@@ -19,9 +19,9 @@ function createWindow(): void {
     width: 1200,
     height: 800,
     webPreferences: {
-      nodeIntegration: true,
-      contextIsolation: false,
-      webSecurity: false,
+      nodeIntegration: false,
+      contextIsolation: true,
+      webSecurity: true,
       // 确保localStorage可以正常工作
       partition: 'persist:main',
     },
@@ -34,7 +34,90 @@ function createWindow(): void {
     mainWindow.loadURL('http://localhost:5678');
     mainWindow.webContents.openDevTools();
   } else {
-    mainWindow.loadFile(path.join(__dirname, '../build/index.html'));
+    const fs = require('fs');
+    
+    // 详细的路径调试信息
+    console.log('=== Electron 路径调试信息 ===');
+    console.log('app.isPackaged:', app.isPackaged);
+    console.log('process.resourcesPath:', process.resourcesPath);
+    console.log('__dirname:', __dirname);
+    console.log('process.cwd():', process.cwd());
+    console.log('app.getPath("userData"):', app.getPath('userData'));
+    console.log('app.getAppPath():', app.getAppPath());
+    
+    // 尝试多种路径组合
+    const possiblePaths = [
+      // asar.unpacked 路径（我们配置的）
+      path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'index.html'),
+      // 直接在resources下
+      path.join(process.resourcesPath, 'build', 'index.html'),
+      // app路径下
+      path.join(app.getAppPath(), 'build', 'index.html'),
+      // 相对于主进程的路径
+      path.join(__dirname, '..', 'build', 'index.html'),
+      // 开发时的路径
+      path.join(__dirname, '../build/index.html'),
+    ];
+    
+    let foundPath: string | null = null;
+    console.log('=== 检查可能的HTML路径 ===');
+    
+    for (const testPath of possiblePaths) {
+      console.log(`检查路径: ${testPath}`);
+      try {
+        if (fs.existsSync(testPath)) {
+          console.log(`✓ 找到文件: ${testPath}`);
+          foundPath = testPath;
+          break;
+        } else {
+          console.log(`✗ 文件不存在: ${testPath}`);
+        }
+      } catch (error) {
+        console.log(`✗ 检查路径时出错: ${testPath}`, (error as Error).message);
+      }
+    }
+    
+    if (!foundPath) {
+      console.error('❌ 所有路径都找不到 index.html 文件！');
+      // 作为最后的手段，尝试第一个路径
+      foundPath = possiblePaths[0];
+    }
+    
+    console.log(`最终使用路径: ${foundPath}`);
+    console.log('=============================');
+    
+    // 尝试加载文件
+    mainWindow.loadFile(foundPath!).catch(error => {
+      console.error('loadFile 失败:', error);
+      
+      // 如果loadFile失败，尝试loadURL
+      const fileUrl = `file://${foundPath}`;
+      console.log(`尝试使用 loadURL: ${fileUrl}`);
+      mainWindow.loadURL(fileUrl).catch(urlError => {
+        console.error('loadURL 也失败:', urlError);
+      });
+    });
+    
+    // 添加更多的错误处理
+    mainWindow.webContents.on('did-fail-load', (event, errorCode, errorDescription, validatedURL, isMainFrame) => {
+      console.error('页面加载失败:', {
+        errorCode,
+        errorDescription,
+        validatedURL,
+        isMainFrame
+      });
+    });
+    
+    mainWindow.webContents.on('dom-ready', () => {
+      console.log('DOM 已准备就绪');
+    });
+    
+    mainWindow.webContents.on('did-finish-load', () => {
+      console.log('页面加载完成');
+    });
+    
+    // 开启开发者工具以便调试
+    mainWindow.webContents.openDevTools();
   }
 
   // 窗口准备好后显示
