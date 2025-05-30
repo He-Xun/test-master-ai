@@ -23,7 +23,8 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { Prompt, DefaultTestInput } from '../types';
-import { promptStorage, defaultTestInputStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
+import { defaultTestInputStorage } from '../utils/storage-simple';
 
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
@@ -48,13 +49,15 @@ const PromptsManagement: React.FC = () => {
   const [inputForm] = Form.useForm();
 
   // 加载提示词列表
-  const loadPrompts = () => {
-    setPrompts(promptStorage.getAll());
+  const loadPrompts = async () => {
+    const prompts = await storageAdapter.getPrompts();
+    setPrompts(prompts);
   };
 
   // 加载默认输入模板
   const loadDefaultInputs = () => {
-    setDefaultInputs(defaultTestInputStorage.getAll());
+    const inputs = storageAdapter.getDefaultTestInputs();
+    setDefaultInputs(inputs);
   };
 
   useEffect(() => {
@@ -86,10 +89,10 @@ const PromptsManagement: React.FC = () => {
   const savePrompt = async (values: any) => {
     try {
       if (editingPrompt) {
-        promptStorage.update(editingPrompt.id, values);
+        await storageAdapter.updatePrompt(editingPrompt.id, values);
         message.success(t('prompts.promptUpdateSuccess'));
       } else {
-        promptStorage.create(values);
+        await storageAdapter.createPrompt(values);
         message.success(t('prompts.promptCreateSuccess'));
       }
       
@@ -101,9 +104,9 @@ const PromptsManagement: React.FC = () => {
     }
   };
 
-  const deletePrompt = (id: string) => {
+  const deletePrompt = async (id: string) => {
     try {
-      promptStorage.delete(id);
+      await storageAdapter.deletePrompt(id);
       message.success(t('prompts.promptDeleteSuccess'));
       loadPrompts();
     } catch (error) {

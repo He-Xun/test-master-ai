@@ -7,7 +7,8 @@ import {
   ConfigDraft,
   TestConfigDraft,
   TestParams,
-  TestResult
+  TestResult,
+  UserRole
 } from '../types';
 
 // SQLite数据库管理器
@@ -69,6 +70,7 @@ class SQLiteStorage {
         id TEXT PRIMARY KEY,
         username TEXT UNIQUE NOT NULL,
         email TEXT UNIQUE NOT NULL,
+        role TEXT NOT NULL DEFAULT 'user',
         avatar TEXT,
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL
@@ -340,15 +342,16 @@ class SQLiteStorage {
 
     const user: User = {
       ...userData,
+      role: userData.role || 'user', // 默认角色为普通用户
       id: this.generateId(),
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
 
     this.db.run(`
-      INSERT INTO users (id, username, email, avatar, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [user.id, user.username, user.email, user.avatar || null, user.createdAt, user.updatedAt]);
+      INSERT INTO users (id, username, email, role, avatar, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `, [user.id, user.username, user.email, user.role, user.avatar || null, user.createdAt, user.updatedAt]);
 
     this.saveDatabaseToIndexedDB();
     return user;
@@ -365,9 +368,10 @@ class SQLiteStorage {
         id: row[0] as string,
         username: row[1] as string,
         email: row[2] as string,
-        avatar: row[3] as string,
-        createdAt: row[4] as string,
-        updatedAt: row[5] as string,
+        role: (row[3] as UserRole) || 'user',
+        avatar: row[4] as string,
+        createdAt: row[5] as string,
+        updatedAt: row[6] as string,
       }));
     } catch (error) {
       console.error('[SQLite] 获取用户列表失败:', error);
@@ -387,9 +391,10 @@ class SQLiteStorage {
         id: row[0] as string,
         username: row[1] as string,
         email: row[2] as string,
-        avatar: row[3] as string,
-        createdAt: row[4] as string,
-        updatedAt: row[5] as string,
+        role: (row[3] as UserRole) || 'user',
+        avatar: row[4] as string,
+        createdAt: row[5] as string,
+        updatedAt: row[6] as string,
       };
     } catch (error) {
       console.error('[SQLite] 查找用户失败:', error);
@@ -447,8 +452,8 @@ class SQLiteStorage {
     if (!this.db) return false;
 
     try {
-      const setClause = [];
-      const values = [];
+      const setClause: string[] = [];
+      const values: any[] = [];
       
       if (updates.name) {
         setClause.push('name = ?');
@@ -544,6 +549,69 @@ class SQLiteStorage {
     }
   }
 
+  updateApiConfig(userId: string, configId: string, updates: Partial<ApiConfig>): boolean {
+    if (!this.db) return false;
+
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      
+      if (updates.name) {
+        setClause.push('name = ?');
+        values.push(updates.name);
+      }
+      if (updates.requestMode) {
+        setClause.push('request_mode = ?');
+        values.push(updates.requestMode);
+      }
+      if (updates.directUrl !== undefined) {
+        setClause.push('direct_url = ?');
+        values.push(updates.directUrl);
+      }
+      if (updates.apiKey !== undefined) {
+        setClause.push('api_key = ?');
+        values.push(updates.apiKey);
+      }
+      if (updates.baseUrl !== undefined) {
+        setClause.push('base_url = ?');
+        values.push(updates.baseUrl);
+      }
+      if (updates.models) {
+        setClause.push('models = ?');
+        values.push(JSON.stringify(updates.models));
+      }
+      
+      setClause.push('updated_at = ?');
+      values.push(new Date().toISOString());
+      values.push(userId, configId);
+
+      this.db.run(`
+        UPDATE api_configs 
+        SET ${setClause.join(', ')} 
+        WHERE user_id = ? AND id = ?
+      `, values);
+
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 更新API配置失败:', error);
+      return false;
+    }
+  }
+
+  deleteApiConfig(userId: string, configId: string): boolean {
+    if (!this.db) return false;
+
+    try {
+      this.db.run('DELETE FROM api_configs WHERE user_id = ? AND id = ?', [userId, configId]);
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 删除API配置失败:', error);
+      return false;
+    }
+  }
+
   // 测试会话历史管理
   saveTestSessionHistory(userId: string, sessionData: Omit<TestSessionHistory, 'id' | 'userId' | 'createdAt'>): TestSessionHistory {
     if (!this.db) throw new Error('数据库未初始化');
@@ -607,6 +675,19 @@ class SQLiteStorage {
     }
   }
 
+  deleteTestSessionHistory(userId: string, sessionId: string): boolean {
+    if (!this.db) return false;
+
+    try {
+      this.db.run('DELETE FROM test_session_history WHERE user_id = ? AND id = ?', [userId, sessionId]);
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 删除测试历史失败:', error);
+      return false;
+    }
+  }
+
   // 配置暂存管理
   saveConfigDraft(userId: string, draftType: string, data: any): void {
     if (!this.db) return;
@@ -666,8 +747,220 @@ class SQLiteStorage {
       console.error('[SQLite] 清除配置暂存失败:', error);
     }
   }
+
+  // 用户会话管理
+  getCurrentSession(): UserSession | null {
+    if (!this.db) return null;
+    try {
+      const result = (this.db.exec('SELECT * FROM user_sessions ORDER BY created_at DESC LIMIT 1') as any);
+      if (result.length === 0 || result[0].values.length === 0) return null;
+      const row: any[] = result[0].values[0];
+      const user = this.getUserById(row[1] as string);
+      if (!user) return null;
+      return {
+        user,
+        token: row[2] as string,
+        expiresAt: row[3] as string,
+      };
+    } catch (error) {
+      console.error('[SQLite] 获取当前会话失败:', error);
+      return null;
+    }
+  }
+
+  setSession(session: UserSession | null): void {
+    if (!this.db) return;
+    try {
+      // 清空旧会话
+      (this.db.run as any)('DELETE FROM user_sessions');
+      if (session) {
+        (this.db.run as any)(
+          'INSERT INTO user_sessions (id, user_id, token, expires_at, created_at) VALUES (?, ?, ?, ?, ?)',
+          [session.user.id, session.user.id, session.token, session.expiresAt, new Date().toISOString()]
+        );
+      }
+      this.saveDatabaseToIndexedDB();
+    } catch (error) {
+      console.error('[SQLite] 设置会话失败:', error);
+    }
+  }
+
+  login(username: string, password: string): UserSession | null {
+    if (!this.db) return null;
+    try {
+      // 验证用户密码
+      const user = this.validateUser(username, password);
+      if (!user) {
+        console.log('[SQLite] 用户验证失败:', username);
+        return null;
+      }
+      
+      const session: UserSession = {
+        user,
+        token: this.generateId(),
+        expiresAt: new Date(Date.now() + 24 * 3600 * 1000).toISOString(),
+      };
+      this.setSession(session);
+      console.log('[SQLite] 用户登录成功:', user.username);
+      return session;
+    } catch (error) {
+      console.error('[SQLite] 登录失败:', error);
+      return null;
+    }
+  }
+
+  logout(): void {
+    if (!this.db) return;
+    try {
+      (this.db.run as any)('DELETE FROM user_sessions');
+      this.saveDatabaseToIndexedDB();
+    } catch (error) {
+      console.error('[SQLite] 登出失败:', error);
+    }
+  }
+
+  isSessionValid(): boolean {
+    const session = this.getCurrentSession();
+    if (!session) return false;
+    
+    try {
+      const now = new Date();
+      const expires = new Date(session.expiresAt);
+      const isValid = now < expires;
+      
+      console.log('[SQLite] 会话验证:', {
+        now: now.toISOString(),
+        expires: session.expiresAt,
+        isValid: isValid,
+        timeDiff: expires.getTime() - now.getTime()
+      });
+      
+      return isValid;
+    } catch (error) {
+      console.error('[SQLite] 会话验证失败:', error);
+      return false;
+    }
+  }
+
+  getUserById(userId: string): User | null {
+    if (!this.db) return null;
+    try {
+      const result = (this.db.exec('SELECT * FROM users WHERE id = ?', [userId]) as any);
+      if (result.length === 0 || result[0].values.length === 0) return null;
+      const row: any[] = result[0].values[0];
+      return {
+        id: row[0] as string,
+        username: row[1] as string,
+        email: row[2] as string,
+        role: (row[3] as UserRole) || 'user',
+        avatar: row[4] as string,
+        createdAt: row[5] as string,
+        updatedAt: row[6] as string,
+      };
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // 用户密码校验
+  validateUser(username: string, password: string): User | null {
+    if (!this.db) return null;
+    try {
+      const user = this.getUserByUsername(username);
+      if (!user) return null;
+      const result = this.db.exec('SELECT password_hash FROM user_passwords WHERE user_id = ?', [user.id]);
+      if (result.length === 0 || result[0].values.length === 0) return null;
+      const hash = result[0].values[0][0] as string;
+      // 简单明文比对，实际应加密
+      if (hash === password) return user;
+      return null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  // 存储用户密码
+  storeUserPassword(userId: string, password: string): void {
+    if (!this.db) return;
+    try {
+      this.db.run('INSERT OR REPLACE INTO user_passwords (user_id, password_hash) VALUES (?, ?)', [userId, password]);
+      this.saveDatabaseToIndexedDB();
+    } catch (error) {
+      // 忽略
+    }
+  }
+
+  // 更新用户信息
+  updateUser(userId: string, updates: Partial<User>): boolean {
+    if (!this.db) return false;
+
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      
+      if (updates.username) {
+        setClause.push('username = ?');
+        values.push(updates.username);
+      }
+      if (updates.email) {
+        setClause.push('email = ?');
+        values.push(updates.email);
+      }
+      if (updates.role) {
+        setClause.push('role = ?');
+        values.push(updates.role);
+      }
+      if (updates.avatar !== undefined) {
+        setClause.push('avatar = ?');
+        values.push(updates.avatar);
+      }
+      
+      setClause.push('updated_at = ?');
+      values.push(new Date().toISOString());
+      values.push(userId);
+
+      this.db.run(`
+        UPDATE users 
+        SET ${setClause.join(', ')} 
+        WHERE id = ?
+      `, values);
+
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 更新用户失败:', error);
+      return false;
+    }
+  }
+
+  // 删除用户及其所有相关数据
+  deleteUser(userId: string): boolean {
+    if (!this.db) return false;
+
+    try {
+      // 开始事务（模拟）
+      this.db.run('DELETE FROM config_drafts WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM test_session_history WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM api_configs WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM prompts WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM user_passwords WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
+      this.db.run('DELETE FROM users WHERE id = ?', [userId]);
+
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 删除用户失败:', error);
+      return false;
+    }
+  }
 }
 
 // 创建全局实例
 export const sqliteStorage = new SQLiteStorage();
-export { SQLiteStorage }; 
+export { SQLiteStorage };
+
+// 调试：将sqliteStorage暴露到全局
+if (typeof window !== 'undefined') {
+  (window as any).sqliteStorage = sqliteStorage;
+} 

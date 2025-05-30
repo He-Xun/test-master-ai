@@ -53,28 +53,30 @@ const { TextArea } = Input;
 const { Panel } = Collapse;
 const { Text } = Typography;
 
-// 获取通知状态的持久化存储
-const getNotificationDismissed = () => {
-  const dismissed = localStorage.getItem('configNotificationDismissed');
-  return dismissed === 'true';
+// 获取通知状态的持久化存储（改为sqlite方案）
+const getNotificationDismissed = async (userId: string) => {
+  if (!userId) return false;
+  const draft = await storageAdapter.getTestConfigDraft();
+  return (draft as any)?.notificationDismissed === true;
 };
 
-// 设置通知状态的持久化存储
-const setNotificationDismissed = (dismissed: boolean) => {
-  localStorage.setItem('configNotificationDismissed', dismissed.toString());
+// 设置通知状态的持久化存储（改为sqlite方案）
+const setNotificationDismissed = async (userId: string, dismissed: boolean) => {
+  if (!userId) return;
+  const currentDraft = await storageAdapter.getTestConfigDraft() || {};
+  await storageAdapter.saveTestConfigDraft({
+    ...(currentDraft as any),
+    notificationDismissed: dismissed
+  });
 };
 
 // 检查是否需要显示通知
-const shouldShowNotification = (prompts: Prompt[], models: any[]) => {
-  // 如果用户已经关闭过通知，并且配置仍然为空，则不显示
-  const dismissed = getNotificationDismissed();
+const shouldShowNotification = async (userId: string, prompts: Prompt[], models: any[]) => {
+  const dismissed = await getNotificationDismissed(userId);
   const hasNoConfig = prompts.length === 0 || models.length === 0;
-  
-  // 如果有配置了，重置通知状态，下次没配置时可以再次显示
   if (!hasNoConfig) {
-    setNotificationDismissed(false);
+    await setNotificationDismissed(userId, false);
   }
-  
   return hasNoConfig && !dismissed;
 };
 
@@ -139,18 +141,17 @@ const TestingPanel: React.FC = () => {
     sessionRef.current = session;
   }, [session]);
 
-  // 从localStorage恢复session状态
-  const restoreSessionFromStorage = () => {
+  // 恢复session状态（改为sqlite方案）
+  const restoreSessionFromStorage = async () => {
     const currentSession = storageAdapter.getCurrentSession();
-    const userId = currentSession?.user?.id;
+    const userId = currentSession?.user?.id || null;
     if (userId) {
       try {
-        const savedSession = localStorage.getItem(`${userId}_current_test_session`);
+        const savedDraft = await storageAdapter.getTestConfigDraft();
+        const savedSession = (savedDraft as any)?.current_test_session;
         if (savedSession) {
-          const parsedSession: TestSession = JSON.parse(savedSession);
-          // 只恢复已完成或已停止的session，不恢复运行中的session
+          const parsedSession: TestSession = savedSession;
           if (parsedSession.status === 'completed' || parsedSession.status === 'stopped') {
-            console.log('[TestingPanel] 恢复session状态:', parsedSession.id);
             setSession(parsedSession);
             return true;
           }
@@ -162,13 +163,15 @@ const TestingPanel: React.FC = () => {
     return false;
   };
 
-  // 清除持久化的session状态
-  const clearPersistedSession = () => {
+  // 清除持久化的session状态（改为sqlite方案）
+  const clearPersistedSession = async () => {
     const currentSession = storageAdapter.getCurrentSession();
     const userId = currentSession?.user?.id;
     if (userId) {
       try {
-        localStorage.removeItem(`${userId}_current_test_session`);
+        const currentDraft = await storageAdapter.getTestConfigDraft() || {};
+        const { current_test_session, ...otherData } = currentDraft as any;
+        await storageAdapter.saveTestConfigDraft(otherData);
       } catch (error) {
         console.error('[TestingPanel] 清除持久化session失败:', error);
       }
@@ -302,10 +305,11 @@ const TestingPanel: React.FC = () => {
     console.log('[TestingPanel] 组件挂载，开始加载数据');
     // 只保留加载数据和恢复session，不再自动写入任何测试数据
     loadData();
-    const restored = restoreSessionFromStorage();
-    if (restored) {
-      console.log('[TestingPanel] session状态已恢复');
-    }
+    restoreSessionFromStorage().then((restored) => {
+      if (restored) {
+        console.log('[TestingPanel] session状态已恢复');
+      }
+    });
     // 统计今日和累计测试次数
     (async () => {
       const history = await storageAdapter.getTestSessionHistory(100);
@@ -326,60 +330,214 @@ const TestingPanel: React.FC = () => {
     };
   }, []);
 
-  const loadData = () => {
+  const loadData = async () => {
     console.log('[TestingPanel] 开始加载数据...');
     setDataLoading(true);
     setNotificationShown(false);
     
     try {
-      // 获取当前用户ID以构造正确的键名
-      const userSession = localStorage.getItem('userSession');
-      const userId = userSession ? JSON.parse(userSession).user?.id : null;
+      // 获取当前用户会话 - 只获取一次
+      const currentSession = storageAdapter.getCurrentSession();
+      const userId = currentSession?.user?.id || null;
+      const userRole = currentSession?.user?.role;
       
-      // 直接从localStorage读取数据进行调试
-      const rawPrompts = localStorage.getItem(userId ? `${userId}_prompts` : 'prompts');
-      const rawApiConfigs = localStorage.getItem(userId ? `${userId}_apiConfigs` : 'apiConfigs');
-      const rawDefaultInputs = localStorage.getItem(userId ? `${userId}_defaultTestInputs` : 'defaultTestInputs');
-      
-      console.log('[TestingPanel] 原始数据:', {
-        userId: userId,
-        prompts: rawPrompts,
-        apiConfigs: rawApiConfigs,
-        defaultInputs: rawDefaultInputs
+      console.log('[TestingPanel] 当前用户信息:', {
+        userId,
+        userRole,
+        hasSession: !!currentSession,
+        sessionUser: currentSession?.user,
+        fullSession: currentSession
       });
       
-      // 使用存储函数加载数据
-      const loadedPrompts = promptStorage.getAll();
-      const loadedModels = apiConfigStorage.getAllModels();
-      const loadedDefaultInputs = defaultTestInputStorage.getAll();
+      // 添加详细的会话状态检查
+      console.log('[TestingPanel] 会话状态检查:', {
+        'currentSession存在': !!currentSession,
+        'userId存在': !!userId,
+        'userRole存在': !!userRole,
+        '将使用SQLite': !!(userId && userRole && currentSession),
+        '将使用localStorage': !(userId && userRole && currentSession)
+      });
       
-      console.log('[TestingPanel] 加载的数据:', {
+      let loadedPrompts: Prompt[] = [];
+      let loadedModels: any[] = [];
+      let loadedDefaultInputs: DefaultTestInput[] = [];
+      
+      // 根据用户状态选择合适的存储方法
+      if (userId && userRole && currentSession) {
+        console.log('[TestingPanel] ✅ 用户已登录，使用SQLite存储');
+        
+        // 使用storageAdapter获取数据，确保当前会话有效
+        try {
+          console.log('[TestingPanel] 📝 开始获取提示词...');
+          const allPrompts = await storageAdapter.getPrompts();
+          console.log('[TestingPanel] ✅ 获取到提示词数量:', allPrompts.length, '详情:', allPrompts);
+          
+          // 添加数据库调试 - 检查是否有数据库连接问题
+          console.log('[TestingPanel] 🔍 调试：检查数据库状态');
+          try {
+            // @ts-ignore - 临时调试代码
+            const sqliteStorage = window.sqliteStorage || (await import('../utils/sqlite-storage')).sqliteStorage;
+            if (sqliteStorage && sqliteStorage.db) {
+              console.log('[TestingPanel] 📊 数据库已连接，查询所有用户的提示词...');
+              // @ts-ignore
+              const allPromptsInDB = sqliteStorage.db.exec('SELECT user_id, id, name, content FROM prompts ORDER BY created_at DESC');
+              console.log('[TestingPanel] 📊 数据库中所有提示词:', allPromptsInDB);
+              
+              // 查询当前用户的提示词
+              // @ts-ignore
+              const userPromptsInDB = sqliteStorage.db.exec('SELECT id, name, content FROM prompts WHERE user_id = ?', [userId]);
+              console.log(`[TestingPanel] 📊 用户 ${userId} 的提示词:`, userPromptsInDB);
+              
+              // 如果数据库中没有提示词，检查localStorage并尝试手动迁移
+              if (allPromptsInDB.length === 0) {
+                console.log('[TestingPanel] 🔄 数据库中没有提示词，检查localStorage...');
+                
+                // 检查localStorage中的提示词
+                const userPrompts = localStorage.getItem(`${userId}_prompts`);
+                const globalPrompts = localStorage.getItem('prompts');
+                
+                console.log('[TestingPanel] 📦 localStorage中的用户提示词:', userPrompts);
+                console.log('[TestingPanel] 📦 localStorage中的全局提示词:', globalPrompts);
+                
+                let promptsToMigrate: any[] = [];
+                
+                if (userPrompts) {
+                  promptsToMigrate = JSON.parse(userPrompts);
+                  console.log(`[TestingPanel] 🎯 找到用户专属提示词 ${promptsToMigrate.length} 个`);
+                } else if (globalPrompts) {
+                  promptsToMigrate = JSON.parse(globalPrompts);
+                  console.log(`[TestingPanel] 🎯 找到全局提示词 ${promptsToMigrate.length} 个`);
+                }
+                
+                // 手动迁移提示词
+                if (promptsToMigrate.length > 0) {
+                  console.log('[TestingPanel] 🚀 开始手动迁移提示词到SQLite...');
+                  let migratedCount = 0;
+                  
+                  for (const prompt of promptsToMigrate) {
+                    try {
+                      console.log(`[TestingPanel] 📝 迁移提示词: ${prompt.name}`);
+                      await storageAdapter.createPrompt({
+                        name: prompt.name,
+                        content: prompt.content
+                      });
+                      migratedCount++;
+                    } catch (error) {
+                      console.error(`[TestingPanel] ❌ 迁移提示词失败: ${prompt.name}`, error);
+                    }
+                  }
+                  
+                  console.log(`[TestingPanel] ✅ 提示词迁移完成，成功迁移 ${migratedCount} 个`);
+                  
+                  // 重新加载数据
+                  if (migratedCount > 0) {
+                    console.log('[TestingPanel] 🔄 重新加载提示词数据...');
+                    const newPrompts = await storageAdapter.getPrompts();
+                    console.log('[TestingPanel] 🎉 重新加载后的提示词:', newPrompts);
+                    setPrompts(newPrompts);
+                    
+                    // 更新loadedPrompts变量，确保后续逻辑使用正确的数据
+                    loadedPrompts = newPrompts;
+                    
+                    message.success(`成功迁移 ${migratedCount} 个提示词到SQLite数据库！`);
+                  }
+                } else {
+                  console.log('[TestingPanel] 📝 没有找到可迁移的提示词，创建测试提示词验证存储功能...');
+                  
+                  try {
+                    const testPrompt = await storageAdapter.createPrompt({
+                      name: '测试提示词 - 系统自动创建',
+                      content: '这是系统自动创建的测试提示词，用于验证存储功能。您可以根据需要修改或删除此提示词。\n\n请回答以下问题：{用户输入}'
+                    });
+                    
+                    console.log('[TestingPanel] ✅ 测试提示词创建成功:', testPrompt);
+                    
+                    // 重新加载数据
+                    const newPrompts = await storageAdapter.getPrompts();
+                    console.log('[TestingPanel] 🎉 重新加载后的提示词:', newPrompts);
+                    setPrompts(newPrompts);
+                    
+                    // 更新loadedPrompts变量，确保后续逻辑使用正确的数据
+                    loadedPrompts = newPrompts;
+                    
+                    message.success('已自动创建测试提示词，存储功能正常！');
+                  } catch (error) {
+                    console.error('[TestingPanel] ❌ 创建测试提示词失败:', error);
+                    message.error('提示词存储功能异常，请检查系统状态');
+                  }
+                }
+              }
+            } else {
+              console.log('[TestingPanel] ❌ 数据库未连接或不可用');
+            }
+          } catch (dbError) {
+            console.error('[TestingPanel] 数据库调试失败:', dbError);
+          }
+          
+          console.log('[TestingPanel] 📝 开始获取API配置...');
+          const allApiConfigs = await storageAdapter.getApiConfigs();
+          console.log('[TestingPanel] ✅ 获取到API配置数量:', allApiConfigs.length, '详情:', allApiConfigs);
+          
+          console.log('[TestingPanel] 📝 开始获取默认测试输入...');
+          const allDefaultInputs = storageAdapter.getDefaultTestInputs();
+          console.log('[TestingPanel] ✅ 获取到默认测试输入数量:', allDefaultInputs.length);
+          
+          // 处理模型数据 - 展开所有API配置中的模型
+          const models: Array<{ id: string; name: string; apiConfigName: string }> = [];
+          allApiConfigs.forEach(config => {
+            console.log(`[TestingPanel] 📊 处理API配置: ${config.name}, 模型数量: ${config.models?.length || 0}`);
+            if (config.models && Array.isArray(config.models)) {
+              config.models.forEach(model => {
+                if (model.enabled !== false) { // 如果enabled字段不存在或为true，则包含该模型
+                  const modelInfo = {
+                    id: `${config.id}_${model.id}`,
+                    name: model.name || model.modelId,
+                    apiConfigName: config.name
+                  };
+                  models.push(modelInfo);
+                  console.log(`[TestingPanel] ➕ 添加模型:`, modelInfo);
+                }
+              });
+            }
+          });
+          
+          loadedPrompts = allPrompts;
+          loadedModels = models;
+          loadedDefaultInputs = allDefaultInputs;
+          
+          console.log('[TestingPanel] 🎯 SQLite数据加载完成:', {
+            prompts: loadedPrompts.length,
+            models: loadedModels.length,
+            apiConfigs: allApiConfigs.length,
+            defaultInputs: loadedDefaultInputs.length
+          });
+          
+        } catch (error) {
+          console.error('[TestingPanel] ❌ SQLite数据加载失败:', error);
+          throw error;
+        }
+        
+      } else {
+        console.log('[TestingPanel] ⚠️ 用户未登录，使用localStorage');
+        
+        // 使用storage-simple获取数据（兼容性）
+        loadedPrompts = promptStorage.getAll();
+        loadedModels = apiConfigStorage.getAllModels();
+        loadedDefaultInputs = defaultTestInputStorage.getAll();
+        
+        console.log('[TestingPanel] 📦 localStorage数据加载完成:', {
+          prompts: loadedPrompts.length,
+          models: loadedModels.length,
+          defaultInputs: loadedDefaultInputs.length
+        });
+      }
+      
+      console.log('[TestingPanel] 🏁 最终数据设置:', {
         prompts: loadedPrompts.length,
         models: loadedModels.length,
-        defaultInputs: loadedDefaultInputs.length
-      });
-      
-      console.log('[TestingPanel] 详细数据:', {
-        prompts: loadedPrompts,
-        models: loadedModels,
-        defaultInputs: loadedDefaultInputs
-      });
-      
-      // 专门调试模型数据
-      console.log('[TestingPanel] 模型数据详细调试:');
-      console.log('[TestingPanel] - 获取到的模型数量:', loadedModels.length);
-      console.log('[TestingPanel] - 模型详细列表:', loadedModels);
-      
-      // 调试API配置
-      const allApiConfigs = apiConfigStorage.getAll();
-      console.log('[TestingPanel] - API配置数量:', allApiConfigs.length);
-      allApiConfigs.forEach((config, index) => {
-        console.log(`[TestingPanel] - 配置${index + 1}: ${config.name}, 模型数量: ${config.models?.length || 0}`);
-        if (config.models) {
-          config.models.forEach((model, modelIndex) => {
-            console.log(`[TestingPanel]   - 模型${modelIndex + 1}: ${model.name || model.modelId} (enabled: ${model.enabled})`);
-          });
-        }
+        defaultInputs: loadedDefaultInputs.length,
+        promptsDetails: loadedPrompts,
+        modelsDetails: loadedModels
       });
       
       setPrompts(loadedPrompts);
@@ -395,7 +553,7 @@ const TestingPanel: React.FC = () => {
       // 如果没有数据，尝试初始化
       if (loadedPrompts.length === 0 && loadedModels.length === 0) {
         console.log('[TestingPanel] 没有数据，尝试初始化...');
-        initializeDefaultData(loadedPrompts, loadedModels);
+        await initializeDefaultData(loadedPrompts, loadedModels, userId);
       }
       
     } catch (error) {
@@ -407,7 +565,7 @@ const TestingPanel: React.FC = () => {
   };
 
   // 初始化默认数据
-  const initializeDefaultData = (currentPrompts: Prompt[], currentModels: any[]) => {
+  const initializeDefaultData = async (currentPrompts: Prompt[], currentModels: any[], userId: string | null) => {
     console.log('[TestingPanel] 初始化默认数据...');
     
     try {
@@ -421,31 +579,34 @@ const TestingPanel: React.FC = () => {
       }
       
       // 检查是否需要显示配置提醒
-      if (shouldShowNotification(currentPrompts, currentModels) && !notificationShown && !globalNotificationShown) {
-        console.log('[TestingPanel] 显示配置提醒通知');
-        setNotificationShown(true);
-        globalNotificationShown = true;
-        notification.warning({
-          key: 'config-reminder', // 添加key避免重复
-          message: '配置提醒',
-          description: (
-            <div>
-              {currentPrompts.length === 0 && <div>• 请先在"提示词管理"中添加提示词</div>}
-              {currentModels.length === 0 && <div>• 请先在"API配置"中添加API配置和模型</div>}
-              <div className="mt-2 text-gray-500">
-                配置完成后此提醒将不再显示
+      if (userId) {
+        const needsNotification = await shouldShowNotification(userId, currentPrompts, currentModels);
+        if (needsNotification && !notificationShown && !globalNotificationShown) {
+          console.log('[TestingPanel] 显示配置提醒通知');
+          setNotificationShown(true);
+          globalNotificationShown = true;
+          notification.warning({
+            key: 'config-reminder', // 添加key避免重复
+            message: '配置提醒',
+            description: (
+              <div>
+                {currentPrompts.length === 0 && <div>• 请先在"提示词管理"中添加提示词</div>}
+                {currentModels.length === 0 && <div>• 请先在"API配置"中添加API配置和模型</div>}
+                <div className="mt-2 text-gray-500">
+                  配置完成后此提醒将不再显示
+                </div>
               </div>
-            </div>
-          ),
-          duration: 0, // 不自动关闭
-          placement: 'topRight',
-          onClose: () => {
-            // 用户手动关闭时，标记为已关闭，直到用户配置完成
-            setNotificationDismissed(true);
-            setNotificationShown(false);
-            globalNotificationShown = false;
-          }
-        });
+            ),
+            duration: 0, // 不自动关闭
+            placement: 'topRight',
+            onClose: async () => {
+              // 用户手动关闭时，标记为已关闭，直到用户配置完成
+              await setNotificationDismissed(userId, true);
+              setNotificationShown(false);
+              globalNotificationShown = false;
+            }
+          });
+        }
       }
       
     } catch (error) {
@@ -495,20 +656,61 @@ const TestingPanel: React.FC = () => {
     
     try {
       console.log('[TestingPanel] 📝 开始表单验证...');
+      
+      // 先进行基础表单验证
       const values = await form.validateFields();
       console.log('[TestingPanel] ✅ 表单验证通过:', values);
+      
+      // 检查是否选择了提示词
+      if (!values.promptId) {
+        console.log('[TestingPanel] ❌ 未选择提示词');
+        message.error({
+          content: '请先选择提示词',
+          key: 'prompt-validation',
+          duration: 4
+        });
+        return;
+      }
+      
+      // 检查是否选择了模型
+      if (!values.modelId) {
+        console.log('[TestingPanel] ❌ 未选择模型');
+        message.error({
+          content: '请先选择模型',
+          key: 'model-validation',
+          duration: 4
+        });
+        return;
+      }
       
       const validInputs = userInputs.filter(input => input.trim());
       console.log('[TestingPanel] 📝 有效输入数量:', validInputs.length);
       
       if (validInputs.length === 0) {
         console.log('[TestingPanel] ❌ 没有有效输入');
-        message.error(t('testing.pleaseInputAtLeastOne'));
+        message.error({
+          content: '请至少输入一个测试内容',
+          key: 'input-validation',
+          duration: 4
+        });
         return;
       }
 
       const prompt = prompts.find(p => p.id === values.promptId);
-      const modelInfo = apiConfigStorage.getModelInfo(values.modelId);
+      
+      // 根据用户状态选择正确的getModelInfo方法
+      const currentSession = storageAdapter.getCurrentSession();
+      const userId = currentSession?.user?.id || null;
+      const userRole = currentSession?.user?.role;
+      
+      let modelInfo: { apiConfig: any; model: any } | null = null;
+      if (userId && userRole && currentSession) {
+        // 用户已登录，使用SQLite存储
+        modelInfo = await storageAdapter.getModelInfo(values.modelId);
+      } else {
+        // 用户未登录，使用localStorage
+        modelInfo = apiConfigStorage.getModelInfo(values.modelId);
+      }
       
       console.log('[TestingPanel] 🔍 查找结果:', {
         promptId: values.promptId,
@@ -519,13 +721,21 @@ const TestingPanel: React.FC = () => {
       
       if (!prompt) {
         console.log('[TestingPanel] ❌ 提示词未找到');
-        message.error('请选择提示词');
+        message.error({
+          content: '选择的提示词不存在，请重新选择提示词',
+          key: 'prompt-not-found',
+          duration: 6
+        });
         return;
       }
       
       if (!modelInfo) {
         console.log('[TestingPanel] ❌ 模型信息未找到');
-        message.error('请选择模型');
+        message.error({
+          content: '选择的模型不存在，请重新选择模型或检查API配置',
+          key: 'model-not-found',
+          duration: 6
+        });
         return;
       }
 
@@ -567,14 +777,36 @@ const TestingPanel: React.FC = () => {
       console.log('[TestingPanel] 🚀 开始执行测试...');
       // 开始执行测试
       await executeTests(newSession, prompt, modelInfo);
-    } catch (error) {
+    } catch (error: any) {
       console.error('[TestingPanel] ❌ 启动测试失败:', error);
       console.error('[TestingPanel] 错误详情:', {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack
       });
-      message.error(`启动测试失败: ${error.message}`);
+      
+      // 提供更友好的错误信息
+      let errorMessage = '启动测试失败';
+      
+      if (error?.message) {
+        if (error.message.includes('validateFields')) {
+          errorMessage = '表单验证失败，请检查配置选项是否完整';
+        } else if (error.message.includes('promptId') || error.message.includes('提示词')) {
+          errorMessage = '提示词配置错误，请重新选择提示词';
+        } else if (error.message.includes('modelId') || error.message.includes('模型')) {
+          errorMessage = '模型配置错误，请重新选择模型或检查API配置';
+        } else if (error.message.includes('network') || error.message.includes('fetch')) {
+          errorMessage = '网络连接错误，请检查网络连接';
+        } else {
+          errorMessage = `启动测试失败: ${error.message}`;
+        }
+      }
+      
+      message.error({
+        content: errorMessage,
+        key: 'start-test-error',
+        duration: 8
+      });
     }
   };
 
@@ -1554,11 +1786,15 @@ const TestingPanel: React.FC = () => {
               
               {(isRunning || isPaused) && (
                 <Button
-                  danger
                   icon={<StopOutlined />}
                   onClick={handleStopTest}
                   size="large"
-                  className="bg-gradient-to-r from-red-400 via-pink-400 to-pink-600 border-none shadow-lg hover:shadow-xl text-white"
+                  className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 border-none shadow-lg hover:shadow-xl text-white hover:text-white focus:text-white"
+                  style={{ 
+                    color: 'white',
+                    backgroundColor: '#dc2626',
+                    borderColor: 'transparent'
+                  }}
                 >
                   {t('testing.stopTest')}
                 </Button>

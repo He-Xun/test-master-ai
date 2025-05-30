@@ -29,14 +29,15 @@ import {
   InfoCircleOutlined,
   CloudDownloadOutlined,
   RocketOutlined,
+  ArrowLeftOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import LanguageSwitcher from './components/LanguageSwitcher';
 import { User } from './types';
-import { userStorage } from './utils/storage-adapter';
 import { storageAdapter } from './utils/storage-adapter';
 import { useConfigDraft } from './hooks/useConfigDraft';
 import { APP_VERSION, APP_NAME, UPDATE_CHECK_URL } from './constants/version';
+import { AdminDebugger } from './utils/debug-admin';
 import './App.css';
 
 // 使用React.lazy进行代码分割
@@ -48,9 +49,109 @@ const UserAuth = React.lazy(() => import('./components/UserAuth'));
 const UserProfile = React.lazy(() => import('./components/UserProfile'));
 const TestSessionHistory = React.lazy(() => import('./components/TestSessionHistory'));
 const TestSessionDetail = React.lazy(() => import('./components/TestSessionDetail'));
+const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
+
+// 独立的管理面板布局组件
+const AdminLayout: React.FC<{ currentUser: User; onLogout: () => void }> = ({ currentUser, onLogout }) => {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  // 检查更新功能
+  const handleCheckUpdate = async () => {
+    try {
+      message.loading('正在检查更新...', 1);
+      
+      setTimeout(() => {
+        Modal.info({
+          title: '版本信息',
+          content: (
+            <div>
+              <p><strong>当前版本</strong>: v{APP_VERSION}</p>
+              <p><strong>发布日期</strong>: 2025-05-29</p>
+              <p><strong>状态</strong>: 已是最新版本</p>
+              <div className="mt-4">
+                <p className="text-gray-600 text-sm">
+                  如需查看更新历史，请访问发布说明页面。
+                </p>
+              </div>
+            </div>
+          ),
+          okText: '确定',
+          width: 400,
+        });
+      }, 1000);
+    } catch (error) {
+      console.error('检查更新失败:', error);
+      message.error('检查更新失败，请稍后重试');
+    }
+  };
+
+  return (
+    <Layout className="min-h-screen">
+      {/* 管理面板顶部导航 */}
+      <Header className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm h-16">
+        <div className="flex items-center space-x-4 h-full">
+          <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+            <SettingOutlined className="text-white text-sm" />
+          </div>
+          <Title level={4} className="mb-0 leading-none flex items-center h-full" style={{ margin: 0 }}>超级管理员面板</Title>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          {/* 语言切换 */}
+          <LanguageSwitcher style="select" size="small" />
+
+          {/* 检查更新 */}
+          <Tooltip title={t('notification.checkForUpdates')}>
+            <Button
+              type="text"
+              size="small"
+              icon={<CloudDownloadOutlined />}
+              onClick={handleCheckUpdate}
+              className="text-gray-600 hover:text-blue-500"
+            />
+          </Tooltip>
+
+          {/* 通知 */}
+          <Badge count={0} size="small">
+            <Button
+              type="text"
+              size="small"
+              icon={<BellOutlined />}
+              className="text-gray-600 hover:text-blue-500"
+            />
+          </Badge>
+
+          {/* 用户区域 */}
+          <Suspense fallback={<div>Loading...</div>}>
+            <UserProfile user={currentUser} onLogout={onLogout} />
+          </Suspense>
+        </div>
+      </Header>
+
+      {/* 管理面板内容区域 */}
+      <Content className="bg-gray-50">
+        <div className="p-6">
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-64">
+              <div className="text-center">
+                <div className="w-12 h-12 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4">
+                  <SettingOutlined className="text-white text-xl" />
+                </div>
+                <Text className="text-gray-600">Loading...</Text>
+              </div>
+            </div>
+          }>
+            <AdminPanel currentUser={currentUser} />
+          </Suspense>
+        </div>
+      </Content>
+    </Layout>
+  );
+};
 
 // 主应用布局组件
 const AppLayout: React.FC = () => {
@@ -62,6 +163,7 @@ const AppLayout: React.FC = () => {
   const [authModalVisible, setAuthModalVisible] = useState(false);
   const [authDefaultTab, setAuthDefaultTab] = useState<'login' | 'register'>('login');
   const [dataLoading, setDataLoading] = useState(true);
+  const [isInitialized, setIsInitialized] = useState(false);
   
   // 配置暂存相关
   const { hasDraft, restoreDraft, clearDraft } = useConfigDraft();
@@ -84,39 +186,73 @@ const AppLayout: React.FC = () => {
       try {
         await storageAdapter.initialize();
         console.log('[App] 存储系统初始化完成');
+        
+        // 初始化超级管理员账户
+        try {
+          await storageAdapter.createSuperAdmin();
+          console.log('[App] 超级管理员账户初始化完成');
+        } catch (error) {
+          console.error('[App] 超级管理员初始化失败:', error);
+        }
+        
+        // 开发环境下添加调试工具
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[App] 开发模式已启用超级管理员调试工具');
+          console.log('使用 debugSuperAdmin() 检查超级管理员状态');
+          console.log('使用 resetSuperAdminPassword() 重置超级管理员密码');
+          
+          // 自动执行一次检查
+          setTimeout(() => {
+            AdminDebugger.checkSuperAdminStatus();
+          }, 2000);
+        }
+        
+        setIsInitialized(true);
       } catch (error) {
         console.error('[App] 存储系统初始化失败:', error);
+        setIsInitialized(true); // 即使失败也标记为初始化完成
       }
     };
 
     initializeStorage();
   }, []);
 
-  // 检查用户登录状态
+  // 检查用户登录状态 - 只在初始化完成后执行一次
   useEffect(() => {
+    if (!isInitialized) return;
+
     const checkUserSession = () => {
-      if (userStorage.isSessionValid()) {
-        const session = userStorage.getCurrentSession();
-        if (session) {
-          setCurrentUser(session.user);
-          console.log('[App] 用户已登录:', session.user.username);
+      try {
+        console.log('[App] 开始检查用户会话状态');
+        if (storageAdapter.isSessionValid()) {
+          const session = storageAdapter.getCurrentSession();
+          if (session) {
+            console.log('[App] 用户已登录:', session.user.username);
+            setCurrentUser(session.user);
+            
+            // 超级管理员且当前不在管理面板，自动跳转
+            if (storageAdapter.isSuperAdmin(session.user) && location.pathname !== '/admin') {
+              console.log('[App] 超级管理员会话恢复，跳转到管理面板');
+              navigate('/admin');
+            }
+          } else {
+            console.log('[App] 会话无效，无用户信息');
+            setCurrentUser(null);
+          }
+        } else {
+          console.log('[App] 用户会话无效或未登录');
+          setCurrentUser(null);
         }
-      } else {
-        // 会话已过期，清除会话
-        userStorage.logout();
+      } catch (error) {
+        console.error('[App] 检查用户会话失败:', error);
         setCurrentUser(null);
-        console.log('[App] 用户会话已过期');
+      } finally {
+        setDataLoading(false);
       }
-      setDataLoading(false);
     };
 
     checkUserSession();
-    
-    // 定期检查会话状态
-    const interval = setInterval(checkUserSession, 60000); // 每分钟检查一次
-    
-    return () => clearInterval(interval);
-  }, []);
+  }, [isInitialized, navigate, location.pathname]); // 添加必要的依赖
 
   // 检查配置暂存并提示恢复
   useEffect(() => {
@@ -142,9 +278,17 @@ const AppLayout: React.FC = () => {
   }, [currentUser, hasDraft, restoreDraft, clearDraft]);
 
   const handleLogin = (user: User) => {
+    console.log('[App] 用户登录成功:', user.username);
     setCurrentUser(user);
     setAuthModalVisible(false);
-    message.success(t('auth.loginSuccess'));
+    
+    // 超级管理员自动跳转到管理面板
+    if (storageAdapter.isSuperAdmin(user)) {
+      console.log('[App] 超级管理员登录，跳转到管理面板');
+      navigate('/admin');
+    } else {
+      navigate('/testing');
+    }
   };
 
   const handleLogout = () => {
@@ -158,12 +302,14 @@ const AppLayout: React.FC = () => {
         cancelText: '取消',
         onOk: () => {
           clearDraft();
+          storageAdapter.logout();
           setCurrentUser(null);
           navigate('/testing'); // 重置到首页
           message.info('您已安全登出');
         },
       });
     } else {
+      storageAdapter.logout();
       setCurrentUser(null);
       navigate('/testing'); // 重置到首页
       message.info('您已安全登出');
@@ -184,6 +330,9 @@ const AppLayout: React.FC = () => {
         break;
       case 'test-history':
         navigate('/test-history');
+        break;
+      case 'admin':
+        navigate('/admin');
         break;
       case 'debug':
         navigate('/debug');
@@ -218,11 +367,6 @@ const AppLayout: React.FC = () => {
           width: 400,
         });
       }, 1000);
-      
-      // TODO: 实际的更新检查逻辑
-      // const response = await fetch(UPDATE_CHECK_URL);
-      // const updateInfo = await response.json();
-      // 处理更新信息...
       
     } catch (error) {
       console.error('检查更新失败:', error);
@@ -301,6 +445,17 @@ const AppLayout: React.FC = () => {
     );
   }
 
+  // 如果是管理面板页面，使用独立布局
+  if (location.pathname === '/admin') {
+    if (!storageAdapter.isSuperAdmin(currentUser)) {
+      // 非超级管理员访问管理面板，重定向到主页
+      navigate('/testing');
+      message.error('您没有权限访问管理面板');
+      return null;
+    }
+    return <AdminLayout currentUser={currentUser} onLogout={handleLogout} />;
+  }
+
   const menuItems = [
     {
       key: 'testing',
@@ -348,6 +503,19 @@ const AppLayout: React.FC = () => {
       ),
     },
   ];
+
+  // 为超级管理员添加管理面板入口菜单项
+  if (storageAdapter.isSuperAdmin(currentUser)) {
+    menuItems.splice(-1, 0, {
+      key: 'admin',
+      icon: <SettingOutlined />,
+      label: (
+        <Tooltip title="管理面板" placement="right" getPopupContainer={() => document.body}>
+          <span className="truncate block max-w-[180px]">管理面板</span>
+        </Tooltip>
+      ),
+    });
+  }
 
   return (
     <Layout className="min-h-screen">

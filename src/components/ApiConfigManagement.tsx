@@ -40,7 +40,7 @@ import {
   SearchOutlined,
 } from '@ant-design/icons';
 import { ApiConfig, ModelConfig, RequestMode } from '../types';
-import { apiConfigStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
 import { testApiConfig, fetchAvailableModels } from '../utils/api';
 
 const { Panel } = Collapse;
@@ -92,9 +92,9 @@ const ApiConfigManagement: React.FC = () => {
     };
   }, []);
 
-  const loadConfigs = () => {
+  const loadConfigs = async () => {
     console.log('[ApiConfigManagement] 开始加载配置');
-    const loadedConfigs = apiConfigStorage.getAll();
+    const loadedConfigs = await storageAdapter.getApiConfigs();
     console.log('[ApiConfigManagement] 加载到的配置:', loadedConfigs);
     setConfigs(loadedConfigs);
   };
@@ -153,8 +153,8 @@ const ApiConfigManagement: React.FC = () => {
     setIsModalVisible(true);
   };
 
-  const handleDelete = (id: string) => {
-    apiConfigStorage.delete(id);
+  const handleDelete = async (id: string) => {
+    await storageAdapter.deleteApiConfig(id);
     loadConfigs();
     message.success(t('api.deleteSuccess'));
   };
@@ -329,7 +329,7 @@ const ApiConfigManagement: React.FC = () => {
       if (editingConfig) {
         const updated = { ...editingConfig, ...values, updatedAt: new Date().toISOString() };
         console.log('[ApiConfigManagement] 准备更新的配置:', updated);
-        apiConfigStorage.update(editingConfig.id, updated);
+        await storageAdapter.updateApiConfig(editingConfig.id, updated);
         message.success(t('api.updateSuccess'));
         console.log('[ApiConfigManagement] 配置更新成功');
       } else {
@@ -339,7 +339,7 @@ const ApiConfigManagement: React.FC = () => {
           updatedAt: new Date().toISOString(),
         };
         console.log('[ApiConfigManagement] 准备保存的新配置:', newConfig);
-        apiConfigStorage.create(newConfig);
+        await storageAdapter.createApiConfig(newConfig);
         message.success(t('api.saveSuccess'));
         console.log('[ApiConfigManagement] 新配置保存成功');
       }

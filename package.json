@@ -1,6 +1,6 @@
 {
   "name": "test-master-ai",
-  "version": "1.3.2",
+  "version": "1.0.0",
   "private": true,
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
   "main": "dist/main.js",
@@ -13,7 +13,9 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "pack": "electron-builder",
     "dist": "npm run build && electron-builder",
-    "postinstall": "electron-builder install-app-deps"
+    "postinstall": "electron-builder install-app-deps",
+    "admin:info": "node tools/admin-helper.js",
+    "admin:reset": "node tools/reset-superadmin.js"
   },
   "keywords": [
     "api-testing",

@@ -18,7 +18,7 @@ import {
   UserAddOutlined,
 } from '@ant-design/icons';
 import { LoginForm, RegisterForm, User } from '../types';
-import { userStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
 
 const { TabPane } = Tabs;
 
@@ -48,17 +48,21 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       setLoading(true);
       const values = await loginForm.validateFields();
       
-      const session = userStorage.login(values.username, values.password);
+      console.log('[UserAuth] 尝试登录:', values.username);
+      const session = storageAdapter.login(values.username, values.password);
       if (session) {
+        console.log('[UserAuth] 登录成功:', session.user.username);
         message.success('登录成功！');
         onLogin(session.user);
         onClose?.();
         loginForm.resetFields();
       } else {
+        console.log('[UserAuth] 登录失败: 用户名或密码错误');
         message.error('用户名或密码错误');
       }
     } catch (error) {
-      console.error('登录失败:', error);
+      console.error('[UserAuth] 登录失败:', error);
+      message.error('登录失败，请稍后重试');
     } finally {
       setLoading(false);
     }
@@ -69,39 +73,41 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       setLoading(true);
       const values = await registerForm.validateFields();
       
+      console.log('[UserAuth] 尝试注册:', values.username);
+      
       // 检查用户名是否已存在
-      const existingUser = userStorage.getUserByUsername(values.username);
+      const existingUser = await storageAdapter.getUserByUsername(values.username);
       if (existingUser) {
         message.error('用户名已存在');
         return;
       }
 
-      // 检查邮箱是否已存在
-      const existingEmail = userStorage.getUserByEmail(values.email);
-      if (existingEmail) {
-        message.error('邮箱已被注册');
-        return;
-      }
-
       // 创建用户
-      const user = userStorage.createUser({
+      const user = await storageAdapter.createUser({
         username: values.username,
         email: values.email,
       });
 
       // 存储密码
-      userStorage.storeUserPassword(user.id, values.password);
+      await storageAdapter.storeUserPassword(user.id, values.password);
 
+      console.log('[UserAuth] 注册成功，尝试自动登录');
       // 自动登录
-      const session = userStorage.login(values.username, values.password);
+      const session = storageAdapter.login(values.username, values.password);
       if (session) {
+        console.log('[UserAuth] 注册并登录成功:', session.user.username);
         message.success('注册成功并已自动登录！');
         onLogin(session.user);
         onClose?.();
         registerForm.resetFields();
+      } else {
+        console.log('[UserAuth] 注册成功但自动登录失败');
+        message.success('注册成功！请登录');
+        setActiveTab('login');
       }
     } catch (error) {
-      console.error('注册失败:', error);
+      console.error('[UserAuth] 注册失败:', error);
+      message.error('注册失败，请稍后重试');
     } finally {
       setLoading(false);
     }

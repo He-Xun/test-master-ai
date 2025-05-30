@@ -11,6 +11,9 @@ import {
   message,
   Upload,
   Typography,
+  Tag,
+  Divider,
+  Tooltip
 } from 'antd';
 import {
   UserOutlined,
@@ -19,20 +22,26 @@ import {
   CameraOutlined,
   EditOutlined,
   InfoCircleOutlined,
+  MailOutlined,
+  CalendarOutlined,
+  KeyOutlined,
+  ExclamationCircleOutlined
 } from '@ant-design/icons';
 import { User } from '../types';
-import { userStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
 
 const { Text } = Typography;
 
 interface UserProfileProps {
   user: User;
   onLogout: () => void;
+  onEdit?: (user: User) => void;
 }
 
-const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
+const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => {
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
+  const [loading, setLoading] = useState(false);
 
   // 默认头像URL（本地图片）
   const defaultAvatarUrl = '/avatar/default.png';
@@ -44,14 +53,23 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout }) => {
 
   const handleLogout = () => {
     Modal.confirm({
-      title: '确认登出',
-      content: '确定要登出当前账户吗？',
+      title: '确认退出',
+      icon: <ExclamationCircleOutlined />,
+      content: '确定要退出登录吗？',
       okText: '确定',
       cancelText: '取消',
-      onOk: () => {
-        userStorage.logout();
-        onLogout();
-        message.success('已成功登出');
+      onOk: async () => {
+        try {
+          setLoading(true);
+          storageAdapter.logout();
+          onLogout();
+          message.success('已安全退出');
+        } catch (error) {
+          console.error('退出登录失败:', error);
+          message.error('退出失败，请稍后重试');
+        } finally {
+          setLoading(false);
+        }
       },
     });
   };

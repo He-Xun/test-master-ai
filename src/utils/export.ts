@@ -10,7 +10,7 @@ export const exportToExcel = async (results: TestResult[], filename?: string): P
     '用户输入': result.userInput,
     '提示词名称': result.promptName,
     '模型名称': result.modelName,
-    '第几次': result.repetitionIndex + 1,
+    '第几次': result.repetitionIndex,
     '输出结果': result.output,
     '状态': result.status === 'success' ? '成功' : result.status === 'error' ? '失败' : '等待中',
     '错误信息': result.errorMessage || '',
@@ -59,7 +59,7 @@ export const exportToCSV = async (results: TestResult[], filename?: string): Pro
     '用户输入': result.userInput,
     '提示词名称': result.promptName,
     '模型名称': result.modelName,
-    '第几次': result.repetitionIndex + 1,
+    '第几次': result.repetitionIndex,
     '输出结果': result.output,
     '状态': result.status === 'success' ? '成功' : result.status === 'error' ? '失败' : '等待中',
     '错误信息': result.errorMessage || '',
@@ -89,7 +89,7 @@ export const copyResultsToClipboard = (results: TestResult[]): string => {
     result.userInput,
     result.promptName,
     result.modelName,
-    (result.repetitionIndex + 1).toString(),
+    result.repetitionIndex.toString(),
     result.output,
     result.status === 'success' ? '成功' : result.status === 'error' ? '失败' : '等待中',
     result.errorMessage || '',
@@ -131,7 +131,7 @@ export const formatResultsAsText = (results: TestResult[]): string => {
     text += `用户输入: ${result.userInput}\n`;
     text += `提示词: ${result.promptName}\n`;
     text += `模型: ${result.modelName}\n`;
-    text += `第 ${result.repetitionIndex + 1} 次调用\n`;
+    text += `第 ${result.repetitionIndex} 次调用\n`;
     text += `状态: ${result.status === 'success' ? '成功' : result.status === 'error' ? '失败' : '等待中'}\n`;
     if (result.errorMessage) {
       text += `错误信息: ${result.errorMessage}\n`;

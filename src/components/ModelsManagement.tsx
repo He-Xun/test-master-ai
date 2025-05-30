@@ -20,6 +20,7 @@ import {
 } from '@ant-design/icons';
 import { Model, ApiConfig } from '../types';
 import { modelStorage, apiConfigStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
 import { useTranslation } from 'react-i18next';
 
 const { Option } = Select;
@@ -34,9 +35,9 @@ const ModelsManagement: React.FC = () => {
   const [form] = Form.useForm();
 
   // 加载数据
-  const loadData = () => {
+  const loadData = async () => {
     setModels(modelStorage.getAll());
-    setApiConfigs(apiConfigStorage.getAll());
+    setApiConfigs(await storageAdapter.getApiConfigs());
   };
 
   useEffect(() => {

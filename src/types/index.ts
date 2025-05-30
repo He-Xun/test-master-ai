@@ -127,11 +127,15 @@ export interface DefaultTestInput {
   createdAt: string;
 }
 
+// 用户角色类型
+export type UserRole = 'user' | 'admin' | 'superadmin';
+
 // 用户类型
 export interface User {
   id: string;
   username: string;
   email: string;
+  role: UserRole;
   avatar?: string;
   createdAt: string;
   updatedAt: string;

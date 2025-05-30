@@ -9,7 +9,7 @@ import {
   TestParams,
   TestResult
 } from '../types';
-import { SQLiteStorage } from './sqlite-storage';
+import { SQLiteStorage, sqliteStorage } from './sqlite-storage';
 
 // 存储适配器类
 class StorageAdapter {
@@ -21,15 +21,15 @@ class StorageAdapter {
     if (this.isInitialized) return;
 
     try {
-      // 暂时只使用localStorage
-      this.useIndexedDB = false;
-      console.log('[StorageAdapter] 使用localStorage存储');
+      // 初始化SQLite数据库
+      await sqliteStorage.initialize();
+      console.log('[StorageAdapter] SQLite数据库初始化完成');
+      this.isInitialized = true;
     } catch (error) {
-      console.warn('[StorageAdapter] 存储初始化失败:', error);
+      console.error('[StorageAdapter] SQLite初始化失败，回退到localStorage:', error);
       this.useIndexedDB = false;
+      this.isInitialized = true;
     }
-
-    this.isInitialized = true;
   }
 
   // 获取当前用户ID
@@ -44,79 +44,259 @@ class StorageAdapter {
 
   // 用户管理
   async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-    return localUserStorage.createUser(userData);
+    const user = sqliteStorage.createUser(userData);
+    return user;
   }
 
   async getAllUsers(): Promise<User[]> {
-    return localUserStorage.getAllUsers();
+    return sqliteStorage.getAllUsers();
   }
 
   async getUserByUsername(username: string): Promise<User | null> {
-    return localUserStorage.getUserByUsername(username) || null;
+    return sqliteStorage.getUserByUsername(username);
   }
 
   async validateUser(username: string, password: string): Promise<User | null> {
-    return localUserStorage.validateUser(username, password);
+    return sqliteStorage.validateUser(username, password);
   }
 
   async storeUserPassword(userId: string, password: string): Promise<void> {
-    localUserStorage.storeUserPassword(userId, password);
+    sqliteStorage.storeUserPassword(userId, password);
+    // 确保数据库保存完成
+    await new Promise(resolve => setTimeout(resolve, 100));
   }
 
+  // 超级管理员方法
+  async createSuperAdmin(): Promise<User> {
+    // 检查是否已存在超级管理员
+    const existingSuperAdmin = await this.getUserByUsername('superadmin');
+    if (existingSuperAdmin) {
+      return existingSuperAdmin;
+    }
+
+    // 创建超级管理员账户
+    const superAdmin = await this.createUser({
+      username: 'superadmin',
+      email: 'admin@testmaster.ai',
+      role: 'superadmin',
+      avatar: '/avatar/admin.png'
+    });
+
+    // 设置默认密码
+    await this.storeUserPassword(superAdmin.id, 'admin123');
+    
+    console.log('[StorageAdapter] 超级管理员账户已创建');
+    return superAdmin;
+  }
+
+  // 重置用户密码（仅超级管理员可用）
+  async resetUserPassword(userId: string, newPassword: string, operatorUserId: string): Promise<boolean> {
+    try {
+      const operator = await this.getUserById(operatorUserId);
+      if (!operator || operator.role !== 'superadmin') {
+        console.error('[StorageAdapter] 非超级管理员不能重置密码');
+        return false;
+      }
+
+      await this.storeUserPassword(userId, newPassword);
+      console.log(`[StorageAdapter] 用户 ${userId} 密码已重置`);
+      return true;
+    } catch (error) {
+      console.error('[StorageAdapter] 重置密码失败:', error);
+      return false;
+    }
+  }
+
+  // 更新用户信息（仅超级管理员可用）
+  async updateUserInfo(userId: string, updates: Partial<User>, operatorUserId: string): Promise<boolean> {
+    try {
+      const operator = await this.getUserById(operatorUserId);
+      if (!operator || operator.role !== 'superadmin') {
+        console.error('[StorageAdapter] 非超级管理员不能修改用户信息');
+        return false;
+      }
+
+      return sqliteStorage.updateUser(userId, updates);
+    } catch (error) {
+      console.error('[StorageAdapter] 更新用户信息失败:', error);
+      return false;
+    }
+  }
+
+  // 删除用户（仅超级管理员可用）
+  async deleteUser(userId: string, operatorUserId: string): Promise<boolean> {
+    try {
+      const operator = await this.getUserById(operatorUserId);
+      if (!operator || operator.role !== 'superadmin') {
+        console.error('[StorageAdapter] 非超级管理员不能删除用户');
+        return false;
+      }
+
+      // 防止删除超级管理员
+      const targetUser = await this.getUserById(userId);
+      if (targetUser && targetUser.role === 'superadmin') {
+        console.error('[StorageAdapter] 不能删除超级管理员账户');
+        return false;
+      }
+
+      return sqliteStorage.deleteUser(userId);
+    } catch (error) {
+      console.error('[StorageAdapter] 删除用户失败:', error);
+      return false;
+    }
+  }
+
+  // 获取用户详细信息（包含权限检查）
+  async getUserById(userId: string): Promise<User | null> {
+    return sqliteStorage.getUserById(userId);
+  }
+
+  // 检查用户是否为超级管理员
+  isSuperAdmin(user: User | null): boolean {
+    return user?.role === 'superadmin';
+  }
+
+  // 只切换会话相关方法为sqlite
   getCurrentSession(): UserSession | null {
-    return localUserStorage.getCurrentSession();
+    return sqliteStorage.getCurrentSession();
   }
 
   setSession(session: UserSession | null): void {
-    localUserStorage.setSession(session);
+    sqliteStorage.setSession(session);
   }
 
   login(username: string, password: string): UserSession | null {
-    return localUserStorage.login(username, password);
+    return sqliteStorage.login(username, password);
   }
 
   logout(): void {
-    localUserStorage.logout();
+    // 同时清除SQLite和localStorage中的会话
+    sqliteStorage.logout();
+    // 也清除localStorage中的用户会话，防止不一致
+    try {
+      localStorage.removeItem('userSession');
+    } catch (error) {
+      console.error('[StorageAdapter] 清除localStorage会话失败:', error);
+    }
   }
 
   isSessionValid(): boolean {
-    return localUserStorage.isSessionValid();
+    return sqliteStorage.isSessionValid();
   }
 
   // 提示词管理
   async getPrompts(): Promise<Prompt[]> {
-    return promptStorage.getAll();
+    const userId = this.getCurrentUserId();
+    if (!userId) return [];
+    return sqliteStorage.getPrompts(userId);
   }
 
   async createPrompt(promptData: Omit<Prompt, 'id' | 'createdAt' | 'updatedAt'>): Promise<Prompt> {
-    return promptStorage.create(promptData);
+    const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('用户未登录');
+    return sqliteStorage.createPrompt(userId, promptData);
   }
 
   async updatePrompt(promptId: string, updates: Partial<Prompt>): Promise<boolean> {
-    const result = promptStorage.update(promptId, updates);
-    return result !== null;
+    const userId = this.getCurrentUserId();
+    if (!userId) return false;
+    return sqliteStorage.updatePrompt(userId, promptId, updates);
   }
 
   async deletePrompt(promptId: string): Promise<boolean> {
-    return promptStorage.delete(promptId);
+    const userId = this.getCurrentUserId();
+    if (!userId) return false;
+    return sqliteStorage.deletePrompt(userId, promptId);
   }
 
   // API配置管理
   async getApiConfigs(): Promise<ApiConfig[]> {
-    return apiConfigStorage.getAll();
+    const userId = this.getCurrentUserId();
+    if (!userId) return [];
+    return sqliteStorage.getApiConfigs(userId);
   }
 
   async createApiConfig(configData: Omit<ApiConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiConfig> {
-    return apiConfigStorage.create(configData);
+    const userId = this.getCurrentUserId();
+    if (!userId) throw new Error('用户未登录');
+    return sqliteStorage.createApiConfig(userId, configData);
   }
 
   async updateApiConfig(configId: string, updates: Partial<ApiConfig>): Promise<boolean> {
-    const result = apiConfigStorage.update(configId, updates);
-    return result !== null;
+    const userId = this.getCurrentUserId();
+    if (!userId) return false;
+    return sqliteStorage.updateApiConfig(userId, configId, updates);
   }
 
   async deleteApiConfig(configId: string): Promise<boolean> {
-    return apiConfigStorage.delete(configId);
+    const userId = this.getCurrentUserId();
+    if (!userId) return false;
+    return sqliteStorage.deleteApiConfig(userId, configId);
+  }
+
+  // 获取所有可用的模型（从所有API配置中）
+  async getAllModels(): Promise<Array<{ id: string; name: string; apiConfigName: string }>> {
+    const configs = await this.getApiConfigs();
+    const models: Array<{ id: string; name: string; apiConfigName: string }> = [];
+    
+    console.log(`[StorageAdapter] 从 ${configs.length} 个API配置中提取模型`);
+    
+    configs.forEach(config => {
+      if (config.models && Array.isArray(config.models)) {
+        config.models.forEach(model => {
+          if (model.enabled) {
+            // 向后兼容处理：支持新的modelId字段和旧的displayName字段
+            const modelAny = model as any;
+            const displayName = modelAny.name || modelAny.displayName || 'Unknown Model';
+            
+            models.push({
+              id: `${config.id}_${model.id}`,
+              name: displayName, // TestingPanel用作显示名称
+              apiConfigName: config.name,
+            });
+          }
+        });
+      }
+    });
+    
+    console.log(`[StorageAdapter] 提取到 ${models.length} 个可用模型`);
+    return models;
+  }
+
+  // 根据模型ID获取API配置和模型信息
+  async getModelInfo(modelId: string): Promise<{ apiConfig: any; model: any } | null> {
+    console.log(`[StorageAdapter] 获取模型信息: ${modelId}`);
+    const [apiConfigId, modelConfigId] = modelId.split('_');
+    const configs = await this.getApiConfigs();
+    const apiConfig = configs.find(c => c.id === apiConfigId);
+    
+    if (!apiConfig) {
+      console.warn(`[StorageAdapter] 未找到API配置: ${apiConfigId}`);
+      return null;
+    }
+    
+    const model = apiConfig.models.find(m => m.id === modelConfigId);
+    if (!model) {
+      console.warn(`[StorageAdapter] 未找到模型: ${modelConfigId}`);
+      return null;
+    }
+    
+    // 确保模型对象包含正确的字段用于API调用
+    const modelAny = model as any;
+    // 优先使用modelId字段，如果没有则使用name字段，最后使用默认值
+    const modelIdForApi = modelAny.modelId || modelAny.name || 'gpt-4o-mini';
+    const displayName = modelAny.name || modelAny.displayName || modelIdForApi || 'Unknown Model';
+    
+    // 创建一个包含所需字段的完整模型对象
+    const enhancedModel = {
+      ...model,
+      modelId: modelIdForApi, // 确保有用于API调用的modelId
+      name: displayName,      // 确保有显示名称
+    };
+    
+    console.log(`[StorageAdapter] 找到模型: ${displayName} (API调用ID: ${modelIdForApi}) (${apiConfig.name})`);
+    console.log(`[StorageAdapter] 增强后的模型对象:`, enhancedModel);
+    return { apiConfig, model: enhancedModel };
   }
 
   // 测试会话历史管理
@@ -125,15 +305,7 @@ class StorageAdapter {
       const userId = this.getCurrentUserId();
       if (!userId) return [];
       
-      const historyKey = `${userId}_test_session_history`;
-      const stored = localStorage.getItem(historyKey);
-      if (!stored) return [];
-      
-      const allHistory: TestSessionHistory[] = JSON.parse(stored);
-      // 按创建时间降序排列，返回最新的限制数量
-      return allHistory
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
-        .slice(0, limit);
+      return sqliteStorage.getTestSessionHistory(userId, limit);
     } catch (error) {
       console.error('[StorageAdapter] 获取测试历史失败:', error);
       return [];
@@ -159,32 +331,7 @@ class StorageAdapter {
         return null;
       }
       
-      const historyKey = `${userId}_test_session_history`;
-      const historyRecord: TestSessionHistory = {
-        id: `session-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        userId: userId,
-        createdAt: new Date().toISOString(),
-        ...sessionData
-      };
-
-      // 获取现有历史记录
-      const stored = localStorage.getItem(historyKey);
-      const existingHistory: TestSessionHistory[] = stored ? JSON.parse(stored) : [];
-      
-      // 添加新记录到开头
-      existingHistory.unshift(historyRecord);
-      
-      // 保持最多100条记录
-      const maxRecords = 100;
-      if (existingHistory.length > maxRecords) {
-        existingHistory.splice(maxRecords);
-      }
-      
-      // 保存到localStorage
-      localStorage.setItem(historyKey, JSON.stringify(existingHistory));
-      
-      console.log('[StorageAdapter] 测试历史记录已保存:', historyRecord.id);
-      return historyRecord;
+      return sqliteStorage.saveTestSessionHistory(userId, sessionData);
     } catch (error) {
       console.error('[StorageAdapter] 保存测试历史失败:', error);
       return null;
@@ -196,20 +343,7 @@ class StorageAdapter {
       const userId = this.getCurrentUserId();
       if (!userId) return false;
       
-      const historyKey = `${userId}_test_session_history`;
-      const stored = localStorage.getItem(historyKey);
-      if (!stored) return false;
-      
-      const existingHistory: TestSessionHistory[] = JSON.parse(stored);
-      const filteredHistory = existingHistory.filter(record => record.id !== sessionId);
-      
-      if (filteredHistory.length === existingHistory.length) {
-        return false; // 没有找到要删除的记录
-      }
-      
-      localStorage.setItem(historyKey, JSON.stringify(filteredHistory));
-      console.log('[StorageAdapter] 测试历史记录已删除:', sessionId);
-      return true;
+      return sqliteStorage.deleteTestSessionHistory(userId, sessionId);
     } catch (error) {
       console.error('[StorageAdapter] 删除测试历史失败:', error);
       return false;
@@ -222,7 +356,7 @@ class StorageAdapter {
     if (!userId) return;
 
     try {
-      localStorage.setItem(`${userId}_test_config_draft`, JSON.stringify(configData));
+      sqliteStorage.saveConfigDraft(userId, 'test_config', configData);
     } catch (error) {
       console.error('[StorageAdapter] 保存测试配置暂存失败:', error);
     }
@@ -233,8 +367,7 @@ class StorageAdapter {
     if (!userId) return null;
 
     try {
-      const draft = localStorage.getItem(`${userId}_test_config_draft`);
-      return draft ? JSON.parse(draft) : null;
+      return sqliteStorage.getConfigDraft(userId, 'test_config');
     } catch (error) {
       console.error('[StorageAdapter] 获取测试配置暂存失败:', error);
       return null;
@@ -246,7 +379,7 @@ class StorageAdapter {
     if (!userId) return;
 
     try {
-      localStorage.removeItem(`${userId}_test_config_draft`);
+      sqliteStorage.clearConfigDraft(userId, 'test_config');
     } catch (error) {
       console.error('[StorageAdapter] 清除测试配置暂存失败:', error);
     }
@@ -271,7 +404,7 @@ class StorageAdapter {
 }
 
 // 创建全局实例
-export const storageAdapter = new SQLiteStorage();
+export const storageAdapter = new StorageAdapter();
 
 // 导出兼容接口
 export const storage = {
@@ -286,6 +419,8 @@ export const storage = {
   createApiConfig: (data: Omit<ApiConfig, 'id' | 'createdAt' | 'updatedAt'>) => storageAdapter.createApiConfig(data),
   updateApiConfig: (id: string, updates: Partial<ApiConfig>) => storageAdapter.updateApiConfig(id, updates),
   deleteApiConfig: (id: string) => storageAdapter.deleteApiConfig(id),
+  getAllModels: () => storageAdapter.getAllModels(),
+  getModelInfo: (modelId: string) => storageAdapter.getModelInfo(modelId),
 
   // 其他方法
   getModels: () => storageAdapter.getModels(),

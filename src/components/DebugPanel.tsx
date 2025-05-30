@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { Card, Button, Typography, Space, Collapse, Tag, Alert } from 'antd';
 import { ReloadOutlined, BugOutlined, InfoCircleOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { promptStorage, apiConfigStorage, defaultTestInputStorage } from '../utils/storage-simple';
+import { storageAdapter } from '../utils/storage-adapter';
 
 const { Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -11,11 +12,11 @@ const DebugPanel: React.FC = () => {
   const { t } = useTranslation();
   const [debugData, setDebugData] = useState<any>({});
 
-  const loadDebugData = () => {
-    const prompts = promptStorage.getAll();
-    const apiConfigs = apiConfigStorage.getAll();
-    const models = apiConfigStorage.getAllModels();
-    const defaultInputs = defaultTestInputStorage.getAll();
+  const loadDebugData = async () => {
+    const prompts = await storageAdapter.getPrompts();
+    const apiConfigs = await storageAdapter.getApiConfigs();
+    const models = await storageAdapter.getAllModels();
+    const defaultInputs = storageAdapter.getDefaultTestInputs();
 
     setDebugData({
       prompts,

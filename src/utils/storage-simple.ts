@@ -379,8 +379,9 @@ export const apiConfigStorage = {
     
     // 确保模型对象包含正确的字段用于API调用
     const modelAny = model as any;
-    const modelIdForApi = modelAny.modelId || modelAny.name || 'gpt-4o-mini'; // 默认模型
-    const displayName = modelAny.name || modelAny.displayName || 'Unknown Model';
+    // 优先使用modelId字段，如果没有则使用name字段，最后使用默认值
+    const modelIdForApi = modelAny.modelId || modelAny.name || 'gpt-4o-mini';
+    const displayName = modelAny.name || modelAny.displayName || modelIdForApi || 'Unknown Model';
     
     // 创建一个包含所需字段的完整模型对象
     const enhancedModel = {
@@ -390,6 +391,7 @@ export const apiConfigStorage = {
     };
     
     console.log(`[ApiConfigStorage] 找到模型: ${displayName} (API调用ID: ${modelIdForApi}) (${apiConfig.name})`);
+    console.log(`[ApiConfigStorage] 增强后的模型对象:`, enhancedModel);
     return { apiConfig, model: enhancedModel };
   },
 };
