@@ -9,6 +9,7 @@ import {
   TestParams,
   TestResult
 } from '../types';
+import { SQLiteStorage } from './sqlite-storage';
 
 // 存储适配器类
 class StorageAdapter {
@@ -270,7 +271,7 @@ class StorageAdapter {
 }
 
 // 创建全局实例
-export const storageAdapter = new StorageAdapter();
+export const storageAdapter = new SQLiteStorage();
 
 // 导出兼容接口
 export const storage = {

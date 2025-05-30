@@ -425,7 +425,9 @@
     "modelData": "模型数据",
     "defaultInputData": "默认输入数据",
     "localStorageData": "localStorage原始数据",
-    "jsonFormat": "JSON格式"
+    "jsonFormat": "JSON格式",
+    "localStorageStat": "{{count}}项 {{size}}KB",
+    "unknownSize": "未知大小"
   },
   "models": {
     "title": "模型管理",

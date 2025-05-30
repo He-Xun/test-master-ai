@@ -669,4 +669,5 @@ class SQLiteStorage {
 }
 
 // 创建全局实例
-export const sqliteStorage = new SQLiteStorage(); 
+export const sqliteStorage = new SQLiteStorage();
+export { SQLiteStorage }; 

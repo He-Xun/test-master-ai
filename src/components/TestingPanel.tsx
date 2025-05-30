@@ -1195,6 +1195,18 @@ const TestingPanel: React.FC = () => {
     };
   }, []);
 
+  // 卡片内容渲染函数，带省略、断词、tooltip
+  const renderStatText = (text: string) => (
+    <Tooltip title={text} placement="top">
+      <div
+        className="text-xs text-gray-500 mt-1 text-center break-all line-clamp-2 truncate"
+        style={{ wordBreak: 'break-all', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}
+      >
+        {text}
+      </div>
+    </Tooltip>
+  );
+
   return (
     <div className="space-y-6">
       {/* 配置区域 */}
@@ -1208,16 +1220,16 @@ const TestingPanel: React.FC = () => {
             </div>
             <div className="grid grid-cols-3 gap-2 mb-2">
               <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-blue-100">
-                <div className="text-xl font-bold text-blue-600">{todayTestCount}</div>
-                <div className="text-xs text-gray-500 mt-1">{t('testing.todayTestCount')}</div>
+                <div className="text-xl font-bold text-blue-600 text-center">{todayTestCount}</div>
+                {renderStatText(t('testing.todayTestCount'))}
               </div>
               <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-green-100">
-                <div className="text-xl font-bold text-green-600">{totalTestCount}</div>
-                <div className="text-xs text-gray-500 mt-1">{t('testing.totalTestCount')}</div>
+                <div className="text-xl font-bold text-green-600 text-center">{totalTestCount}</div>
+                {renderStatText(t('testing.totalTestCount'))}
               </div>
               <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-indigo-100">
-                <div className="text-xl font-bold text-indigo-600">{prompts.length + models.length}</div>
-                <div className="text-xs text-gray-500 mt-1">{t('testing.configTotal')}</div>
+                <div className="text-xl font-bold text-indigo-600 text-center">{prompts.length + models.length}</div>
+                {renderStatText(t('testing.configTotal'))}
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-2">
@@ -1511,7 +1523,7 @@ const TestingPanel: React.FC = () => {
                   icon={<PlayCircleOutlined />}
                   onClick={handleStartTest}
                   size="large"
-                  className="bg-green-500 hover:bg-green-600 border-green-500 shadow-lg"
+                  className="bg-gradient-to-r from-green-400 via-blue-400 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.startTest')}
                 </Button>
@@ -1522,7 +1534,7 @@ const TestingPanel: React.FC = () => {
                   icon={<PauseCircleOutlined />}
                   onClick={handlePauseTest}
                   size="large"
-                  className="bg-orange-500 hover:bg-orange-600 text-white border-orange-500"
+                  className="bg-gradient-to-r from-orange-400 via-yellow-400 to-yellow-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.pauseTest')}
                 </Button>
@@ -1534,7 +1546,7 @@ const TestingPanel: React.FC = () => {
                   icon={<PlayCircleOutlined />}
                   onClick={handleResumeTest}
                   size="large"
-                  className="bg-blue-500 hover:bg-blue-600 border-blue-500"
+                  className="bg-gradient-to-r from-blue-400 via-cyan-400 to-cyan-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.resumeTest')}
                 </Button>
@@ -1546,7 +1558,7 @@ const TestingPanel: React.FC = () => {
                   icon={<StopOutlined />}
                   onClick={handleStopTest}
                   size="large"
-                  className="shadow-lg"
+                  className="bg-gradient-to-r from-red-400 via-pink-400 to-pink-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.stopTest')}
                 </Button>
@@ -1557,7 +1569,7 @@ const TestingPanel: React.FC = () => {
                   icon={<ReloadOutlined />}
                   onClick={handleClearResults}
                   size="large"
-                  className="border-gray-300"
+                  className="bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.clearResults')}
                 </Button>
@@ -1571,7 +1583,7 @@ const TestingPanel: React.FC = () => {
                   icon={<DownloadOutlined />}
                   onClick={handleExportExcel}
                   size="large"
-                  className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
+                  className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.exportExcel')}
                 </Button>
@@ -1579,7 +1591,7 @@ const TestingPanel: React.FC = () => {
                   icon={<DownloadOutlined />}
                   onClick={handleExportCSV}
                   size="large"
-                  className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
+                  className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.exportCSV')}
                 </Button>
@@ -1587,7 +1599,7 @@ const TestingPanel: React.FC = () => {
                   icon={<CopyOutlined />}
                   onClick={handleCopyResults}
                   size="large"
-                  className="bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100"
+                  className="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 border-none shadow-lg hover:shadow-xl text-white"
                 >
                   {t('testing.copyResults')}
                 </Button>

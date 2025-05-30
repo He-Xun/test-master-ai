@@ -425,7 +425,9 @@
     "modelData": "Model Data",
     "defaultInputData": "Default Input Data",
     "localStorageData": "localStorage Raw Data",
-    "storageInfo": "Storage Info"
+    "storageInfo": "Storage Info",
+    "localStorageStat": "{{count}} items {{size}}KB",
+    "unknownSize": "Unknown size"
   },
   "models": {
     "title": "Model Management",

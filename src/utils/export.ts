@@ -1,8 +1,9 @@
-import * as XLSX from 'xlsx';
+// import * as XLSX from 'xlsx';
 import { TestResult } from '../types';
 
 // 导出测试结果到Excel
-export const exportToExcel = (results: TestResult[], filename?: string): void => {
+export const exportToExcel = async (results: TestResult[], filename?: string): Promise<void> => {
+  const XLSX = await import('xlsx');
   // 准备数据
   const data = results.map((result, index) => ({
     '序号': index + 1,
@@ -50,7 +51,8 @@ export const exportToExcel = (results: TestResult[], filename?: string): void =>
 };
 
 // 导出测试结果到CSV
-export const exportToCSV = (results: TestResult[], filename?: string): void => {
+export const exportToCSV = async (results: TestResult[], filename?: string): Promise<void> => {
+  const XLSX = await import('xlsx');
   // 准备数据
   const data = results.map((result, index) => ({
     '序号': index + 1,

@@ -166,9 +166,9 @@ const DebugPanel: React.FC = () => {
                     try {
                       const storageSize = JSON.stringify(localStorage).length;
                       const itemCount = localStorage.length;
-                      return `${itemCount}项 ${(storageSize/1024).toFixed(1)}KB`;
+                      return t('debug.localStorageStat', { count: itemCount, size: (storageSize/1024).toFixed(1) });
                     } catch {
-                      return '未知大小';
+                      return t('debug.unknownSize');
                     }
                   })()}
                 </Tag>
