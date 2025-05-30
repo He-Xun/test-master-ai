@@ -399,26 +399,26 @@ const TestSessionDetail: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <Card className="bg-blue-50 border-blue-200">
           <div className="text-center">
-            <div className="text-2xl font-bold text-blue-600">{session.totalTests}</div>
+            <div className="text-2xl font-bold text-blue-600">{session.totalTests}次</div>
             <div className="text-sm text-gray-500">{t('history.totalTests')}</div>
           </div>
         </Card>
         <Card className="bg-green-50 border-green-200">
           <div className="text-center">
-            <div className="text-2xl font-bold text-green-600">{session.successCount}</div>
+            <div className="text-2xl font-bold text-green-600">{session.successCount}次</div>
             <div className="text-sm text-gray-500">{t('history.successCount')}</div>
           </div>
         </Card>
         <Card className="bg-red-50 border-red-200">
           <div className="text-center">
-            <div className="text-2xl font-bold text-red-600">{session.errorCount}</div>
+            <div className="text-2xl font-bold text-red-600">{session.errorCount}次</div>
             <div className="text-sm text-gray-500">{t('history.errorCount')}</div>
           </div>
         </Card>
         <Card className="bg-purple-50 border-purple-200">
           <div className="text-center">
-            <div className="text-2xl font-bold text-purple-600">{Math.round(session.averageDuration)}</div>
-            <div className="text-sm text-gray-500">{t('history.averageDuration')}(ms)</div>
+            <div className="text-2xl font-bold text-purple-600">{Math.round(session.averageDuration)}ms</div>
+            <div className="text-sm text-gray-500">{t('history.averageDuration')}</div>
           </div>
         </Card>
       </div>

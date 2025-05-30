@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Modal,
   Form,
   Input,
   Button,
   Tabs,
   message,
-  Divider,
+  Modal,
   Alert,
-  Space,
+  Typography
 } from 'antd';
 import {
   UserOutlined,
@@ -17,23 +16,38 @@ import {
   LoginOutlined,
   UserAddOutlined,
 } from '@ant-design/icons';
-import { LoginForm, RegisterForm, User } from '../types';
+import { useTranslation } from 'react-i18next';
+import { User } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 
 const { TabPane } = Tabs;
+const { Text } = Typography;
+
+interface LoginForm {
+  username: string;
+  password: string;
+}
+
+interface RegisterForm {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
 
 interface UserAuthProps {
   visible?: boolean;
   onClose?: () => void;
   onLogin: (user: User) => void;
-  defaultTab?: string;
+  defaultTab?: 'login' | 'register';
   inline?: boolean;
 }
 
 const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, defaultTab = 'login', inline = false }) => {
+  const { t } = useTranslation();
   const [loginForm] = Form.useForm<LoginForm>();
   const [registerForm] = Form.useForm<RegisterForm>();
-  const [activeTab, setActiveTab] = useState(defaultTab);
+  const [activeTab, setActiveTab] = useState<'login' | 'register'>(defaultTab);
   const [loading, setLoading] = useState(false);
 
   // 当defaultTab改变时，更新activeTab
@@ -52,17 +66,17 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       const session = storageAdapter.login(values.username, values.password);
       if (session) {
         console.log('[UserAuth] 登录成功:', session.user.username);
-        message.success('登录成功！');
+        message.success(t('auth.loginSuccess'));
         onLogin(session.user);
         onClose?.();
         loginForm.resetFields();
       } else {
         console.log('[UserAuth] 登录失败: 用户名或密码错误');
-        message.error('用户名或密码错误');
+        message.error(t('auth.loginFailed'));
       }
     } catch (error) {
       console.error('[UserAuth] 登录失败:', error);
-      message.error('登录失败，请稍后重试');
+      message.error(t('auth.loginError'));
     } finally {
       setLoading(false);
     }
@@ -78,7 +92,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       // 检查用户名是否已存在
       const existingUser = await storageAdapter.getUserByUsername(values.username);
       if (existingUser) {
-        message.error('用户名已存在');
+        message.error(t('auth.usernameExists'));
         return;
       }
 
@@ -86,6 +100,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       const user = await storageAdapter.createUser({
         username: values.username,
         email: values.email,
+        role: 'user', // 默认角色为普通用户
       });
 
       // 存储密码
@@ -96,18 +111,18 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       const session = storageAdapter.login(values.username, values.password);
       if (session) {
         console.log('[UserAuth] 注册并登录成功:', session.user.username);
-        message.success('注册成功并已自动登录！');
+        message.success(t('auth.registerSuccess'));
         onLogin(session.user);
         onClose?.();
         registerForm.resetFields();
       } else {
         console.log('[UserAuth] 注册成功但自动登录失败');
-        message.success('注册成功！请登录');
+        message.success(t('auth.registerSuccessAutoLogin'));
         setActiveTab('login');
       }
     } catch (error) {
       console.error('[UserAuth] 注册失败:', error);
-      message.error('注册失败，请稍后重试');
+      message.error(t('auth.registerFailed'));
     } finally {
       setLoading(false);
     }
@@ -120,12 +135,19 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
     setActiveTab(defaultTab);
   };
 
+  // 处理Tabs的onChange，确保类型安全
+  const handleTabChange = (key: string) => {
+    if (key === 'login' || key === 'register') {
+      setActiveTab(key);
+    }
+  };
+
   // 内联模式下的内容
   const authContent = (
     <div>
       <Tabs 
         activeKey={activeTab} 
-        onChange={setActiveTab} 
+        onChange={handleTabChange} 
         centered
         size="small"
       >
@@ -133,7 +155,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
           tab={
             <span className="text-sm">
               <LoginOutlined />
-              登录
+              {t('auth.login')}
             </span>
           }
           key="login"
@@ -146,25 +168,25 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
           >
             <Form.Item
               name="username"
-              label="用户名"
-              rules={[{ required: true, message: '请输入用户名' }]}
+              label={t('auth.username')}
+              rules={[{ required: true, message: t('auth.usernameRequired') }]}
               style={{ marginBottom: 16 }}
             >
               <Input
                 prefix={<UserOutlined className="text-gray-400" />}
-                placeholder="请输入用户名"
+                placeholder={t('auth.usernamePlaceholder')}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="密码"
-              rules={[{ required: true, message: '请输入密码' }]}
+              label={t('auth.password')}
+              rules={[{ required: true, message: t('auth.passwordRequired') }]}
               style={{ marginBottom: 20 }}
             >
               <Input.Password
                 prefix={<LockOutlined className="text-gray-400" />}
-                placeholder="请输入密码"
+                placeholder={t('auth.passwordPlaceholder')}
               />
             </Form.Item>
 
@@ -176,7 +198,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
                 block
                 className="bg-blue-500 hover:bg-blue-600 h-10"
               >
-                登录
+                {t('auth.loginNow')}
               </Button>
             </Form.Item>
           </Form>
@@ -186,7 +208,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
           tab={
             <span className="text-sm">
               <UserAddOutlined />
-              注册
+              {t('auth.register')}
             </span>
           }
           key="register"
@@ -199,63 +221,63 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
           >
             <Form.Item
               name="username"
-              label="用户名"
+              label={t('auth.username')}
               rules={[
-                { required: true, message: '请输入用户名' },
-                { min: 3, message: '用户名至少3个字符' },
-                { max: 20, message: '用户名最多20个字符' },
-                { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和横线' },
+                { required: true, message: t('auth.usernameRequired') },
+                { min: 3, message: t('auth.usernameMinLength') },
+                { max: 20, message: t('auth.usernameMaxLength') },
+                { pattern: /^[a-zA-Z0-9_-]+$/, message: t('auth.usernamePattern') },
               ]}
               style={{ marginBottom: 16 }}
             >
               <Input
                 prefix={<UserOutlined className="text-gray-400" />}
-                placeholder="请输入用户名"
+                placeholder={t('auth.usernamePlaceholder')}
               />
             </Form.Item>
 
             <Form.Item
               name="email"
-              label="邮箱"
+              label={t('auth.email')}
               rules={[
-                { required: true, message: '请输入邮箱' },
-                { type: 'email', message: '请输入有效的邮箱地址' },
+                { required: true, message: t('auth.emailRequired') },
+                { type: 'email', message: t('auth.emailValid') },
               ]}
               style={{ marginBottom: 16 }}
             >
               <Input
                 prefix={<MailOutlined className="text-gray-400" />}
-                placeholder="请输入邮箱"
+                placeholder={t('auth.emailPlaceholder')}
               />
             </Form.Item>
 
             <Form.Item
               name="password"
-              label="密码"
+              label={t('auth.password')}
               rules={[
-                { required: true, message: '请输入密码' },
-                { min: 6, message: '密码至少6个字符' },
+                { required: true, message: t('auth.passwordRequired') },
+                { min: 6, message: t('auth.passwordMinLength') },
               ]}
               style={{ marginBottom: 16 }}
             >
               <Input.Password
                 prefix={<LockOutlined className="text-gray-400" />}
-                placeholder="请输入密码"
+                placeholder={t('auth.passwordPlaceholder')}
               />
             </Form.Item>
 
             <Form.Item
               name="confirmPassword"
-              label="确认密码"
+              label={t('auth.confirmPassword')}
               dependencies={['password']}
               rules={[
-                { required: true, message: '请确认密码' },
+                { required: true, message: t('auth.confirmPasswordRequired') },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
                     if (!value || getFieldValue('password') === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject(new Error('两次输入的密码不一致'));
+                    return Promise.reject(new Error(t('auth.passwordMismatch')));
                   },
                 }),
               ]}
@@ -263,7 +285,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
             >
               <Input.Password
                 prefix={<LockOutlined className="text-gray-400" />}
-                placeholder="请再次输入密码"
+                placeholder={t('auth.confirmPasswordPlaceholder')}
               />
             </Form.Item>
 
@@ -275,7 +297,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
                 block
                 className="bg-green-500 hover:bg-green-600 h-10"
               >
-                注册
+                {t('auth.registerNow')}
               </Button>
             </Form.Item>
           </Form>
@@ -295,7 +317,7 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       title={
         <div className="flex items-center space-x-2">
           <UserOutlined className="text-blue-500" />
-          <span>用户认证</span>
+          <span>{t('auth.userAuthentication')}</span>
         </div>
       }
       open={visible}
@@ -311,8 +333,8 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
       style={{ top: 20 }}
     >
       <Alert
-        message="数据隔离保护"
-        description="注册后您的配置将会独立保存，不同用户之间的数据相互隔离。"
+        message={t('auth.dataProtection')}
+        description={t('auth.dataProtectionRegisterDesc')}
         type="info"
         showIcon
         className="mb-4"

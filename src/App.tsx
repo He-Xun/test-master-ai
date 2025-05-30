@@ -97,7 +97,7 @@ const AdminLayout: React.FC<{ currentUser: User; onLogout: () => void }> = ({ cu
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <SettingOutlined className="text-white text-sm" />
           </div>
-          <Title level={4} className="mb-0 leading-none flex items-center h-full" style={{ margin: 0 }}>超级管理员面板</Title>
+          <Title level={4} className="mb-0 leading-none flex items-center h-full" style={{ margin: 0 }}>{t('admin.superAdminPanel')}</Title>
         </div>
 
         <div className="flex items-center space-x-4">
@@ -403,7 +403,12 @@ const AppLayout: React.FC = () => {
   // 如果用户未登录，显示登录界面
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative">
+        {/* 语言切换器 - 右上角 */}
+        <div className="absolute top-4 right-4 z-10">
+          <LanguageSwitcher style="button" size="large" />
+        </div>
+        
         <div className="max-w-md w-full mx-4">
           <Card className="shadow-lg border-0">
             <div className="text-center mb-6">
@@ -510,8 +515,8 @@ const AppLayout: React.FC = () => {
       key: 'admin',
       icon: <SettingOutlined />,
       label: (
-        <Tooltip title="管理面板" placement="right" getPopupContainer={() => document.body}>
-          <span className="truncate block max-w-[180px]">管理面板</span>
+        <Tooltip title={t('admin.managePanel')} placement="right" getPopupContainer={() => document.body}>
+          <span className="truncate block max-w-[180px]">{t('admin.managePanel')}</span>
         </Tooltip>
       ),
     });

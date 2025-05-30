@@ -57,7 +57,7 @@ export class AdminDebugger {
             username: 'superadmin',
             email: 'admin@testmaster.ai',
             role: 'superadmin',
-            avatar: '/avatar/admin.png'
+            avatar: '/avatar/admin.svg'
           });
           console.log('✅ 超级管理员用户已创建:', newSuperAdmin);
           

@@ -116,8 +116,7 @@ function createWindow(): void {
       console.log('页面加载完成');
     });
     
-    // 开启开发者工具以便调试
-    mainWindow.webContents.openDevTools();
+    // 生产环境不自动打开开发者工具
   }
 
   // 窗口准备好后显示

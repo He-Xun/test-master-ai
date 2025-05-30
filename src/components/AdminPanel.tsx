@@ -79,7 +79,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   // 检查权限
   useEffect(() => {
     if (!storageAdapter.isSuperAdmin(currentUser)) {
-      message.error('您没有权限访问管理面板');
+      message.error(t('admin.noPermission'));
       return;
     }
     loadUsers();
@@ -93,7 +93,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       setUsers(userList);
     } catch (error) {
       console.error('加载用户失败:', error);
-      message.error('加载用户失败');
+      message.error(t('admin.loadUsersFailed'));
     } finally {
       setLoading(false);
     }
@@ -135,37 +135,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     try {
       const success = await storageAdapter.deleteUser(user.id, currentUser.id);
       if (success) {
-        message.success('用户删除成功');
+        message.success(t('admin.userDeleteSuccess'));
         loadUsers();
       } else {
-        message.error('删除用户失败');
+        message.error(t('admin.deleteUserFailed'));
       }
     } catch (error) {
       console.error('删除用户失败:', error);
-      message.error('删除用户失败');
+      message.error(t('admin.deleteUserFailed'));
     }
   };
 
   // 批量删除用户
   const handleBatchDelete = () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要删除的用户');
+      message.warning(t('admin.selectUsersFirst'));
       return;
     }
 
     // 检查是否选择了超级管理员
     const hasSuperAdmin = selectedUsers.some(user => user.role === 'superadmin');
     if (hasSuperAdmin) {
-      message.error('不能删除超级管理员账户');
+      message.error(t('admin.cannotDeleteSuperAdmin'));
       return;
     }
 
     Modal.confirm({
-      title: '确认批量删除',
-      content: `确定要删除选中的 ${selectedRowKeys.length} 个用户吗？此操作无法撤销。`,
+      title: t('admin.confirmBatchDelete'),
+      content: t('admin.confirmBatchDeleteDesc', { count: selectedRowKeys.length }),
       icon: <ExclamationCircleOutlined />,
-      okText: '确定删除',
-      cancelText: '取消',
+      okText: t('admin.confirmDelete'),
+      cancelText: t('common.cancel'),
       okType: 'danger',
       onOk: async () => {
         try {
@@ -183,10 +183,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           }
 
           if (successCount > 0) {
-            message.success(`成功删除 ${successCount} 个用户`);
+            message.success(t('admin.batchDeleteSuccess', { count: successCount }));
           }
           if (failCount > 0) {
-            message.error(`删除失败 ${failCount} 个用户`);
+            message.error(t('admin.batchDeleteFailed', { count: failCount }));
           }
 
           setSelectedRowKeys([]);
@@ -194,7 +194,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           loadUsers();
         } catch (error) {
           console.error('批量删除失败:', error);
-          message.error('批量删除失败');
+          message.error(t('admin.batchDeleteFailed'));
         } finally {
           setLoading(false);
         }
@@ -205,7 +205,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   // 批量重置密码
   const handleBatchResetPassword = () => {
     if (selectedRowKeys.length === 0) {
-      message.warning('请先选择要重置密码的用户');
+      message.warning(t('admin.selectUsersForPassword'));
       return;
     }
     batchPasswordForm.resetFields();
@@ -225,11 +225,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           currentUser.id
         );
         if (success) {
-          message.success('用户更新成功');
+          message.success(t('admin.userUpdateSuccess'));
           setEditModalVisible(false);
           loadUsers();
         } else {
-          message.error('更新用户失败');
+          message.error(t('admin.updateUserFailed'));
         }
       } else {
         // 创建新用户
@@ -244,13 +244,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           await storageAdapter.storeUserPassword(newUser.id, values.password);
         }
         
-        message.success('用户创建成功');
+        message.success(t('admin.userCreateSuccess'));
         setEditModalVisible(false);
         loadUsers();
       }
     } catch (error) {
       console.error('保存用户失败:', error);
-      message.error('保存用户失败');
+      message.error(t('admin.saveUserFailed'));
     }
   };
 
@@ -265,15 +265,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           currentUser.id
         );
         if (success) {
-          message.success('密码重置成功');
+          message.success(t('admin.passwordResetSuccess'));
           setPasswordModalVisible(false);
         } else {
-          message.error('重置密码失败');
+          message.error(t('admin.resetPasswordFailed'));
         }
       }
     } catch (error) {
       console.error('重置密码失败:', error);
-      message.error('重置密码失败');
+      message.error(t('admin.resetPasswordFailed'));
     }
   };
 
@@ -300,10 +300,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       }
 
       if (successCount > 0) {
-        message.success(`成功重置 ${successCount} 个用户的密码`);
+        message.success(t('admin.passwordBatchResetSuccess', { count: successCount }));
       }
       if (failCount > 0) {
-        message.error(`重置失败 ${failCount} 个用户的密码`);
+        message.error(t('admin.passwordBatchResetFailed', { count: failCount }));
       }
 
       setBatchPasswordModalVisible(false);
@@ -311,7 +311,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       setSelectedUsers([]);
     } catch (error) {
       console.error('批量重置密码失败:', error);
-      message.error('批量重置密码失败');
+      message.error(t('admin.batchPasswordResetFailed'));
     } finally {
       setLoading(false);
     }
@@ -334,13 +334,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     items: [
       {
         key: 'resetPassword',
-        label: '批量重置密码',
+        label: t('admin.batchResetPasswordLabel'),
         icon: <LockOutlined />,
         disabled: selectedRowKeys.length === 0,
       },
       {
         key: 'delete',
-        label: '批量删除用户',
+        label: t('admin.batchDeleteUsersLabel'),
         icon: <UsergroupDeleteOutlined />,
         disabled: selectedRowKeys.length === 0,
         danger: true,
@@ -361,7 +361,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   // 表格列定义
   const columns = [
     {
-      title: '头像',
+      title: t('admin.avatar'),
       dataIndex: 'avatar',
       key: 'avatar',
       width: 60,
@@ -370,7 +370,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       ),
     },
     {
-      title: '用户名',
+      title: t('admin.username'),
       dataIndex: 'username',
       key: 'username',
       render: (username: string, record: User) => (
@@ -381,19 +381,19 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       ),
     },
     {
-      title: '邮箱',
+      title: t('admin.email'),
       dataIndex: 'email',
       key: 'email',
     },
     {
-      title: '角色',
+      title: t('admin.role'),
       dataIndex: 'role',
       key: 'role',
       render: (role: UserRole) => {
         const roleConfig = {
-          superadmin: { color: 'gold', text: '超级管理员', icon: <CrownOutlined /> },
-          admin: { color: 'blue', text: '管理员', icon: <SafetyCertificateOutlined /> },
-          user: { color: 'green', text: '普通用户', icon: <UserOutlined /> },
+          superadmin: { color: 'gold', text: t('admin.superAdmin'), icon: <CrownOutlined /> },
+          admin: { color: 'blue', text: t('admin.admin'), icon: <SafetyCertificateOutlined /> },
+          user: { color: 'green', text: t('admin.normalUser'), icon: <UserOutlined /> },
         };
         const config = roleConfig[role];
         return (
@@ -404,18 +404,18 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       },
     },
     {
-      title: '注册时间',
+      title: t('admin.registrationTime'),
       dataIndex: 'createdAt',
       key: 'createdAt',
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
-      title: '操作',
+      title: t('admin.operations'),
       key: 'actions',
       width: 200,
       render: (_, record: User) => (
         <Space size="small">
-          <Tooltip title="查看详情">
+          <Tooltip title={t('admin.viewDetails')}>
             <Button 
               type="link" 
               size="small" 
@@ -424,7 +424,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             />
           </Tooltip>
           
-          <Tooltip title="编辑用户">
+          <Tooltip title={t('admin.editUser')}>
             <Button 
               type="link" 
               size="small" 
@@ -434,7 +434,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             />
           </Tooltip>
           
-          <Tooltip title="重置密码">
+          <Tooltip title={t('admin.resetPassword')}>
             <Button 
               type="link" 
               size="small" 
@@ -445,13 +445,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           
           {record.role !== 'superadmin' && (
             <Popconfirm
-              title="确定要删除这个用户吗？"
-              description="删除后将无法恢复，用户的所有数据都将被清除。"
+              title={t('admin.deleteConfirmation')}
+              description={t('admin.deleteWarning')}
               onConfirm={() => handleDeleteUser(record)}
-              okText="确定"
-              cancelText="取消"
+              okText={t('common.ok')}
+              cancelText={t('common.cancel')}
             >
-              <Tooltip title="删除用户">
+              <Tooltip title={t('admin.deleteUser')}>
                 <Button 
                   type="link" 
                   size="small" 
@@ -477,12 +477,12 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
   return (
     <div className="admin-panel">
       {/* 页面标题 */}
-      <div className="mb-6">
-        <Title level={2} className="flex items-center mb-2">
+      <div className="mb-8">
+        <Title level={2} className="flex items-center mb-4">
           <SettingOutlined className="mr-2 text-blue-500" />
-          用户管理面板
+          {t('admin.title')}
         </Title>
-        <Text type="secondary">管理系统用户、权限和安全设置</Text>
+        <Text type="secondary">{t('admin.subtitle')}</Text>
       </div>
 
       {/* 统计卡片 */}
@@ -490,7 +490,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="总用户数"
+              title={t('admin.totalUsers')}
               value={stats.total}
               prefix={<TeamOutlined />}
               valueStyle={{ color: '#1890ff' }}
@@ -500,7 +500,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="超级管理员"
+              title={t('admin.superAdmins')}
               value={stats.superadmin}
               prefix={<CrownOutlined />}
               valueStyle={{ color: '#faad14' }}
@@ -510,7 +510,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="管理员"
+              title={t('admin.admins')}
               value={stats.admin}
               prefix={<SafetyCertificateOutlined />}
               valueStyle={{ color: '#52c41a' }}
@@ -520,7 +520,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <Col span={6}>
           <Card>
             <Statistic
-              title="普通用户"
+              title={t('admin.users')}
               value={stats.user}
               prefix={<UserOutlined />}
               valueStyle={{ color: '#722ed1' }}
@@ -538,21 +538,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
               icon={<PlusOutlined />}
               onClick={handleCreateUser}
             >
-              创建用户
+              {t('admin.createUser')}
             </Button>
             <Button 
               icon={<ReloadOutlined />}
               onClick={loadUsers}
               loading={loading}
             >
-              刷新
+              {t('admin.refresh')}
             </Button>
           </Space>
 
           <Space>
             {selectedRowKeys.length > 0 && (
               <Alert
-                message={`已选择 ${selectedRowKeys.length} 个用户`}
+                message={t('admin.selectedUsers', { count: selectedRowKeys.length })}
                 type="info"
                 showIcon
                 className="mr-2"
@@ -560,7 +560,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             )}
             <Dropdown menu={batchActionMenu} disabled={selectedRowKeys.length === 0}>
               <Button icon={<MoreOutlined />}>
-                批量操作 <DownOutlined />
+                {t('admin.batchOperations')} <DownOutlined />
               </Button>
             </Dropdown>
           </Space>
@@ -579,7 +579,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => `第 ${range[0]}-${range[1]} 条，共 ${total} 个用户`,
+            showTotal: (total, range) => t('admin.paginationDesc', { 
+              start: range[0], 
+              end: range[1], 
+              total: total 
+            }),
           }}
         />
       </Card>
@@ -589,7 +593,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         title={
           <Space>
             <UserOutlined />
-            {currentEditUser ? '编辑用户' : '创建用户'}
+            {currentEditUser ? t('admin.editUserModal') : t('admin.createUserModal')}
           </Space>
         }
         open={editModalVisible}
@@ -604,37 +608,37 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         >
           <Form.Item
             name="username"
-            label="用户名"
+            label={t('admin.username')}
             rules={[
-              { required: true, message: '请输入用户名' },
-              { min: 3, max: 20, message: '用户名长度应在3-20字符之间' },
-              { pattern: /^[a-zA-Z0-9_-]+$/, message: '用户名只能包含字母、数字、下划线和横线' },
+              { required: true, message: t('admin.enterUsername') },
+              { min: 3, max: 20, message: t('admin.usernameLength') },
+              { pattern: /^[a-zA-Z0-9_-]+$/, message: t('admin.usernamePattern') },
             ]}
           >
-            <Input placeholder="请输入用户名" />
+            <Input placeholder={t('admin.enterUsername')} />
           </Form.Item>
 
           <Form.Item
             name="email"
-            label="邮箱"
+            label={t('admin.email')}
             rules={[
-              { required: true, message: '请输入邮箱' },
-              { type: 'email', message: '请输入有效的邮箱地址' },
+              { required: true, message: t('admin.enterEmail') },
+              { type: 'email', message: t('admin.validEmail') },
             ]}
           >
-            <Input placeholder="请输入邮箱" />
+            <Input placeholder={t('admin.enterEmail')} />
           </Form.Item>
 
           <Form.Item
             name="role"
-            label="用户角色"
-            rules={[{ required: true, message: '请选择用户角色' }]}
+            label={t('admin.selectRole')}
+            rules={[{ required: true, message: t('admin.selectRole') }]}
           >
-            <Select placeholder="请选择角色">
-              <Option value="user">普通用户</Option>
-              <Option value="admin">管理员</Option>
+            <Select placeholder={t('admin.selectRolePlaceholder')}>
+              <Option value="user">{t('admin.normalUser')}</Option>
+              <Option value="admin">{t('admin.admin')}</Option>
               {currentUser.role === 'superadmin' && (
-                <Option value="superadmin">超级管理员</Option>
+                <Option value="superadmin">{t('admin.superAdmin')}</Option>
               )}
             </Select>
           </Form.Item>
@@ -642,13 +646,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           {!currentEditUser && (
             <Form.Item
               name="password"
-              label="密码"
+              label={t('admin.password')}
               rules={[
-                { required: true, message: '请输入密码' },
-                { min: 6, message: '密码至少6个字符' },
+                { required: true, message: t('admin.enterPassword') },
+                { min: 6, message: t('admin.minPasswordLength') },
               ]}
             >
-              <Input.Password placeholder="请输入密码" />
+              <Input.Password placeholder={t('admin.enterPassword')} />
             </Form.Item>
           )}
         </Form>
@@ -659,7 +663,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         title={
           <Space>
             <KeyOutlined />
-            重置密码 - {currentEditUser?.username}
+            {t('admin.resetPasswordModal')} - {currentEditUser?.username}
           </Space>
         }
         open={passwordModalVisible}
@@ -673,32 +677,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         >
           <Form.Item
             name="password"
-            label="新密码"
+            label={t('admin.newPassword')}
             rules={[
-              { required: true, message: '请输入新密码' },
-              { min: 6, message: '密码至少6个字符' },
+              { required: true, message: t('admin.enterNewPassword') },
+              { min: 6, message: t('admin.minPasswordLength') },
             ]}
           >
-            <Input.Password placeholder="请输入新密码" />
+            <Input.Password placeholder={t('admin.enterNewPassword')} />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label="确认密码"
+            label={t('admin.confirmNewPassword')}
             dependencies={['password']}
             rules={[
-              { required: true, message: '请确认密码' },
+              { required: true, message: t('admin.confirmPassword') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
+                  return Promise.reject(new Error(t('admin.passwordMismatch')));
                 },
               }),
             ]}
           >
-            <Input.Password placeholder="请再次输入密码" />
+            <Input.Password placeholder={t('admin.confirmNewPasswordPlaceholder')} />
           </Form.Item>
         </Form>
       </Modal>
@@ -708,7 +712,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         title={
           <Space>
             <LockOutlined />
-            批量重置密码 ({selectedRowKeys.length} 个用户)
+            {t('admin.batchPasswordModal')} ({selectedRowKeys.length} {t('admin.usersSelected')})
           </Space>
         }
         open={batchPasswordModalVisible}
@@ -717,7 +721,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         width={400}
       >
         <div className="mb-4">
-          <Text type="secondary">将为以下用户重置密码：</Text>
+          <Text type="secondary">{t('admin.willResetPasswordFor')}</Text>
           <div className="mt-2 p-2 bg-gray-50 rounded">
             {selectedUsers.map(user => (
               <Tag key={user.id} className="mb-1">{user.username}</Tag>
@@ -731,32 +735,32 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         >
           <Form.Item
             name="password"
-            label="新密码"
+            label={t('admin.newPassword')}
             rules={[
-              { required: true, message: '请输入新密码' },
-              { min: 6, message: '密码至少6个字符' },
+              { required: true, message: t('admin.enterNewPassword') },
+              { min: 6, message: t('admin.minPasswordLength') },
             ]}
           >
-            <Input.Password placeholder="请输入新密码" />
+            <Input.Password placeholder={t('admin.enterNewPassword')} />
           </Form.Item>
 
           <Form.Item
             name="confirmPassword"
-            label="确认密码"
+            label={t('admin.confirmNewPassword')}
             dependencies={['password']}
             rules={[
-              { required: true, message: '请确认密码' },
+              { required: true, message: t('admin.confirmPassword') },
               ({ getFieldValue }) => ({
                 validator(_, value) {
                   if (!value || getFieldValue('password') === value) {
                     return Promise.resolve();
                   }
-                  return Promise.reject(new Error('两次输入的密码不一致'));
+                  return Promise.reject(new Error(t('admin.passwordMismatch')));
                 },
               }),
             ]}
           >
-            <Input.Password placeholder="请再次输入密码" />
+            <Input.Password placeholder={t('admin.confirmNewPasswordPlaceholder')} />
           </Form.Item>
         </Form>
       </Modal>
@@ -766,7 +770,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         title={
           <Space>
             <UserOutlined />
-            用户详情 - {selectedUser?.username}
+            {t('admin.userDetails')} - {selectedUser?.username}
           </Space>
         }
         open={userDetailVisible}
@@ -794,10 +798,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                 <Col span={12}>
                   <div className="text-center">
                     <div className="text-2xl font-bold text-blue-500">
-                      {selectedUser.role === 'superadmin' ? '超管' : 
-                       selectedUser.role === 'admin' ? '管理' : '用户'}
+                      {selectedUser.role === 'superadmin' ? t('admin.superAdminShort') : 
+                       selectedUser.role === 'admin' ? t('admin.adminShort') : t('admin.userShort')}
                     </div>
-                    <div className="text-gray-500">角色</div>
+                    <div className="text-gray-500">{t('admin.roleLabel')}</div>
                   </div>
                 </Col>
                 <Col span={12}>
@@ -805,24 +809,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
                     <div className="text-2xl font-bold text-green-500">
                       {Math.floor((Date.now() - new Date(selectedUser.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
                     </div>
-                    <div className="text-gray-500">注册天数</div>
+                    <div className="text-gray-500">{t('admin.registrationDaysLabel')}</div>
                   </div>
                 </Col>
               </Row>
             </Card>
 
-            <Card title="详细信息">
+            <Card title={t('admin.detailsTitle')}>
               <Space direction="vertical" className="w-full">
                 <div>
-                  <Text strong>用户ID：</Text>
+                  <Text strong>{t('admin.userId')}</Text>
                   <Text code>{selectedUser.id}</Text>
                 </div>
                 <div>
-                  <Text strong>注册时间：</Text>
+                  <Text strong>{t('admin.registrationTimeLabel')}</Text>
                   <Text>{new Date(selectedUser.createdAt).toLocaleString()}</Text>
                 </div>
                 <div>
-                  <Text strong>最后更新：</Text>
+                  <Text strong>{t('admin.lastUpdated')}</Text>
                   <Text>{new Date(selectedUser.updatedAt).toLocaleString()}</Text>
                 </div>
               </Space>

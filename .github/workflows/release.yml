@@ -55,7 +55,8 @@ jobs:
           NODE_ENV: production
           CI: true
 
-      - name: Verify build output
+      - name: Verify build output (Unix)
+        if: runner.os != 'Windows'
         run: |
           echo "=== Build directory contents ==="
           ls -la build/ || echo "Build directory not found"
@@ -63,6 +64,17 @@ jobs:
           ls -la dist/ || echo "Dist directory not found"
           echo "=== Icon files ==="
           ls -la electron/icon.${{ matrix.icon-ext }} || echo "Icon file not found"
+
+      - name: Verify build output (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=== Build directory contents ==="
+          if (Test-Path "build") { Get-ChildItem -Path "build" -Force } else { Write-Host "Build directory not found" }
+          Write-Host "=== Dist directory contents ==="  
+          if (Test-Path "dist") { Get-ChildItem -Path "dist" -Force } else { Write-Host "Dist directory not found" }
+          Write-Host "=== Icon files ==="
+          if (Test-Path "electron/icon.${{ matrix.icon-ext }}") { Get-ChildItem -Path "electron/icon.${{ matrix.icon-ext }}" -Force } else { Write-Host "Icon file not found" }
 
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'
@@ -87,12 +99,26 @@ jobs:
           CSC_LINK: ""
           DEBUG: electron-builder
 
-      - name: List build artifacts
+      - name: List build artifacts (Unix)
+        if: runner.os != 'Windows'
         run: |
           echo "=== Release directory contents ==="
           ls -la release/ || echo "Release directory not found"
           echo "=== Build artifacts ==="
           find release/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.zip" -o -name "*.AppImage" \) -exec ls -lh {} \; || echo "No build artifacts found"
+
+      - name: List build artifacts (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=== Release directory contents ==="
+          if (Test-Path "release") { Get-ChildItem -Path "release" -Force } else { Write-Host "Release directory not found" }
+          Write-Host "=== Build artifacts ==="
+          if (Test-Path "release") { 
+            Get-ChildItem -Path "release" -Recurse -File | Where-Object { $_.Extension -in @('.dmg', '.exe', '.zip', '.AppImage') } | ForEach-Object { "{0:N2} MB  {1}" -f ($_.Length / 1MB), $_.FullName }
+          } else { 
+            Write-Host "No build artifacts found" 
+          }
 
       - name: Upload Build Artifacts
         uses: actions/upload-artifact@v4

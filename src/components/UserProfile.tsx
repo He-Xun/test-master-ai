@@ -27,6 +27,7 @@ import {
   KeyOutlined,
   ExclamationCircleOutlined
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { User } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 
@@ -39,12 +40,13 @@ interface UserProfileProps {
 }
 
 const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => {
+  const { t } = useTranslation();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
   const [loading, setLoading] = useState(false);
 
   // 默认头像URL（本地图片）
-  const defaultAvatarUrl = '/avatar/default.png';
+  const defaultAvatarUrl = '/avatar/default.svg';
   
   // 获取实际显示的头像URL
   const getDisplayAvatarUrl = () => {
@@ -53,20 +55,20 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
 
   const handleLogout = () => {
     Modal.confirm({
-      title: '确认退出',
+      title: t('auth.confirmLogout'),
       icon: <ExclamationCircleOutlined />,
-      content: '确定要退出登录吗？',
-      okText: '确定',
-      cancelText: '取消',
+      content: t('auth.confirmLogoutMessage'),
+      okText: t('common.confirm'),
+      cancelText: t('common.cancel'),
       onOk: async () => {
         try {
           setLoading(true);
           storageAdapter.logout();
           onLogout();
-          message.success('已安全退出');
+          message.success(t('auth.logoutSuccess'));
         } catch (error) {
           console.error('退出登录失败:', error);
-          message.error('退出失败，请稍后重试');
+          message.error(t('auth.logoutFailed'));
         } finally {
           setLoading(false);
         }
@@ -74,30 +76,68 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
     });
   };
 
-  const handleAvatarChange = (info: any) => {
+  const handleAvatarChange = async (info: any) => {
     if (info.file.status === 'uploading') {
+      setLoading(true);
       return;
     }
-    if (info.file.status === 'done') {
-      // 这里应该上传到服务器，现在只是演示
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        setAvatarUrl(reader.result as string);
-        message.success('头像上传成功');
-      });
-      reader.readAsDataURL(info.file.originFileObj);
+    if (info.file.status === 'done' || info.file.status === 'success') {
+      try {
+        // 读取文件为base64
+        const reader = new FileReader();
+        reader.addEventListener('load', async () => {
+          const base64Url = reader.result as string;
+          
+          // 更新用户头像到数据库
+          const success = await storageAdapter.updateUserInfo(
+            user.id,
+            { avatar: base64Url },
+            user.id // 用户可以更新自己的头像
+          );
+          
+          if (success) {
+            setAvatarUrl(base64Url);
+            message.success(t('profile.avatarUploadSuccess'));
+            
+            // 触发用户信息更新
+            const updatedUser = await storageAdapter.getUserById(user.id);
+            if (updatedUser) {
+              // 更新当前会话中的用户信息
+              const currentSession = storageAdapter.getCurrentSession();
+              if (currentSession) {
+                storageAdapter.setSession({
+                  ...currentSession,
+                  user: updatedUser
+                });
+              }
+            }
+          } else {
+            message.error(t('profile.avatarUploadFailed'));
+          }
+          
+          setLoading(false);
+        });
+        reader.readAsDataURL(info.file.originFileObj);
+      } catch (error) {
+        console.error('头像上传失败:', error);
+        message.error(t('profile.avatarUploadFailed'));
+        setLoading(false);
+      }
+    } else if (info.file.status === 'error') {
+      message.error(t('profile.avatarUploadFailed'));
+      setLoading(false);
     }
   };
 
   const beforeUpload = (file: File) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
-      message.error('只能上传 JPG/PNG 文件!');
+      message.error(t('profile.avatarFormatError'));
       return false;
     }
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
-      message.error('图片必须小于 2MB!');
+      message.error(t('profile.avatarSizeError'));
       return false;
     }
     return true;
@@ -110,10 +150,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
         icon={<UserOutlined />}
         onClick={() => setProfileModalVisible(true)}
       >
-        个人资料
+        {t('profile.myProfile')}
       </Menu.Item>
       <Menu.Item key="settings" icon={<SettingOutlined />}>
-        账户设置
+        {t('profile.accountSettings')}
       </Menu.Item>
       <Menu.Divider />
       <Menu.Item 
@@ -122,7 +162,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
         onClick={handleLogout}
         className="text-red-600"
       >
-        登出
+        {t('auth.logout')}
       </Menu.Item>
     </Menu>
   );
@@ -148,7 +188,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
         title={
           <div className="flex items-center space-x-2">
             <UserOutlined className="text-blue-500" />
-            <span>个人资料</span>
+            <span>{t('profile.myProfile')}</span>
           </div>
         }
         open={profileModalVisible}
@@ -179,6 +219,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
                   icon={<CameraOutlined />}
                   size="small"
                   className="absolute -bottom-1 -right-1 rounded-full bg-blue-500 border-white"
+                  loading={loading}
                 >
                 </Button>
               </Upload>
@@ -190,35 +231,35 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
           </div>
 
           <Descriptions
-            title="账户信息"
+            title={t('profile.accountInfo')}
             column={1}
             bordered
             size="small"
             className="mb-6"
           >
-            <Descriptions.Item label="用户ID">
+            <Descriptions.Item label={t('profile.userId')}>
               <Text code>{user.id}</Text>
             </Descriptions.Item>
-            <Descriptions.Item label="用户名">
+            <Descriptions.Item label={t('profile.username')}>
               <Space>
                 {user.username}
                 <Button type="link" size="small" icon={<EditOutlined />}>
-                  修改
+                  {t('common.edit')}
                 </Button>
               </Space>
             </Descriptions.Item>
-            <Descriptions.Item label="邮箱">
+            <Descriptions.Item label={t('profile.email')}>
               <Space>
                 {user.email}
                 <Button type="link" size="small" icon={<EditOutlined />}>
-                  修改
+                  {t('common.edit')}
                 </Button>
               </Space>
             </Descriptions.Item>
-            <Descriptions.Item label="注册时间">
+            <Descriptions.Item label={t('profile.registrationTime')}>
               {new Date(user.createdAt).toLocaleString()}
             </Descriptions.Item>
-            <Descriptions.Item label="最后更新">
+            <Descriptions.Item label={t('profile.lastUpdated')}>
               {new Date(user.updatedAt).toLocaleString()}
             </Descriptions.Item>
           </Descriptions>
@@ -227,10 +268,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
             <div className="flex items-start space-x-2">
               <InfoCircleOutlined className="text-blue-500 mt-0.5" />
               <div>
-                <div className="text-sm font-medium text-blue-900 mb-1">数据隔离说明</div>
+                <div className="text-sm font-medium text-blue-900 mb-1">{t('profile.dataIsolationTitle')}</div>
                 <div className="text-xs text-blue-700">
-                  您的所有配置数据（提示词、API配置、测试记录等）都与您的账户绑定，
-                  与其他用户完全隔离，确保数据安全和隐私。
+                  {t('profile.dataIsolationDesc')}
                 </div>
               </div>
             </div>
@@ -238,10 +278,10 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
 
           <div className="flex justify-end mt-6 space-x-3">
             <Button onClick={() => setProfileModalVisible(false)}>
-              关闭
+              {t('common.close')}
             </Button>
             <Button type="primary" icon={<SettingOutlined />}>
-              账户设置
+              {t('profile.accountSettings')}
             </Button>
           </div>
         </Card>

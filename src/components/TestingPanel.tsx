@@ -42,7 +42,7 @@ import {
   EyeOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { TestParams, TestResult, TestSession, Prompt, DefaultTestInput, TestConfigDraft } from '../types';
+import { TestParams, TestResult, TestSession, Prompt, DefaultTestInput, TestConfigDraft, User } from '../types';
 import { promptStorage, apiConfigStorage, defaultTestInputStorage } from '../utils/storage-simple';
 import { storageAdapter } from '../utils/storage-adapter';
 import { useConfigDraft, useAutoSave } from '../hooks/useConfigDraft';
@@ -71,7 +71,12 @@ const setNotificationDismissed = async (userId: string, dismissed: boolean) => {
 };
 
 // 检查是否需要显示通知
-const shouldShowNotification = async (userId: string, prompts: Prompt[], models: any[]) => {
+const shouldShowNotification = async (userId: string, prompts: Prompt[], models: any[], currentUser?: User | null) => {
+  // 超级管理员不需要显示配置提醒
+  if (currentUser && currentUser.role === 'superadmin') {
+    return false;
+  }
+  
   const dismissed = await getNotificationDismissed(userId);
   const hasNoConfig = prompts.length === 0 || models.length === 0;
   if (!hasNoConfig) {
@@ -300,6 +305,7 @@ const TestingPanel: React.FC = () => {
 
   const [todayTestCount, setTodayTestCount] = useState(0);
   const [totalTestCount, setTotalTestCount] = useState(0);
+  const [totalRecordCount, setTotalRecordCount] = useState(0);
 
   useEffect(() => {
     console.log('[TestingPanel] 组件挂载，开始加载数据');
@@ -310,11 +316,12 @@ const TestingPanel: React.FC = () => {
         console.log('[TestingPanel] session状态已恢复');
       }
     });
-    // 统计今日和累计测试次数
+    // 统计今日和累计测试次数，以及测试记录数
     (async () => {
       const history = await storageAdapter.getTestSessionHistory(100);
       let today = 0;
       let total = 0;
+      let recordCount = history.length;
       const todayStr = new Date().toISOString().slice(0, 10);
       history.forEach(h => {
         total += h.totalTests || 0;
@@ -324,6 +331,7 @@ const TestingPanel: React.FC = () => {
       });
       setTodayTestCount(today);
       setTotalTestCount(total);
+      setTotalRecordCount(recordCount);
     })();
     return () => {
       console.log('[TestingPanel] 组件卸载');
@@ -580,7 +588,9 @@ const TestingPanel: React.FC = () => {
       
       // 检查是否需要显示配置提醒
       if (userId) {
-        const needsNotification = await shouldShowNotification(userId, currentPrompts, currentModels);
+        const currentSession = storageAdapter.getCurrentSession();
+        const currentUser = currentSession?.user || null;
+        const needsNotification = await shouldShowNotification(userId, currentPrompts, currentModels, currentUser);
         if (needsNotification && !notificationShown && !globalNotificationShown) {
           console.log('[TestingPanel] 显示配置提醒通知');
           setNotificationShown(true);
@@ -1444,24 +1454,35 @@ const TestingPanel: React.FC = () => {
       {/* 配置区域 */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 数据统计卡片优化 */}
-        <Card className="col-span-1 bg-gradient-to-br from-blue-50 to-green-50 border-0 shadow-lg">
+        <Card className="lg:col-span-1 bg-gradient-to-br from-blue-50 to-green-50 border-0 shadow-lg">
           <div className="flex flex-col gap-2 py-6">
             <div className="flex items-center gap-2 mb-2">
               <AppstoreOutlined className="text-2xl text-blue-500 bg-white/80 rounded-full p-2 shadow" />
               <span className="text-lg font-bold text-blue-700">{t('testing.statistics')}</span>
             </div>
-            <div className="grid grid-cols-3 gap-2 mb-2">
-              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-blue-100">
-                <div className="text-xl font-bold text-blue-600 text-center">{todayTestCount}</div>
-                {renderStatText(t('testing.todayTestCount'))}
+            <div className="grid grid-rows-3 gap-2 mb-2">
+              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-blue-100">
+                <div className="flex flex-col">
+                  <div className="text-lg font-bold text-blue-600">{todayTestCount}次</div>
+                  {renderStatText(t('testing.todayTestCount'))}
+                </div>
+                <div className="text-blue-400 text-2xl">📊</div>
               </div>
-              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-green-100">
-                <div className="text-xl font-bold text-green-600 text-center">{totalTestCount}</div>
-                {renderStatText(t('testing.totalTestCount'))}
+              
+              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-green-100">
+                <div className="flex flex-col">
+                  <div className="text-lg font-bold text-green-600">{totalTestCount}次</div>
+                  {renderStatText(t('testing.totalTestCount'))}
+                </div>
+                <div className="text-green-400 text-2xl">🎯</div>
               </div>
-              <div className="bg-white/90 rounded-lg p-3 flex flex-col items-center border border-indigo-100">
-                <div className="text-xl font-bold text-indigo-600 text-center">{prompts.length + models.length}</div>
-                {renderStatText(t('testing.configTotal'))}
+              
+              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-purple-100">
+                <div className="flex flex-col">
+                  <div className="text-lg font-bold text-purple-600">{totalRecordCount}条</div>
+                  {renderStatText(t('testing.testRecords'))}
+                </div>
+                <div className="text-purple-400 text-2xl">📝</div>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-2 mt-2">

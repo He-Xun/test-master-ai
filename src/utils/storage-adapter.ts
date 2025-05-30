@@ -79,7 +79,7 @@ class StorageAdapter {
       username: 'superadmin',
       email: 'admin@testmaster.ai',
       role: 'superadmin',
-      avatar: '/avatar/admin.png'
+      avatar: '/avatar/admin.svg'
     });
 
     // 设置默认密码
@@ -107,15 +107,46 @@ class StorageAdapter {
     }
   }
 
-  // 更新用户信息（仅超级管理员可用）
+  // 更新用户信息（仅超级管理员可用，或用户更新自己的基本信息）
   async updateUserInfo(userId: string, updates: Partial<User>, operatorUserId: string): Promise<boolean> {
     try {
       const operator = await this.getUserById(operatorUserId);
-      if (!operator || operator.role !== 'superadmin') {
-        console.error('[StorageAdapter] 非超级管理员不能修改用户信息');
+      if (!operator) {
+        console.error('[StorageAdapter] 操作用户不存在');
         return false;
       }
 
+      // 允许超级管理员修改任何用户信息，或用户修改自己的基本信息（头像、邮箱等，但不包括角色）
+      const isSuperAdmin = operator.role === 'superadmin';
+      const isSelfUpdate = userId === operatorUserId;
+      
+      if (!isSuperAdmin && !isSelfUpdate) {
+        console.error('[StorageAdapter] 权限不足，不能修改其他用户信息');
+        return false;
+      }
+
+      // 如果是自己更新，限制可更新的字段
+      if (isSelfUpdate && !isSuperAdmin) {
+        const allowedFields = ['avatar', 'email']; // 用户只能更新头像和邮箱
+        const filteredUpdates: Partial<User> = {};
+        
+        for (const [key, value] of Object.entries(updates)) {
+          if (allowedFields.includes(key)) {
+            (filteredUpdates as any)[key] = value;
+          }
+        }
+        
+        if (Object.keys(filteredUpdates).length === 0) {
+          console.error('[StorageAdapter] 没有可更新的字段');
+          return false;
+        }
+        
+        console.log(`[StorageAdapter] 用户 ${userId} 更新自己的信息:`, filteredUpdates);
+        return sqliteStorage.updateUser(userId, filteredUpdates);
+      }
+
+      // 超级管理员可以更新所有字段
+      console.log(`[StorageAdapter] 超级管理员 ${operatorUserId} 更新用户 ${userId} 信息:`, updates);
       return sqliteStorage.updateUser(userId, updates);
     } catch (error) {
       console.error('[StorageAdapter] 更新用户信息失败:', error);
