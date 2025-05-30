@@ -1,0 +1,54 @@
+name: Build and Release Electron App
+
+on:
+  push:
+    branches:
+      - main
+  release:
+    types: [published]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [macos-latest, windows-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+      - name: Install dependencies
+        run: npm install
+      - name: Build renderer and main process
+        run: npm run build
+      - name: Build Electron app (mac/win)
+        run: |
+          if [ "$RUNNER_OS" == "macOS" ]; then
+            npx electron-builder --mac --win --publish never
+          else
+            npx electron-builder --win --publish never
+          fi
+        shell: bash
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: electron-app-${{ matrix.os }}
+          path: release/*
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist-artifacts
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist-artifacts/**/*.dmg,dist-artifacts/**/*.exe,dist-artifacts/**/*.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

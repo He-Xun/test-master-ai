@@ -28,6 +28,18 @@ export default defineConfig({
   },
   build: {
     outDir: 'build',
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('antd')) return 'antd';
+            if (id.includes('xlsx')) return 'xlsx';
+            if (id.includes('react')) return 'react';
+            return 'vendor';
+          }
+        }
+      }
+    }
   },
   css: {
     postcss: './postcss.config.js',

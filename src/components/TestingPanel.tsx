@@ -297,112 +297,12 @@ const TestingPanel: React.FC = () => {
 
   useEffect(() => {
     console.log('[TestingPanel] 组件挂载，开始加载数据');
-    
-    // 数据迁移：从旧用户ID迁移数据到当前用户ID
-    const migrateUserData = () => {
-      const currentSession = storageAdapter.getCurrentSession();
-      const currentUserId = currentSession?.user?.id;
-      const targetUserId = 'mb7t2ui1tq0hjniy7ap'; // 您提供的用户ID
-      
-      if (currentUserId && currentUserId !== targetUserId) {
-        console.log(`[TestingPanel] 尝试从 ${targetUserId} 迁移数据到 ${currentUserId}`);
-        
-        // 迁移提示词数据
-        const oldPrompts = localStorage.getItem(`${targetUserId}_prompts`);
-        if (oldPrompts && !localStorage.getItem(`${currentUserId}_prompts`)) {
-          localStorage.setItem(`${currentUserId}_prompts`, oldPrompts);
-          console.log('[TestingPanel] 提示词数据已迁移');
-        }
-        
-        // 迁移API配置数据  
-        const oldApiConfigs = localStorage.getItem(`${targetUserId}_apiConfigs`);
-        if (oldApiConfigs && !localStorage.getItem(`${currentUserId}_apiConfigs`)) {
-          localStorage.setItem(`${currentUserId}_apiConfigs`, oldApiConfigs);
-          console.log('[TestingPanel] API配置数据已迁移');
-        }
-        
-        // 迁移测试历史数据
-        const oldHistory = localStorage.getItem(`${targetUserId}_test_session_history`);
-        if (oldHistory && !localStorage.getItem(`${currentUserId}_test_session_history`)) {
-          localStorage.setItem(`${currentUserId}_test_session_history`, oldHistory);
-          console.log('[TestingPanel] 测试历史数据已迁移');
-        }
-      }
-      
-      // 如果当前用户没有任何数据，创建一些测试数据
-      if (currentUserId && !localStorage.getItem(`${currentUserId}_prompts`)) {
-        console.log('[TestingPanel] 创建测试数据');
-        const testPrompts = [{
-          id: 'prompt-test-1',
-          name: '测试提示词1',
-          content: '你是一个AI助手，请根据用户输入回答问题：{{userInput}}',
-          description: '用于测试的基础提示词',
-          category: '测试',
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }];
-        localStorage.setItem(`${currentUserId}_prompts`, JSON.stringify(testPrompts));
-        
-        const testApiConfigs = [{
-          id: 'api-yunwu-1',
-          name: '云雾AI配置',
-          baseUrl: 'http://yunwu.ai/v1',
-          apiKey: '',
-          type: 'openai',
-          models: [{
-            id: 'o4-mini-model',
-            modelId: 'o4-mini',
-            name: 'o4-mini',
-            displayName: 'o4-mini',
-            description: '云雾AI的o4-mini模型',
-            enabled: true
-          }],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }];
-        localStorage.setItem(`${currentUserId}_apiConfigs`, JSON.stringify(testApiConfigs));
-        console.log('[TestingPanel] 测试数据已创建');
-      }
-      
-      // 强制重建API配置数据（确保模型格式正确）
-      // 注释掉这个逻辑，因为它会覆盖用户在API配置管理中保存的配置
-      /*
-      if (currentUserId) {
-        const testApiConfigs = [{
-          id: 'api-yunwu-1',
-          name: '云雾AI配置',
-          baseUrl: 'http://yunwu.ai/v1',
-          apiKey: '',
-          type: 'openai',
-          models: [{
-            id: 'o4-mini-model',
-            modelId: 'o4-mini',
-            name: 'o4-mini',
-            displayName: 'o4-mini',
-            description: '云雾AI的o4-mini模型',
-            enabled: true
-          }],
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }];
-        localStorage.setItem(`${currentUserId}_apiConfigs`, JSON.stringify(testApiConfigs));
-        console.log('[TestingPanel] API配置数据已重建');
-      }
-      */
-    };
-    
-    migrateUserData();
+    // 只保留加载数据和恢复session，不再自动写入任何测试数据
     loadData();
-    
-    // 尝试恢复session状态
     const restored = restoreSessionFromStorage();
     if (restored) {
       console.log('[TestingPanel] session状态已恢复');
     }
-    
-    // 移除定时刷新，避免影响session状态
-    // 如果需要刷新数据，用户可以手动点击刷新按钮
-    
     return () => {
       console.log('[TestingPanel] 组件卸载');
     };
