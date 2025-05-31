@@ -2,6 +2,63 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题11: electron-builder配置验证错误 + Windows依赖安装超时回归 ✅ 已修复
+```
+⨯ Invalid configuration object. electron-builder 26.0.12 has been initialized using a configuration object that does not match the API schema.
+ - configuration.nsis has an unknown property 'compression'
+ - configuration.win has an unknown property 'certificateFile'
+```
+
+**问题分析**：
+1. **配置版本不兼容**: npx安装的electron-builder 26.0.12比项目中的24.0.0版本更新，配置schema发生变化
+2. **废弃属性**: 新版本不再支持某些签名相关的属性（certificateFile, certificatePassword, sign, signDlls）
+3. **Windows依赖超时回归**: 又回到了依赖安装40秒左右超时的问题
+
+**修复方案 - 配置清理**：
+```json
+// 移除不支持的属性
+"win": {
+  "target": [...],
+  "icon": "electron/icon.ico",
+  "requestedExecutionLevel": "asInvoker"
+  // 移除: certificateFile, certificatePassword, sign, signDlls, compression
+},
+"nsis": {
+  "oneClick": false,
+  "allowToChangeInstallationDirectory": true,
+  "createDesktopShortcut": true,
+  "createStartMenuShortcut": true,
+  "shortcutName": "API Testing Tool",
+  "deleteAppDataOnUninstall": false
+  // 移除: compression
+}
+```
+
+**修复方案 - Windows安装优化**：
+```yaml
+- name: Install dependencies for Windows (alternative approach)
+  if: runner.os == 'Windows'
+  timeout-minutes: 35
+  shell: pwsh
+  run: |
+    # 删除原有node_modules避免冲突
+    if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }
+    # 分步安装关键依赖
+    npm install --no-audit --progress=false --no-fund --silent electron@25.0.0 electron-builder@24.0.0
+    npm install --no-audit --progress=false --no-fund --silent react react-dom antd
+    npm install --no-audit --progress=false --no-fund --silent --ignore-optional
+  env:
+    npm_config_timeout: 300000
+    npm_config_maxsockets: 3
+```
+
+**关键改进**：
+- ✅ 清理不兼容的electron-builder配置属性
+- ✅ Windows环境使用分步安装策略
+- ✅ 增加超时时间到300秒（5分钟）
+- ✅ 降低并发连接数减少网络压力
+- ✅ 固定electron和electron-builder版本避免不兼容
+
 ### 问题10: optimize-build.js 文件访问错误 ✅ 已修复
 ```
 Error: ENOENT: no such file or directory, stat '/Users/runner/work/test-master-ai/test-master-ai/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Helpers'

@@ -134,13 +134,7 @@
         }
       ],
       "icon": "electron/icon.ico",
-      "requestedExecutionLevel": "asInvoker",
-      "certificateFile": null,
-      "certificatePassword": null,
-      "sign": null,
-      "signAndEditExecutable": false,
-      "signDlls": false,
-      "compression": "store"
+      "requestedExecutionLevel": "asInvoker"
     },
     "nsis": {
       "oneClick": false,
@@ -148,8 +142,7 @@
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
       "shortcutName": "API Testing Tool",
-      "deleteAppDataOnUninstall": false,
-      "compression": "store"
+      "deleteAppDataOnUninstall": false
     },
     "dmg": {
       "title": "API Testing Tool",

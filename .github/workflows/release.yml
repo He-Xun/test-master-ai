@@ -45,7 +45,7 @@ jobs:
           cache: 'npm'
 
       - name: Install all dependencies (including dev)
-        timeout-minutes: 25
+        timeout-minutes: 40
         run: |
           echo "安装完整依赖用于构建..."
           # 先清理npm缓存，避免缓存问题
@@ -58,7 +58,31 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
           # 减少网络超时时间
-          npm_config_timeout: 60000
+          npm_config_timeout: 300000
+          # Windows额外优化
+          npm_config_registry: https://registry.npmjs.org/
+          npm_config_maxsockets: 3
+
+      - name: Install dependencies for Windows (alternative approach)
+        if: runner.os == 'Windows'
+        timeout-minutes: 35
+        shell: pwsh
+        run: |
+          Write-Host "Windows环境特殊处理：分步安装..."
+          # 删除原有node_modules避免冲突
+          if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
+          # 先安装关键构建依赖
+          npm install --no-audit --progress=false --no-fund --silent electron@25.0.0 electron-builder@24.0.0 typescript vite @vitejs/plugin-react
+          # 安装React相关依赖
+          npm install --no-audit --progress=false --no-fund --silent react react-dom antd
+          # 安装其他必需依赖（排除大文件）
+          npm install --no-audit --progress=false --no-fund --silent --ignore-optional
+        env:
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+          npm_config_timeout: 300000
+          npm_config_registry: https://registry.npmjs.org/
+          npm_config_maxsockets: 3
 
       - name: Build renderer process with optimizations
         timeout-minutes: 30
