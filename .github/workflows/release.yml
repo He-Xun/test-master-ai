@@ -44,8 +44,61 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Install all dependencies (including dev)
-        timeout-minutes: 50
+      - name: Install dependencies for Windows (batch strategy)
+        if: runner.os == 'Windows'
+        timeout-minutes: 45
+        shell: pwsh
+        run: |
+          Write-Host "=== Windows分批依赖安装策略 ==="
+          
+          # 清理缓存和旧的node_modules
+          if (Test-Path "node_modules") { 
+            Write-Host "清理旧的node_modules..."
+            Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+          }
+          npm cache clean --force --silent 2>$null
+          
+          # 第一批：核心构建工具
+          Write-Host "第1批：安装核心构建工具..."
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0
+          
+          # 第二批：前端框架
+          Write-Host "第2批：安装前端框架..."
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 react@18.2.0 react-dom@18.2.0 antd@5.21.6
+          
+          # 第三批：构建工具
+          Write-Host "第3批：安装构建工具..."
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
+          
+          # 第四批：剩余依赖
+          Write-Host "第4批：安装剩余开发依赖..."
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-optional
+          
+          # 验证关键依赖
+          Write-Host "=== 验证关键依赖 ==="
+          if (!(Test-Path "node_modules/electron")) { 
+            Write-Host "重试安装 electron..."
+            npm install --no-audit --progress=false electron@25.0.0
+          }
+          if (!(Test-Path "node_modules/electron-builder")) { 
+            Write-Host "重试安装 electron-builder..."
+            npm install --no-audit --progress=false electron-builder@24.0.0
+          }
+          
+          Write-Host "✅ Windows依赖安装完成"
+        env:
+          npm_config_timeout: 900000  # 15分钟超时
+          npm_config_maxsockets: 1    # 降到最低并发
+          npm_config_fetch_timeout: 600000  # 10分钟获取超时
+          npm_config_fetch_retry_mintimeout: 60000
+          npm_config_fetch_retry_maxtimeout: 300000
+          npm_config_registry: https://registry.npmjs.org/
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+
+      - name: Install all dependencies (Unix)
+        if: runner.os != 'Windows'
+        timeout-minutes: 25
         run: |
           echo "安装完整依赖用于构建..."
           # 先清理npm缓存，避免缓存问题
@@ -53,34 +106,15 @@ jobs:
           # 使用更激进的优化参数
           npm ci --prefer-offline --no-audit --progress=false --no-fund --silent
         env:
+          npm_config_timeout: 600000  # 10分钟超时
+          npm_config_maxsockets: 2    # 降低并发
+          npm_config_fetch_timeout: 300000
+          npm_config_fetch_retry_mintimeout: 30000
+          npm_config_fetch_retry_maxtimeout: 120000
           npm_config_cache: .npm
           npm_config_prefer-offline: true
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-          # Windows需要更长的超时时间
-          npm_config_timeout: 600000
-          # Windows额外优化
-          npm_config_registry: https://registry.npmjs.org/
-          npm_config_maxsockets: 2
-          npm_config_fetch_timeout: 300000
-          npm_config_fetch_retry_mintimeout: 30000
-          npm_config_fetch_retry_maxtimeout: 120000
-
-      - name: Windows specific optimizations
-        if: runner.os == 'Windows'
-        timeout-minutes: 10
-        shell: pwsh
-        run: |
-          Write-Host "Windows环境额外优化..."
-          # 验证关键依赖是否安装成功
-          if (Test-Path "node_modules/electron") { Write-Host "✅ electron已安装" } else { Write-Host "❌ electron缺失" }
-          if (Test-Path "node_modules/electron-builder") { Write-Host "✅ electron-builder已安装" } else { Write-Host "❌ electron-builder缺失" }
-          if (Test-Path "node_modules/@electron/rebuild") { Write-Host "✅ @electron/rebuild已安装" } else { Write-Host "❌ @electron/rebuild缺失" }
-          # 如果有缺失的关键依赖，尝试单独安装
-          if (!(Test-Path "node_modules/@electron/rebuild")) {
-            Write-Host "尝试安装缺失的@electron/rebuild..."
-            npm install --no-audit --progress=false @electron/rebuild
-          }
 
       - name: Build renderer process with optimizations
         timeout-minutes: 30

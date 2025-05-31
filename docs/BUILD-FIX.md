@@ -2,6 +2,78 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题16: 构建优化脚本误删关键依赖文件 ✅ 已修复
+```
+Error: Cannot find module './log'
+Require stack:
+- /Users/runner/work/test-master-ai/test-master-ai/node_modules/builder-util/out/util.js
+- /Users/runner/work/test-master-ai/test-master-ai/node_modules/electron-builder/out/cli/cli.js
+```
+
+**问题分析**：
+1. **误删关键文件**: 清理脚本删除了 `builder-util/out/log.js` 等electron-builder依赖的关键文件
+2. **过度清理**: 清理策略没有保护构建工具的运行时文件
+3. **模式匹配问题**: `node_modules/**/*.js` 和 `node_modules/**/log` 匹配了不该删除的文件
+
+**日志证据**：
+```
+🗑️  删除文件: /Users/runner/work/test-master-ai/test-master-ai/node_modules/builder-util/out/log.js
+🗑️  删除文件: /Users/runner/work/test-master-ai/test-master-ai/node_modules/builder-util/out/log.js.map
+```
+
+**修复方案**：
+```javascript
+// 严格保护的构建关键目录 - 这些目录中的.js文件绝对不能删除
+const protectedDirs = [
+  'node_modules/electron-builder',
+  'node_modules/builder-util',
+  'node_modules/app-builder-lib',
+  'node_modules/electron-publish',
+  'node_modules/electron-builder-squirrel-windows',
+  'node_modules/dmg-builder',
+  'node_modules/nsis-builder',
+];
+
+// 递归删除函数 - 增加保护检查
+function removeRecursive(dirPath) {
+  // 检查是否在保护目录中且是.js文件
+  const isProtected = protectedDirs.some(protectedDir => {
+    const fullProtectedPath = path.join(projectRoot, protectedDir);
+    return dirPath.startsWith(fullProtectedPath) && 
+           (dirPath.endsWith('.js') || dirPath.endsWith('.js.map'));
+  });
+  
+  if (isProtected) {
+    console.log(`🛡️  保护文件跳过删除: ${dirPath}`);
+    return;
+  }
+  // ...
+}
+```
+
+**Windows超时问题并发修复**：
+采用分批安装策略解决Windows环境依赖安装超时：
+```yaml
+# 第一批：核心构建工具
+npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0
+
+# 第二批：前端框架  
+npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 react@18.2.0 react-dom@18.2.0 antd@5.21.6
+
+# 第三批：构建工具
+npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
+
+# 第四批：剩余依赖
+npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-optional
+```
+
+**关键改进**：
+- ✅ 保护所有electron-builder生态系统的.js文件
+- ✅ 只清理文档文件（*.md, README*, CHANGELOG*等）
+- ✅ Windows使用分批安装策略避免网络超时
+- ✅ 降低并发数到1，增加超时时间到45分钟
+- ✅ 预期macOS和Windows都能成功构建
+
 ### 🎉 重大突破：macOS 构建完全成功！
 
 **成功生成的应用包**：

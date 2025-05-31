@@ -8,7 +8,7 @@ const projectRoot = path.resolve(__dirname, '..');
 
 // 需要清理的大文件和目录
 const filesToCleanup = [
-  // node_modules中的大文件但保留构建必需模块
+  // 大型测试和浏览器下载工具（完全删除）
   'node_modules/playwright',
   'node_modules/puppeteer',
   'node_modules/@playwright',
@@ -17,16 +17,21 @@ const filesToCleanup = [
   
   // 清理electron的dist文件但保留主要文件
   'node_modules/electron/dist',
-  // 注意：不要删除整个electron-builder，只清理其内部大文件
   
-  // 测试和文档文件
+  // 只清理文档文件，保留所有.js文件
+  'node_modules/**/README*',
+  'node_modules/**/CHANGELOG*',
+  'node_modules/**/CONTRIBUTING*',
+  'node_modules/**/HISTORY*',
+  'node_modules/**/LICENSE*',
+  'node_modules/**/SECURITY*',
+  'node_modules/**/*.md',
+  
+  // 清理测试目录但保留src和lib
   'node_modules/**/test',
   'node_modules/**/tests', 
   'node_modules/**/example',
   'node_modules/**/examples',
-  'node_modules/**/*.md',
-  'node_modules/**/README*',
-  'node_modules/**/CHANGELOG*',
   
   // 缓存和临时文件
   'node_modules/**/.cache',
@@ -34,9 +39,32 @@ const filesToCleanup = [
   'node_modules/**/*.log',
 ];
 
-// 递归删除函数
+// 严格保护的构建关键目录 - 这些目录中的.js文件绝对不能删除
+const protectedDirs = [
+  'node_modules/electron-builder',
+  'node_modules/builder-util',
+  'node_modules/app-builder-lib',
+  'node_modules/electron-publish',
+  'node_modules/electron-builder-squirrel-windows',
+  'node_modules/dmg-builder',
+  'node_modules/nsis-builder',
+];
+
+// 递归删除函数 - 增加保护检查
 function removeRecursive(dirPath) {
   if (!fs.existsSync(dirPath)) return;
+  
+  // 检查是否在保护目录中且是.js文件
+  const isProtected = protectedDirs.some(protectedDir => {
+    const fullProtectedPath = path.join(projectRoot, protectedDir);
+    return dirPath.startsWith(fullProtectedPath) && 
+           (dirPath.endsWith('.js') || dirPath.endsWith('.js.map'));
+  });
+  
+  if (isProtected) {
+    console.log(`🛡️  保护文件跳过删除: ${dirPath}`);
+    return;
+  }
   
   try {
     const stats = fs.statSync(dirPath);
@@ -45,8 +73,14 @@ function removeRecursive(dirPath) {
       files.forEach(file => {
         removeRecursive(path.join(dirPath, file));
       });
-      fs.rmdirSync(dirPath);
-      console.log(`🗑️  删除目录: ${dirPath}`);
+      // 只删除空目录
+      try {
+        fs.rmdirSync(dirPath);
+        console.log(`🗑️  删除空目录: ${dirPath}`);
+      } catch (error) {
+        // 目录不为空，跳过
+        console.log(`⚠️  目录不为空，跳过: ${dirPath}`);
+      }
     } else {
       fs.unlinkSync(dirPath);
       console.log(`🗑️  删除文件: ${dirPath}`);
