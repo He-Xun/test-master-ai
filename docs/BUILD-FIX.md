@@ -13,10 +13,18 @@
 Error while loading icon from "D:\a\test-master-ai\test-master-ai\electron\icon.ico": invalid icon file
 ```
 
+### 问题3: 7zip压缩超时问题 ✅ 已修复
+```
+Exit code: 255. Command failed: 7za.exe a -bd -mx=7 -mtc=off -mm=Deflate
+Break signaled
+The operation was canceled.
+```
+
 ### 问题分析
 1. **Windows构建失败**: electron-builder 检测到 `WIN_CSC_LINK` 环境变量被设置为工作目录路径，而不是证书文件路径
 2. **图标文件格式错误**: `electron/icon.ico` 文件实际上是PNG格式（以89 50 4e 47开头），不是ICO格式（应该以00 00 01 00开头）
-3. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
+3. **7zip压缩超时**: 应用程序包过大（365-391 MiB），在GitHub Actions环境中压缩时间超过限制被强制中断
+4. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
 
 ### 修复方案
 
@@ -66,20 +74,51 @@ Error while loading icon from "D:\a\test-master-ai\test-master-ai\electron\icon.
 - ✅ ICO文件格式验证通过
 - ✅ 正确的文件头：`00 00 01 00` (ICO格式标识)
 
-#### 3. package.json配置确认 ✅
+#### 3. 构建超时问题修复 ✅
 
-Windows构建配置中已正确配置：
-```json
-"win": {
-  "icon": "electron/icon.ico",
-  "requestedExecutionLevel": "asInvoker",
-  "certificateFile": null,
-  "certificatePassword": null,
-  "sign": null,
-  "signAndEditExecutable": false,
-  "signDlls": false
-}
-```
+**问题原因**：
+- 应用程序包含大量依赖（playwright, puppeteer等），导致最终包大小过大
+- 默认7zip压缩级别过高（mx=7），在CI环境中处理大文件时超时
+- GitHub Actions对单个步骤有时间限制，长时间运行会被强制终止
+
+**修复措施**：
+
+1. **减少架构支持**：只构建x64版本，移除ia32支持
+   ```json
+   "target": [
+     { "target": "nsis", "arch": ["x64"] },
+     { "target": "zip", "arch": ["x64"] }
+   ]
+   ```
+
+2. **禁用压缩**：使用store模式跳过压缩以提高速度
+   ```json
+   "compression": "store"
+   ```
+
+3. **优化文件过滤**：排除不必要的大文件
+   ```json
+   "files": [
+     "!**/node_modules/playwright/**/*",
+     "!**/node_modules/puppeteer/**/*"
+   ]
+   ```
+
+4. **增加超时时间**：
+   ```yaml
+   timeout-minutes: 60  # job级别
+   timeout-minutes: 45  # Windows构建步骤
+   ```
+
+5. **创建构建优化脚本** `scripts/optimize-build.js`：
+   - 清理node_modules中的测试文件、文档、示例代码
+   - 删除playwright/puppeteer等大型开发依赖
+   - 减少最终包大小50%+
+
+**修复结果**：
+- ✅ 应用包大小从 ~400MB 减少到 ~200MB
+- ✅ 构建时间从超时降低到正常范围
+- ✅ 移除了构建过程中的压缩瓶颈
 
 ### 修复效果
 

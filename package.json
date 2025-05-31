@@ -17,7 +17,8 @@
     "admin:info": "node tools/admin-helper.js",
     "admin:reset": "node tools/reset-superadmin.js",
     "test:build": "node scripts/test-build.js",
-    "generate:icons": "node scripts/generate-icons.js"
+    "generate:icons": "node scripts/generate-icons.js",
+    "optimize:build": "node scripts/optimize-build.js"
   },
   "keywords": [
     "api-testing",
@@ -67,6 +68,7 @@
     "directories": {
       "output": "release"
     },
+    "compression": "store",
     "files": [
       "build/**/*",
       "dist/main.js",
@@ -82,7 +84,9 @@
       "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
       "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}"
+      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
+      "!**/node_modules/playwright/**/*",
+      "!**/node_modules/puppeteer/**/*"
     ],
     "asarUnpack": [
       "build/**/*"
@@ -110,11 +114,11 @@
       "target": [
         {
           "target": "nsis",
-          "arch": ["x64", "ia32"]
+          "arch": ["x64"]
         },
         {
           "target": "zip",
-          "arch": ["x64", "ia32"]
+          "arch": ["x64"]
         }
       ],
       "icon": "electron/icon.ico",
@@ -123,14 +127,17 @@
       "certificatePassword": null,
       "sign": null,
       "signAndEditExecutable": false,
-      "signDlls": false
+      "signDlls": false,
+      "compression": "store"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "API Testing Tool"
+      "shortcutName": "API Testing Tool",
+      "deleteAppDataOnUninstall": false,
+      "compression": "store"
     },
     "dmg": {
       "title": "API Testing Tool",

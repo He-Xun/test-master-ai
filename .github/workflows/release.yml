@@ -19,6 +19,7 @@ jobs:
   # 跨平台构建 - 推送到main或创建release时都运行
   build:
     runs-on: ${{ matrix.os }}
+    timeout-minutes: 60
     strategy:
       matrix:
         include:
@@ -54,6 +55,11 @@ jobs:
         env:
           NODE_ENV: production
           CI: true
+
+      - name: Optimize build for packaging
+        run: npm run optimize:build
+        env:
+          NODE_ENV: production
 
       - name: Verify build output (Unix)
         if: runner.os != 'Windows'
@@ -94,6 +100,7 @@ jobs:
 
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
+        timeout-minutes: 45
         run: |
           # 清除所有可能的代码签名环境变量
           echo "清除代码签名环境变量..."
@@ -107,8 +114,8 @@ jobs:
           set CSC_FOR_PULL_REQUEST=true
           set DEBUG=electron-builder
           
-          echo "开始构建Windows应用..."
-          npx electron-builder --win --publish never
+          echo "开始构建Windows应用（仅64位，无压缩模式）..."
+          npx electron-builder --win --x64 --publish never
         shell: cmd
         env:
           # 明确禁用所有代码签名相关环境变量
