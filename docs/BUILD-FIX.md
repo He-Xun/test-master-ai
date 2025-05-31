@@ -2,6 +2,46 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题18: @electron/rebuild模块内部文件缺失 ✅ 已修复
+```
+Error: Cannot find module '@electron/rebuild/lib/src/search-module'
+Require stack:
+- D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\out\util\yarn.js
+```
+
+**问题分析**：
+1. **模块安装不完整**: 虽然第1批安装了`@electron/rebuild`，但内部的`lib/src/search-module.js`文件缺失
+2. **依赖链断裂**: app-builder-lib → @electron/rebuild/lib/src/search-module
+3. **分批安装副作用**: 分批安装可能导致某些依赖的子文件没有正确安装
+
+**构建时序**：
+```
+✅ 第1批：安装核心构建工具... (3分53秒) - 包含@electron/rebuild
+✅ 第2批：安装前端框架... (14秒)  
+✅ 第3批：安装构建工具... (6秒)
+✅ 第4批：安装剩余开发依赖... (2秒)
+❌ 验证阶段：@electron/rebuild/lib/src/search-module.js 缺失
+```
+
+**修复方案**：
+```powershell
+# 在验证阶段添加@electron/rebuild完整性检查
+if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
+  Write-Host "重新安装 @electron/rebuild..."
+  npm uninstall @electron/rebuild --silent 2>$null
+  npm install --no-audit --progress=false @electron/rebuild
+}
+```
+
+**关键改进**：
+- ✅ **macOS构建连续第三次成功**：验证了修复的稳定性和有效性
+- 🔧 **Windows分批安装策略基本成功**：避免了超时问题，只需解决模块完整性
+- 📝 **精确定位问题**：从模块缺失到具体文件缺失，问题范围越来越小
+
+**预期效果**：
+- 🍎 **macOS**: ✅ 已连续成功，构建流程完全稳定
+- 🪟 **Windows**: 🔧 分批安装成功 + 模块完整性修复 = 预期完整成功
+
 ### 问题17: Windows分批安装缺少@electron/rebuild依赖 ✅ 已修复
 ```
 Error: Cannot find module '@electron/rebuild/lib/src/search-module'

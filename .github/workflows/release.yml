@@ -84,6 +84,11 @@ jobs:
             Write-Host "重试安装 electron-builder..."
             npm install --no-audit --progress=false electron-builder@24.0.0
           }
+          if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
+            Write-Host "重新安装 @electron/rebuild..."
+            npm uninstall @electron/rebuild --silent 2>$null
+            npm install --no-audit --progress=false @electron/rebuild
+          }
           
           Write-Host "✅ Windows依赖安装完成"
         env:
