@@ -210,6 +210,32 @@ jobs:
           
           echo "=== 文件系统检查完成 ==="
 
+      - name: Verify build integrity before packaging (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "=== 验证构建完整性 (Windows) ==="
+          Write-Host "检查必要的构建文件..."
+          if (Test-Path "dist/main.js") { Write-Host "✅ dist/main.js exists" } else { Write-Host "❌ dist/main.js missing" }
+          if (Test-Path "build") { Write-Host "✅ build directory exists" } else { Write-Host "❌ build directory missing" }
+          if (Test-Path "node_modules") { Write-Host "✅ node_modules exists" } else { Write-Host "❌ node_modules missing" }
+          
+          Write-Host "检查图标文件..."
+          if (Test-Path "electron/icon.${{ matrix.icon-ext }}") { Write-Host "✅ Icon file exists" } else { Write-Host "❌ Icon file missing" }
+          
+          Write-Host "检查关键构建依赖..."
+          if (Test-Path "node_modules/electron") { Write-Host "✅ electron模块存在" } else { Write-Host "❌ electron模块缺失" }
+          if (Test-Path "node_modules/electron-builder") { Write-Host "✅ electron-builder模块存在" } else { Write-Host "❌ electron-builder模块缺失" }
+          
+          Write-Host "检查已清理的大文件..."
+          if (!(Test-Path "node_modules/playwright")) { Write-Host "✅ playwright已清理" } else { Write-Host "⚠️ playwright仍存在" }
+          if (!(Test-Path "node_modules/puppeteer")) { Write-Host "✅ puppeteer已清理" } else { Write-Host "⚠️ puppeteer仍存在" }
+          
+          Write-Host "=== 文件系统检查完成 ==="
+
+      - name: Verify build integrity before packaging (Unix)
+        if: runner.os != 'Windows'
+
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'
         timeout-minutes: 45

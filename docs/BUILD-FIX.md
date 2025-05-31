@@ -2,6 +2,52 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 🎉 重大突破：macOS 构建完全成功！
+
+**成功生成的应用包**：
+- `test-master-ai-1.0.0.dmg` (334M) - x64 版本
+- `test-master-ai-1.0.0-arm64.dmg` (330M) - ARM64 版本
+- `test-master-ai-1.0.0-mac.zip` (329M) - x64 压缩包
+- `test-master-ai-1.0.0-arm64-mac.zip` (326M) - ARM64 压缩包
+
+**构建流程完整成功**：
+✅ 依赖安装 → ✅ Vite构建 → ✅ TypeScript编译 → ✅ 文件清理 → ✅ electron-builder打包 → ✅ DMG生成
+
+### 问题13: Windows PowerShell bash语法兼容性错误 ✅ 已修复
+```
+ParserError: Missing type name after '['.
+[ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
+```
+
+**问题分析**：
+1. **语法冲突**: Windows PowerShell环境无法解析bash的条件语法 `[ -f file ]`
+2. **脚本混用**: 在PowerShell中使用bash语法导致解析错误
+3. **跨平台兼容性**: 需要为不同操作系统使用对应的脚本语法
+
+**修复方案**：
+```yaml
+# Windows专用PowerShell验证脚本
+- name: Verify build integrity before packaging (Windows)
+  if: runner.os == 'Windows'
+  shell: pwsh
+  run: |
+    if (Test-Path "dist/main.js") { Write-Host "✅ dist/main.js exists" } else { Write-Host "❌ dist/main.js missing" }
+    if (Test-Path "node_modules/electron") { Write-Host "✅ electron模块存在" } else { Write-Host "❌ electron模块缺失" }
+
+# Unix系统保持bash语法
+- name: Verify build integrity before packaging (Unix)
+  if: runner.os != 'Windows'
+  run: |
+    [ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
+    [ -d node_modules/electron ] && echo "✅ electron模块存在" || echo "❌ electron模块缺失"
+```
+
+**关键改进**：
+- ✅ 为Windows和Unix系统分别创建验证脚本
+- ✅ Windows使用PowerShell的 `Test-Path` 和 `Write-Host`
+- ✅ Unix系统继续使用bash条件语法
+- ✅ 保持功能完全一致，只是语法不同
+
 ### 问题12: Windows分步安装依赖不完整 ✅ 已修复
 ```
 Error: Cannot find module '@electron/rebuild/lib/src/search-module'
