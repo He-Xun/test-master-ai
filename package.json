@@ -70,8 +70,10 @@
   "build": {
     "appId": "com.apitestingtool.app",
     "productName": "test-master-ai",
+    "npmRebuild": false,
     "directories": {
-      "output": "release"
+      "output": "release",
+      "buildResources": "build"
     },
     "compression": "store",
     "files": [
