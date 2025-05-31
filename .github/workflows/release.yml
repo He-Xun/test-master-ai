@@ -60,7 +60,7 @@ jobs:
           
           # 第一批：核心构建工具
           Write-Host "第1批：安装核心构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild
           
           # 第二批：前端框架
           Write-Host "第2批：安装前端框架..."

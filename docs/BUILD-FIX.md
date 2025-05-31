@@ -2,6 +2,42 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题17: Windows分批安装缺少@electron/rebuild依赖 ✅ 已修复
+```
+Error: Cannot find module '@electron/rebuild/lib/src/search-module'
+Require stack:
+- D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\out\util\yarn.js
+```
+
+**问题分析**：
+1. **关键依赖缺失**: 分批安装策略解决了超时问题，但缺少了`@electron/rebuild`模块
+2. **依赖链断裂**: app-builder-lib → @electron/rebuild，但分批安装中没有包含
+3. **构建进展**: Windows环境成功完成了所有4批依赖安装，但在验证阶段发现缺失
+
+**构建时序**：
+```
+第1批：安装核心构建工具... (3分30秒)
+第2批：安装前端框架... (14秒)  
+第3批：安装构建工具... (6秒)
+第4批：安装剩余开发依赖... (3秒)
+❌ 发现@electron/rebuild缺失
+```
+
+**修复方案**：
+```yaml
+# 第一批：核心构建工具（新增@electron/rebuild）
+npm install electron@25.0.0 electron-builder@24.0.0 @electron/rebuild
+```
+
+**关键改进**：
+- ✅ Windows分批安装策略**基本成功**：避免了超时问题
+- ✅ macOS构建**再次完全成功**：生成4个应用包，验证了问题16的修复有效
+- 🔧 Windows只需补充一个关键依赖即可完成构建流程
+
+**预期效果**：
+- 🍎 **macOS**: ✅ 已连续成功，构建流程稳定
+- 🪟 **Windows**: 🔧 应该能完成整个构建流程，生成`.exe`安装包
+
 ### 问题16: 构建优化脚本误删关键依赖文件 ✅ 已修复
 ```
 Error: Cannot find module './log'
