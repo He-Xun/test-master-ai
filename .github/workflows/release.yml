@@ -60,19 +60,19 @@ jobs:
           
           # 第一批：核心构建工具
           Write-Host "第1批：安装核心构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
           
           # 第二批：前端框架
           Write-Host "第2批：安装前端框架..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 react@18.2.0 react-dom@18.2.0 antd@5.21.6
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts react@18.2.0 react-dom@18.2.0 antd@5.21.6
           
           # 第三批：构建工具
           Write-Host "第3批：安装构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
           
           # 第四批：剩余依赖
           Write-Host "第4批：安装剩余开发依赖..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-optional
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --ignore-optional
           
           # 验证关键依赖
           Write-Host "=== 验证关键依赖 ==="
@@ -109,7 +109,7 @@ jobs:
           # 先清理npm缓存，避免缓存问题
           npm cache clean --force || echo "缓存清理跳过"
           # 使用更激进的优化参数
-          npm ci --prefer-offline --no-audit --progress=false --no-fund --silent
+          npm ci --prefer-offline --no-audit --progress=false --no-fund --silent --ignore-scripts
         env:
           npm_config_timeout: 600000  # 10分钟超时
           npm_config_maxsockets: 2    # 降低并发

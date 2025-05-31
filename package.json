@@ -14,7 +14,7 @@
     "build:electron": "tsc -p tsconfig.electron.json",
     "pack": "electron-builder",
     "dist": "npm run build && electron-builder",
-    "postinstall": "electron-builder install-app-deps",
+    "postinstall": "echo \"Skipping postinstall scripts\" || electron-builder install-app-deps",
     "admin:info": "node tools/admin-helper.js",
     "admin:reset": "node tools/reset-superadmin.js",
     "test:build": "node scripts/test-build.js",

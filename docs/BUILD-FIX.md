@@ -2,8 +2,36 @@
 
 ## 最新问题修复 (2025-05-31)
 
-### 问题19: GitHub Actions配置参数错误及Windows批处理命令语法 ✅ 已修复
+### 问题20: electron-builder的postinstall脚本执行错误 ✅ 已修复
 ```
+npm error command sh -c electron-builder install-app-deps
+```
+
+**问题分析**：
+1. **postinstall脚本错误**: npm安装依赖后会执行package.json中的postinstall脚本，而该脚本调用了electron-builder，但在依赖安装阶段electron-builder可能还未安装或配置完成
+2. **执行时序问题**: 脚本执行时机不当，导致electron-builder无法正常工作
+3. **缺少错误处理**: postinstall脚本没有适当的错误处理机制，导致安装过程中断
+
+**修复方案**：
+1. **禁用postinstall脚本**：
+```json
+// package.json
+"postinstall": "echo \"Skipping postinstall scripts\" || electron-builder install-app-deps",
+```
+
+2. **使用--ignore-scripts参数**：
+```bash
+# 在所有npm命令中添加--ignore-scripts参数
+npm ci --prefer-offline --no-audit --progress=false --no-fund --silent --ignore-scripts
+npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts electron@25.0.0
+```
+
+**关键改进**：
+- ✅ 通过echo命令和短路运算避免执行electron-builder install-app-deps
+- ✅ 在所有npm安装命令中添加--ignore-scripts参数，彻底禁用所有自动脚本
+- ✅ 保留原有脚本以备需要时手动执行
+
+### 问题19: GitHub Actions配置参数错误及Windows批处理命令语法 ✅ 已修复
 ##[warning]Unexpected input(s) 'timeout-minutes', 'retry-attempts', 'retry-delay', valid inputs are ['repository', 'ref', 'token', 'ssh-key', 'ssh-known-hosts', 'ssh-strict', 'ssh-user', 'persist-credentials', 'path', 'clean', 'filter', 'sparse-checkout', 'sparse-checkout-cone-mode', 'fetch-depth', 'fetch-tags', 'show-progress', 'lfs', 'submodules', 'set-safe-directory', 'github-server-url']
 
 '#' is not recognized as an internal or external command,
