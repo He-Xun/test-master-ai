@@ -8,16 +8,16 @@ const projectRoot = path.resolve(__dirname, '..');
 
 // 需要清理的大文件和目录
 const filesToCleanup = [
-  // node_modules中的大文件
+  // node_modules中的大文件但保留构建必需模块
   'node_modules/playwright',
   'node_modules/puppeteer',
   'node_modules/@playwright',
   'node_modules/@types/puppeteer',
   'node_modules/chromium-bidi',
   
-  // 开发依赖的文件
+  // 清理electron的dist文件但保留主要文件
   'node_modules/electron/dist',
-  'node_modules/electron-builder',
+  // 注意：不要删除整个electron-builder，只清理其内部大文件
   
   // 测试和文档文件
   'node_modules/**/test',

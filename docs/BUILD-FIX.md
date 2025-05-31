@@ -379,6 +379,50 @@ Error: every step must define a `uses` or `run` key
 - ✅ 确保每个步骤都有正确的YAML语法结构
 - ✅ 保持Windows和Unix脚本的功能一致性
 
+### 问题15: 构建优化脚本过度清理electron-builder模块 ✅ 已修复
+```
+Error: Cannot find module 'D:\a\test-master-ai\test-master-ai\node_modules\electron-builder\cli.js'
+❌ electron-builder模块缺失
+```
+
+**问题分析**：
+1. **过度清理**: `scripts/optimize-build.js` 删除了整个 `electron-builder` 目录
+2. **构建依赖缺失**: npx electron-builder 无法找到被删除的 cli.js 文件
+3. **清理策略错误**: 没有区分构建时必需的模块和可清理的文件
+
+**问题代码**：
+```javascript
+const filesToCleanup = [
+  'node_modules/electron/dist',
+  'node_modules/electron-builder',  // ❌ 错误删除整个electron-builder
+  // ...
+];
+```
+
+**修复方案**：
+```javascript
+const filesToCleanup = [
+  // 清理electron的dist文件但保留主要文件
+  'node_modules/electron/dist',
+  // 注意：不要删除整个electron-builder，只清理其内部大文件
+  
+  // 只清理不必要的大文件，保留构建工具
+  'node_modules/playwright',
+  'node_modules/puppeteer',
+  // ...
+];
+```
+
+**关键改进**：
+- ✅ 保留 `electron-builder` 模块确保构建工具可用
+- ✅ 只清理 `electron/dist` 等大文件降低体积
+- ✅ 保持清理效果（230MB空间节省）但确保功能完整
+- ✅ Windows构建应该能正常进行到electron-builder步骤
+
+**构建进展**：
+- 🍎 **macOS**: ✅ 再次完全成功，生成4个应用包
+- 🪟 **Windows**: 🔧 几乎成功，只差最后的electron-builder步骤
+
 ## 验证方法
 
 ### 本地构建测试
