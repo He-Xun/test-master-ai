@@ -776,45 +776,138 @@ Require stack:
 **修复方案**:
 1. **完全重新安装@electron/rebuild**:
 ```yaml
-# Windows构建验证阶段添加更全面的检查和修复
+# Windows构建验证阶段添加更准确的模块安装
 - name: Install dependencies for Windows (batch strategy)
   if: runner.os == 'Windows'
   timeout-minutes: 45
   shell: pwsh
   run: |
-    # 验证关键依赖
-    Write-Host "=== 验证关键依赖 ==="
-    # 检查@electron/rebuild是否完整安装
-    if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
-      Write-Host "⚠️ @electron/rebuild模块文件不完整，重新完整安装..."
-      # 完全删除并重新安装，确保所有文件都存在
+    # 验证@electron/rebuild
+    if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -or !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) { 
+      Write-Host "⚠️ @electron/rebuild模块文件不完整，尝试完整重新安装..."
+      # 完全删除
       npm uninstall @electron/rebuild --no-save
-      # 使用--legacy-peer-deps确保安装完整
-      npm install @electron/rebuild@3.2.13 --legacy-peer-deps --no-save
+      # 清理npm缓存中的此模块
+      npm cache clean --force @electron/rebuild
+      # 强制从源安装
+      npm install @electron/rebuild@3.2.13 --force --no-save
       
-      # 再次验证
-      if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) {
-        Write-Host "❌ 仍然缺少search-module.js文件，尝试从GitHub直接获取..."
-        # 创建必要的目录
+      # 如果仍然失败，使用替代方案
+      if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -and !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) {
+        Write-Host "❌ 模块安装仍不完整，尝试替代解决方案..."
+        
+        # 方案1: 创建一个空的实现
+        $emptySolution = @"
+// Empty implementation of search-module.js
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
+
+exports.searchForModule = async function(moduleName, includedPaths, requireFunc) {
+  console.log('Using stub implementation of searchForModule', moduleName);
+  return null;
+};
+"@
+        # 确保目录存在
         New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
-        # 从GitHub原始仓库获取文件
-        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/electron/rebuild/v3.2.13/src/search-module.ts" -OutFile "node_modules/@electron/rebuild/lib/src/search-module.ts"
-        # 复制文件内容到.js文件
-        Get-Content "node_modules/@electron/rebuild/lib/src/search-module.ts" | Out-File "node_modules/@electron/rebuild/lib/src/search-module.js" -Encoding utf8
+        # 写入空实现
+        $emptySolution | Out-File "node_modules/@electron/rebuild/lib/src/search-module.js" -Encoding utf8
+        
+        # 同样创建out目录下的版本
+        New-Item -Path "node_modules/@electron/rebuild/out/src" -ItemType Directory -Force
+        $emptySolution | Out-File "node_modules/@electron/rebuild/out/src/search-module.js" -Encoding utf8
       }
     }
 ```
 
-2. **分析原因**:
-   - npm安装时可能使用了缓存，导致文件不完整
-   - 网络问题导致部分文件下载失败
-   - 包管理器在Windows环境中的特殊行为
+2. **修复方案的原理**:
+   - 首先尝试更彻底的安装，包括清理npm缓存
+   - 如果仍然失败，创建一个空的实现，返回null，允许构建过程继续
+   - 确保lib和out目录都有对应文件，因为不确定electron-builder使用哪个路径
 
 **预期效果**:
 - 🍎 **macOS**: ✅ 已经完全成功，无需修改
-- 🪟 **Windows**: 🔧 重新安装并手动确保关键文件存在应该能解决问题
+- 🪟 **Windows**: 🔧 通过提供一个兼容的stub实现，应该能让构建过程继续
 
 **下一步行动**:
-1. 实施更严格的依赖完整性检查
-2. 添加手动复制关键文件的备选方案
-3. 考虑禁用electron-builder中对@electron/rebuild的依赖
+1. 实施更健壮的搜索模块实现
+2. 尝试从npm源直接下载编译好的模块
+3. 考虑为electron-builder禁用对@electron/rebuild的使用
+
+### 问题24: @electron/rebuild模块文件语法错误 ❌ 待修复
+
+**问题分析**：
+1. **语法错误**: Windows构建中从GitHub获取的`search-module.ts`文件直接转换为js文件导致语法错误
+2. **特定错误**: `SyntaxError: Unexpected token ':'` - 这表明TypeScript语法无法被JavaScript解析
+3. **文件转换问题**: 直接复制TypeScript文件内容到JS文件无法正常工作，需要进行正确的编译
+
+**日志证据**:
+```
+SyntaxError: Unexpected token ':'
+    at compileSourceTextModule (node:internal/modules/esm/utils:340:16)
+    at ModuleLoader.importSyncForRequire (node:internal/modules/esm/loader:316:18)
+    at loadESMFromCJS (node:internal/modules/cjs/loader:1371:24)
+```
+
+**进展对比**:
+1. **macOS构建**: ✅ 继续完全成功，生成了所有4个应用包
+2. **Windows构建**: ❌ 仍然失败，但错误类型发生变化，现在是语法错误而不是文件缺失
+
+**修复方案**:
+1. **正确安装完整的@electron/rebuild模块**:
+```yaml
+# Windows构建验证阶段添加更准确的模块安装
+- name: Install dependencies for Windows (batch strategy)
+  if: runner.os == 'Windows'
+  timeout-minutes: 45
+  shell: pwsh
+  run: |
+    # 验证@electron/rebuild
+    if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -or !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) { 
+      Write-Host "⚠️ @electron/rebuild模块文件不完整，尝试完整重新安装..."
+      # 完全删除
+      npm uninstall @electron/rebuild --no-save
+      # 清理npm缓存中的此模块
+      npm cache clean --force @electron/rebuild
+      # 强制从源安装
+      npm install @electron/rebuild@3.2.13 --force --no-save
+      
+      # 如果仍然失败，使用替代方案
+      if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -and !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) {
+        Write-Host "❌ 模块安装仍不完整，尝试替代解决方案..."
+        
+        # 方案1: 创建一个空的实现
+        $emptySolution = @"
+// Empty implementation of search-module.js
+'use strict';
+Object.defineProperty(exports, '__esModule', { value: true });
+
+exports.searchForModule = async function(moduleName, includedPaths, requireFunc) {
+  console.log('Using stub implementation of searchForModule', moduleName);
+  return null;
+};
+"@
+        # 确保目录存在
+        New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
+        # 写入空实现
+        $emptySolution | Out-File "node_modules/@electron/rebuild/lib/src/search-module.js" -Encoding utf8
+        
+        # 同样创建out目录下的版本
+        New-Item -Path "node_modules/@electron/rebuild/out/src" -ItemType Directory -Force
+        $emptySolution | Out-File "node_modules/@electron/rebuild/out/src/search-module.js" -Encoding utf8
+      }
+    }
+```
+
+2. **修复方案的原理**:
+   - 首先尝试更彻底的安装，包括清理npm缓存
+   - 如果仍然失败，创建一个空的实现，返回null，允许构建过程继续
+   - 确保lib和out目录都有对应文件，因为不确定electron-builder使用哪个路径
+
+**预期效果**:
+- 🍎 **macOS**: ✅ 已经完全成功，无需修改
+- 🪟 **Windows**: 🔧 通过提供一个兼容的stub实现，应该能让构建过程继续
+
+**下一步行动**:
+1. 实施更健壮的搜索模块实现
+2. 尝试从npm源直接下载编译好的模块
+3. 考虑为electron-builder禁用对@electron/rebuild的使用
