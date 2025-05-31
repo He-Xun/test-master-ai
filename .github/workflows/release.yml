@@ -94,13 +94,36 @@ jobs:
 
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
-        run: npx electron-builder --win --publish never
+        run: |
+          # 清除所有可能的代码签名环境变量
+          echo "清除代码签名环境变量..."
+          set CSC_LINK=
+          set WIN_CSC_LINK=
+          set CSC_KEY_PASSWORD=
+          set WIN_CSC_KEY_PASSWORD=
+          set CSC_NAME=
+          set WIN_CSC_NAME=
+          set CSC_IDENTITY_AUTO_DISCOVERY=false
+          set CSC_FOR_PULL_REQUEST=true
+          set DEBUG=electron-builder
+          
+          echo "开始构建Windows应用..."
+          npx electron-builder --win --publish never
+        shell: cmd
         env:
+          # 明确禁用所有代码签名相关环境变量
           CSC_LINK: ""
           WIN_CSC_LINK: ""
           CSC_KEY_PASSWORD: ""
-          CSC_IDENTITY_AUTO_DISCOVERY: false
-          DEBUG: electron-builder
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
+          # 添加更多禁用选项
+          WIN_CSC_KEY_PASSWORD: ""
+          CSC_NAME: ""
+          WIN_CSC_NAME: ""
+          # 调试信息
+          DEBUG: "electron-builder"
+          # 确保不使用任何证书存储
+          CSC_FOR_PULL_REQUEST: "true"
 
       - name: List build artifacts (Unix)
         if: runner.os != 'Windows'

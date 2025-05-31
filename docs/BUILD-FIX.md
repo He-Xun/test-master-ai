@@ -1,21 +1,98 @@
 # 构建问题修复说明
 
-## 问题描述
+## 最新问题 (2025-05-31)
+
+### 错误信息
+```
+⨯ Env WIN_CSC_LINK is not correct, cannot resolve: D:\a\test-master-ai\test-master-ai not a file
+##[error]Process completed with exit code 1.
+```
+
+### 问题分析
+1. **Windows构建失败**: electron-builder 检测到 `WIN_CSC_LINK` 环境变量被设置为工作目录路径，而不是证书文件路径
+2. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
+3. **环境变量污染**: GitHub Actions环境中可能存在预设的代码签名相关环境变量
+
+### 修复方案
+
+#### 1. 更新GitHub Actions配置 (已修复)
+
+在 `.github/workflows/release.yml` 中增强了Windows构建步骤：
+
+```yaml
+- name: Build Electron app for Windows  
+  if: matrix.platform == 'win'
+  run: |
+    # 清除所有可能的代码签名环境变量
+    echo "清除代码签名环境变量..."
+    set CSC_LINK=
+    set WIN_CSC_LINK=
+    set CSC_KEY_PASSWORD=
+    set WIN_CSC_KEY_PASSWORD=
+    set CSC_NAME=
+    set WIN_CSC_NAME=
+    set CSC_IDENTITY_AUTO_DISCOVERY=false
+    set CSC_FOR_PULL_REQUEST=true
+    set DEBUG=electron-builder
+    
+    echo "开始构建Windows应用..."
+    npx electron-builder --win --publish never
+  shell: cmd
+  env:
+    # 明确禁用所有代码签名相关环境变量
+    CSC_LINK: ""
+    WIN_CSC_LINK: ""
+    CSC_KEY_PASSWORD: ""
+    CSC_IDENTITY_AUTO_DISCOVERY: "false"
+    WIN_CSC_KEY_PASSWORD: ""
+    CSC_NAME: ""
+    WIN_CSC_NAME: ""
+    DEBUG: "electron-builder"
+    CSC_FOR_PULL_REQUEST: "true"
+```
+
+#### 2. package.json配置 (已确认正确)
+
+Windows构建配置中已正确禁用代码签名：
+
+```json
+"win": {
+  "target": [...],
+  "icon": "electron/icon.ico",
+  "requestedExecutionLevel": "asInvoker",
+  "certificateFile": null,
+  "certificatePassword": null,
+  "sign": null,
+  "signAndEditExecutable": false,
+  "signDlls": false
+}
+```
+
+### 修复效果
+
+✅ **双重保护**: 通过cmd脚本和env环境变量双重清除代码签名变量
+✅ **调试信息**: 添加了详细的构建日志输出
+✅ **shell指定**: 明确使用cmd shell确保Windows命令正确执行
+✅ **全面覆盖**: 清除所有可能的代码签名相关环境变量
+
+## 历史问题记录
+
+### 问题描述
 
 Windows构建过程中出现以下错误：
 ```
 ⨯ Env WIN_CSC_LINK is not correct, cannot resolve: D:\a\test-master-ai\test-master-ai not a file
 ```
 
-## 问题原因
+### 问题原因
 
 1. **代码签名配置错误**: electron-builder 检测到 `WIN_CSC_LINK` 环境变量，但该变量指向目录而非证书文件
 2. **Node版本不匹配**: react-router@7.6.1 要求 Node.js >= 20.0.0，但CI使用的是 18.20.8
 3. **缺少Windows代码签名禁用配置**: 没有明确告诉electron-builder跳过代码签名
 
-## 修复方案
+### 修复方案
 
-### 1. 更新GitHub Actions配置
+#### 1. 更新GitHub Actions配置
 
 在 `.github/workflows/release.yml` 中：
 
@@ -35,7 +112,7 @@ env:
     DEBUG: electron-builder
 ```
 
-### 2. 更新package.json构建配置
+#### 2. 更新package.json构建配置
 
 在Windows构建配置中添加代码签名禁用选项：
 
@@ -52,7 +129,7 @@ env:
 }
 ```
 
-### 3. 添加构建测试脚本
+#### 3. 添加构建测试脚本
 
 创建 `scripts/test-build.js` 用于本地测试构建配置：
 
@@ -60,7 +137,7 @@ env:
 npm run test:build
 ```
 
-## 修复后的效果
+### 修复后的效果
 
 1. ✅ 消除代码签名相关错误
 2. ✅ 解决Node版本兼容性警告
