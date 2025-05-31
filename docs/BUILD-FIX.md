@@ -632,4 +632,64 @@ const filesToCleanup = [
 ## 验证方法
 
 ### 本地构建测试
+
+### 问题21: npm操作权限错误 - macOS和Windows都构建失败 ❌ 待修复
+
+**问题分析**：
+1. **权限错误**: npm缓存清理操作可能需要管理员权限但在GitHub Actions中使用的是普通用户
+2. **npm warning**: 使用--force参数清理缓存触发保护机制警告
+3. **同时发生在macOS和Windows**: 两个平台的构建都在同一步骤失败，可能是同样的权限问题
+
+**日志证据**:
 ```
+macOS:
+安装完整依赖用于构建...
+npm warn using --force Recommended protections disabled.
+##[error]Process completed with exit code 1.
+
+Windows:
+##[error]The operation was canceled.
+```
+
+**修复方案**:
+1. **移除缓存清理操作**: 完全移除npm cache clean命令，避免权限问题
+```yaml
+# 移除有问题的缓存清理
+- name: Install all dependencies (Unix)
+  if: runner.os != 'Windows'
+  timeout-minutes: 25
+  run: |
+    echo "安装完整依赖用于构建..."
+    # 不再清理缓存
+    # npm cache clean --force || echo "缓存清理跳过"
+    npm ci --prefer-offline --no-audit --progress=false --no-fund --silent --ignore-scripts
+```
+
+2. **优化Windows安装策略**:
+```yaml
+- name: Install dependencies for Windows (batch strategy)
+  if: runner.os == 'Windows'
+  timeout-minutes: 45
+  shell: pwsh
+  run: |
+    Write-Host "=== Windows分批依赖安装策略 ==="
+    
+    # 跳过缓存清理，只删除node_modules
+    if (Test-Path "node_modules") { 
+      Write-Host "清理旧的node_modules..."
+      Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
+    }
+    
+    # 第一批：核心构建工具
+    Write-Host "第1批：安装核心构建工具..."
+    npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
+```
+
+**额外优化**:
+- ✅ 增加npm错误日志详细程度: `--loglevel=error`
+- ✅ 添加重试策略: `--fetch-retries=5`
+- ✅ 确保npm配置正确: 在安装前设置正确的registry
+
+**预期效果**:
+- 🍎 **macOS**: 应该能完成依赖安装，避免权限错误
+- 🪟 **Windows**: 应该能完成分批安装，不再因缓存清理而失败

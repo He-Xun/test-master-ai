@@ -51,43 +51,42 @@ jobs:
         run: |
           Write-Host "=== Windows分批依赖安装策略 ==="
           
-          # 清理缓存和旧的node_modules
+          # 只清理旧的node_modules，不清理缓存
           if (Test-Path "node_modules") { 
             Write-Host "清理旧的node_modules..."
             Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
           }
-          npm cache clean --force --silent 2>$null
           
           # 第一批：核心构建工具
           Write-Host "第1批：安装核心构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
           
           # 第二批：前端框架
           Write-Host "第2批：安装前端框架..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts react@18.2.0 react-dom@18.2.0 antd@5.21.6
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 react@18.2.0 react-dom@18.2.0 antd@5.21.6
           
           # 第三批：构建工具
           Write-Host "第3批：安装构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
           
           # 第四批：剩余依赖
           Write-Host "第4批：安装剩余开发依赖..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --ignore-optional
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --ignore-optional --loglevel=error --fetch-retries=5
           
           # 验证关键依赖
           Write-Host "=== 验证关键依赖 ==="
           if (!(Test-Path "node_modules/electron")) { 
             Write-Host "重试安装 electron..."
-            npm install --no-audit --progress=false electron@25.0.0
+            npm install --no-audit --progress=false --loglevel=error electron@25.0.0
           }
           if (!(Test-Path "node_modules/electron-builder")) { 
             Write-Host "重试安装 electron-builder..."
-            npm install --no-audit --progress=false electron-builder@24.0.0
+            npm install --no-audit --progress=false --loglevel=error electron-builder@24.0.0
           }
           if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
             Write-Host "重新安装 @electron/rebuild..."
             npm uninstall @electron/rebuild --silent 2>$null
-            npm install --no-audit --progress=false @electron/rebuild@3.2.13
+            npm install --no-audit --progress=false --loglevel=error @electron/rebuild@3.2.13
           }
           
           Write-Host "✅ Windows依赖安装完成"
@@ -106,10 +105,10 @@ jobs:
         timeout-minutes: 25
         run: |
           echo "安装完整依赖用于构建..."
-          # 先清理npm缓存，避免缓存问题
-          npm cache clean --force || echo "缓存清理跳过"
+          # 不再清理缓存，避免权限问题
+          # npm cache clean --force || echo "缓存清理跳过"
           # 使用更激进的优化参数
-          npm ci --prefer-offline --no-audit --progress=false --no-fund --silent --ignore-scripts
+          npm ci --prefer-offline --no-audit --progress=false --no-fund --silent --ignore-scripts --loglevel=error --fetch-retries=5
         env:
           npm_config_timeout: 600000  # 10分钟超时
           npm_config_maxsockets: 2    # 降低并发
@@ -118,6 +117,7 @@ jobs:
           npm_config_fetch_retry_maxtimeout: 120000
           npm_config_cache: .npm
           npm_config_prefer-offline: true
+          npm_config_registry: https://registry.npmjs.org/
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
