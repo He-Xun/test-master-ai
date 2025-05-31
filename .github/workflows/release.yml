@@ -97,7 +97,7 @@ jobs:
               Write-Host "❌ 模块安装仍不完整，尝试替代解决方案..."
               
               # 方案1: 创建一个空的实现
-              $emptySolution = @"
+              $emptySolution = @'
 // Empty implementation of search-module.js
 'use strict';
 Object.defineProperty(exports, '__esModule', { value: true });
@@ -106,7 +106,7 @@ exports.searchForModule = async function(moduleName, includedPaths, requireFunc)
   console.log('Using stub implementation of searchForModule', moduleName);
   return null;
 };
-"@
+'@
               # 确保目录存在
               New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
               # 写入空实现
