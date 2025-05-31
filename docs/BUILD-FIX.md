@@ -2,6 +2,60 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题10: optimize-build.js 文件访问错误 ✅ 已修复
+```
+Error: ENOENT: no such file or directory, stat '/Users/runner/work/test-master-ai/test-master-ai/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Helpers'
+```
+
+**问题分析**：
+1. **文件访问时序**: optimize-build.js脚本在删除文件后仍试图访问已删除的文件
+2. **缺少错误处理**: 没有检查文件是否存在就直接调用fs.statSync()
+3. **目录遍历冲突**: 在删除过程中继续遍历已删除的目录
+
+**修复方案**：
+```javascript
+// 在访问文件前检查存在性
+if (!fs.existsSync(fullPath)) return;
+
+try {
+  const stats = fs.statSync(fullPath);
+  // 处理文件...
+} catch (error) {
+  console.log(`⚠️  跳过文件访问: ${fullPath} (${error.message})`);
+}
+```
+
+### 问题9: Windows 依赖安装超时回归 ✅ 已修复
+```
+Terminate batch job (Y/N)? 
+^C
+##[error]The operation was canceled.
+```
+
+**问题分析**：
+1. **超时回归**: 又回到了依赖安装超时的老问题
+2. **缓存问题**: 可能存在npm缓存导致的安装缓慢
+3. **网络超时**: 依赖下载超时导致安装中断
+
+**修复方案**：
+```yaml
+- name: Install all dependencies (including dev)
+  timeout-minutes: 25  # 增加到25分钟
+  run: |
+    # 先清理npm缓存，避免缓存问题
+    npm cache clean --force || echo "缓存清理跳过"
+    # 使用更激进的优化参数
+    npm ci --prefer-offline --no-audit --progress=false --no-fund --silent
+  env:
+    npm_config_timeout: 60000  # 60秒超时
+```
+
+**关键改进**：
+- ✅ 增加依赖安装超时时间到25分钟
+- ✅ 添加npm缓存清理避免缓存问题  
+- ✅ 使用更激进的优化参数（--no-fund --silent）
+- ✅ 设置网络超时时间避免挂起
+
 ### 问题8: electron-builder 配置验证错误 ✅ 已修复
 ```
 The failure occurred during the job, indicating an issue in the Electron build process. 
@@ -50,7 +104,7 @@ npm error command sh -c electron-builder install-app-deps
 
 **修复方案**：
 ```yaml
-npm ci --omit=dev --prefer-offline --no-audit --progress=false --ignore-scripts
+npm ci --omit=dev --prefer-offline --no-audit --progress=false
 ```
 
 **关键改进**：
