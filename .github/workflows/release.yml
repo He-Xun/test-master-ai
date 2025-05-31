@@ -45,7 +45,7 @@ jobs:
           cache: 'npm'
 
       - name: Install all dependencies (including dev)
-        timeout-minutes: 40
+        timeout-minutes: 50
         run: |
           echo "安装完整依赖用于构建..."
           # 先清理npm缓存，避免缓存问题
@@ -57,32 +57,30 @@ jobs:
           npm_config_prefer-offline: true
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-          # 减少网络超时时间
-          npm_config_timeout: 300000
+          # Windows需要更长的超时时间
+          npm_config_timeout: 600000
           # Windows额外优化
           npm_config_registry: https://registry.npmjs.org/
-          npm_config_maxsockets: 3
+          npm_config_maxsockets: 2
+          npm_config_fetch_timeout: 300000
+          npm_config_fetch_retry_mintimeout: 30000
+          npm_config_fetch_retry_maxtimeout: 120000
 
-      - name: Install dependencies for Windows (alternative approach)
+      - name: Windows specific optimizations
         if: runner.os == 'Windows'
-        timeout-minutes: 35
+        timeout-minutes: 10
         shell: pwsh
         run: |
-          Write-Host "Windows环境特殊处理：分步安装..."
-          # 删除原有node_modules避免冲突
-          if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
-          # 先安装关键构建依赖
-          npm install --no-audit --progress=false --no-fund --silent electron@25.0.0 electron-builder@24.0.0 typescript vite @vitejs/plugin-react
-          # 安装React相关依赖
-          npm install --no-audit --progress=false --no-fund --silent react react-dom antd
-          # 安装其他必需依赖（排除大文件）
-          npm install --no-audit --progress=false --no-fund --silent --ignore-optional
-        env:
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
-          npm_config_timeout: 300000
-          npm_config_registry: https://registry.npmjs.org/
-          npm_config_maxsockets: 3
+          Write-Host "Windows环境额外优化..."
+          # 验证关键依赖是否安装成功
+          if (Test-Path "node_modules/electron") { Write-Host "✅ electron已安装" } else { Write-Host "❌ electron缺失" }
+          if (Test-Path "node_modules/electron-builder") { Write-Host "✅ electron-builder已安装" } else { Write-Host "❌ electron-builder缺失" }
+          if (Test-Path "node_modules/@electron/rebuild") { Write-Host "✅ @electron/rebuild已安装" } else { Write-Host "❌ @electron/rebuild缺失" }
+          # 如果有缺失的关键依赖，尝试单独安装
+          if (!(Test-Path "node_modules/@electron/rebuild")) {
+            Write-Host "尝试安装缺失的@electron/rebuild..."
+            npm install --no-audit --progress=false @electron/rebuild
+          }
 
       - name: Build renderer process with optimizations
         timeout-minutes: 30

@@ -2,6 +2,48 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题12: Windows分步安装依赖不完整 ✅ 已修复
+```
+Error: Cannot find module '@electron/rebuild/lib/src/search-module'
+Require stack:
+- D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\out\util\yarn.js
+```
+
+**问题分析**：
+1. **依赖缺失**: 分步安装策略缺少了 `@electron/rebuild` 模块
+2. **依赖链问题**: electron-builder → app-builder-lib → @electron/rebuild，缺少中间依赖
+3. **分步安装风险**: 手动分步安装容易遗漏隐式依赖
+
+**修复方案**：
+```yaml
+# 改回完整的npm ci安装，但使用更激进的优化参数
+- name: Install all dependencies (including dev)
+  timeout-minutes: 50  # 增加到50分钟
+  run: npm ci --prefer-offline --no-audit --progress=false --no-fund --silent
+  env:
+    npm_config_timeout: 600000  # 10分钟超时
+    npm_config_maxsockets: 2    # 降低并发
+    npm_config_fetch_timeout: 300000
+    npm_config_fetch_retry_mintimeout: 30000
+    npm_config_fetch_retry_maxtimeout: 120000
+
+# 添加Windows依赖验证和修复
+- name: Windows specific optimizations
+  if: runner.os == 'Windows'
+  run: |
+    # 验证关键依赖
+    if (!(Test-Path "node_modules/@electron/rebuild")) {
+      npm install --no-audit --progress=false @electron/rebuild
+    }
+```
+
+**关键改进**：
+- ✅ 回到完整的npm ci安装避免依赖遗漏
+- ✅ 大幅增加网络超时时间到10分钟
+- ✅ 降低并发连接数减少网络压力
+- ✅ 添加Windows专用的依赖验证和修复机制
+- ✅ 保留playwright和puppeteer跳过下载的优化
+
 ### 问题11: electron-builder配置验证错误 + Windows依赖安装超时回归 ✅ 已修复
 ```
 ⨯ Invalid configuration object. electron-builder 26.0.12 has been initialized using a configuration object that does not match the API schema.
