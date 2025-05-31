@@ -73,8 +73,15 @@ function glob(pattern, baseDir = projectRoot) {
         results.push(fullPath);
       }
       
-      if (fs.statSync(fullPath).isDirectory() && !relativePath.includes('node_modules/.bin')) {
-        walk(fullPath);
+      if (!fs.existsSync(fullPath)) return;
+      
+      try {
+        const stats = fs.statSync(fullPath);
+        if (stats.isDirectory() && !relativePath.includes('node_modules/.bin')) {
+          walk(fullPath);
+        }
+      } catch (error) {
+        console.log(`⚠️  跳过文件访问: ${fullPath} (${error.message})`);
       }
     });
   }
@@ -89,16 +96,31 @@ function getDirectorySize(dirPath) {
   
   let size = 0;
   function walk(dir) {
-    const files = fs.readdirSync(dir);
-    files.forEach(file => {
-      const fullPath = path.join(dir, file);
-      const stats = fs.statSync(fullPath);
-      if (stats.isDirectory()) {
-        walk(fullPath);
-      } else {
-        size += stats.size;
-      }
-    });
+    if (!fs.existsSync(dir)) return;
+    
+    try {
+      const files = fs.readdirSync(dir);
+      files.forEach(file => {
+        const fullPath = path.join(dir, file);
+        
+        // 检查文件是否仍然存在
+        if (!fs.existsSync(fullPath)) return;
+        
+        try {
+          const stats = fs.statSync(fullPath);
+          if (stats.isDirectory()) {
+            walk(fullPath);
+          } else {
+            size += stats.size;
+          }
+        } catch (error) {
+          // 忽略无法访问的文件
+          console.log(`⚠️  无法计算文件大小: ${fullPath}`);
+        }
+      });
+    } catch (error) {
+      console.log(`⚠️  无法读取目录: ${dir}`);
+    }
   }
   
   try {

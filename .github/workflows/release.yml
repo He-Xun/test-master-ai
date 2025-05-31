@@ -45,15 +45,20 @@ jobs:
           cache: 'npm'
 
       - name: Install all dependencies (including dev)
-        timeout-minutes: 15
+        timeout-minutes: 25
         run: |
           echo "安装完整依赖用于构建..."
-          npm ci --prefer-offline --no-audit --progress=false
+          # 先清理npm缓存，避免缓存问题
+          npm cache clean --force || echo "缓存清理跳过"
+          # 使用更激进的优化参数
+          npm ci --prefer-offline --no-audit --progress=false --no-fund --silent
         env:
           npm_config_cache: .npm
           npm_config_prefer-offline: true
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+          # 减少网络超时时间
+          npm_config_timeout: 60000
 
       - name: Build renderer process with optimizations
         timeout-minutes: 30
