@@ -81,9 +81,9 @@ jobs:
           # 复制必要的配置文件到临时目录
           cp package.json temp_prod/
           cp package-lock.json temp_prod/
-          # 在临时目录中安装生产依赖
+          # 在临时目录中安装生产依赖（跳过postinstall脚本）
           cd temp_prod
-          npm ci --omit=dev --prefer-offline --no-audit --progress=false
+          npm ci --omit=dev --prefer-offline --no-audit --progress=false --ignore-scripts
           cd ..
           # 复制生产依赖到最终目录
           mkdir -p temp_node_modules
