@@ -15,7 +15,8 @@
     "dist": "npm run build && electron-builder",
     "postinstall": "electron-builder install-app-deps",
     "admin:info": "node tools/admin-helper.js",
-    "admin:reset": "node tools/reset-superadmin.js"
+    "admin:reset": "node tools/reset-superadmin.js",
+    "test:build": "node scripts/test-build.js"
   },
   "keywords": [
     "api-testing",
@@ -116,7 +117,12 @@
         }
       ],
       "icon": "electron/icon.ico",
-      "requestedExecutionLevel": "asInvoker"
+      "requestedExecutionLevel": "asInvoker",
+      "certificateFile": null,
+      "certificatePassword": null,
+      "sign": null,
+      "signAndEditExecutable": false,
+      "signDlls": false
     },
     "nsis": {
       "oneClick": false,

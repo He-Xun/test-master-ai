@@ -13,7 +13,7 @@ permissions:
   id-token: write
 
 env:
-  NODE_VERSION: '18'
+  NODE_VERSION: '20'
 
 jobs:
   # 跨平台构建 - 推送到main或创建release时都运行
@@ -97,6 +97,9 @@ jobs:
         run: npx electron-builder --win --publish never
         env:
           CSC_LINK: ""
+          WIN_CSC_LINK: ""
+          CSC_KEY_PASSWORD: ""
+          CSC_IDENTITY_AUTO_DISCOVERY: false
           DEBUG: electron-builder
 
       - name: List build artifacts (Unix)
