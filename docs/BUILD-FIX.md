@@ -2,6 +2,29 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题7: electron-builder postinstall脚本错误 ✅ 已修复
+```
+⨯ Cannot compute electron version from installed node modules - none of the possible electron modules are installed and version ("^25.0.0") is not fixed in project.
+npm error code 1
+npm error command failed
+npm error command sh -c electron-builder install-app-deps
+```
+
+**问题分析**：
+1. **脚本冲突**: 使用 `--omit=dev` 安装生产依赖时，electron被排除（它是devDependency）
+2. **postinstall执行**: electron-builder的postinstall脚本仍然运行，试图安装app deps
+3. **缺少electron**: 没有electron模块，postinstall脚本失败
+
+**修复方案**：
+```yaml
+npm ci --omit=dev --prefer-offline --no-audit --progress=false --ignore-scripts
+```
+
+**关键改进**：
+- ✅ 添加 `--ignore-scripts` 参数跳过postinstall脚本
+- ✅ 避免在生产依赖安装阶段执行需要electron的脚本
+- ✅ 本地测试验证修复有效
+
 ### 问题6: npm ci 生产依赖安装错误 ✅ 已修复
 ```
 npm warn config only Use `--omit=dev` to omit dev dependencies from the install.
