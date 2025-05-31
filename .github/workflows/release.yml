@@ -189,27 +189,6 @@ jobs:
             console.log('✅ Required fields validated');
           "
 
-      - name: Verify build integrity before packaging
-        run: |
-          echo "=== 验证构建完整性 ==="
-          echo "检查必要的构建文件..."
-          [ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
-          [ -d build ] && echo "✅ build directory exists" || echo "❌ build directory missing"
-          [ -d node_modules ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
-          
-          echo "检查图标文件..."
-          [ -f electron/icon.${{ matrix.icon-ext }} ] && echo "✅ Icon file exists" || echo "❌ Icon file missing"
-          
-          echo "检查关键构建依赖..."
-          [ -d node_modules/electron ] && echo "✅ electron模块存在" || echo "❌ electron模块缺失"
-          [ -d node_modules/electron-builder ] && echo "✅ electron-builder模块存在" || echo "❌ electron-builder模块缺失"
-          
-          echo "检查已清理的大文件..."
-          [ ! -d node_modules/playwright ] && echo "✅ playwright已清理" || echo "⚠️ playwright仍存在"
-          [ ! -d node_modules/puppeteer ] && echo "✅ puppeteer已清理" || echo "⚠️ puppeteer仍存在"
-          
-          echo "=== 文件系统检查完成 ==="
-
       - name: Verify build integrity before packaging (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -235,6 +214,25 @@ jobs:
 
       - name: Verify build integrity before packaging (Unix)
         if: runner.os != 'Windows'
+        run: |
+          echo "=== 验证构建完整性 (Unix) ==="
+          echo "检查必要的构建文件..."
+          [ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
+          [ -d build ] && echo "✅ build directory exists" || echo "❌ build directory missing"
+          [ -d node_modules ] && echo "✅ node_modules exists" || echo "❌ node_modules missing"
+          
+          echo "检查图标文件..."
+          [ -f electron/icon.${{ matrix.icon-ext }} ] && echo "✅ Icon file exists" || echo "❌ Icon file missing"
+          
+          echo "检查关键构建依赖..."
+          [ -d node_modules/electron ] && echo "✅ electron模块存在" || echo "❌ electron模块缺失"
+          [ -d node_modules/electron-builder ] && echo "✅ electron-builder模块存在" || echo "❌ electron-builder模块缺失"
+          
+          echo "检查已清理的大文件..."
+          [ ! -d node_modules/playwright ] && echo "✅ playwright已清理" || echo "⚠️ playwright仍存在"
+          [ ! -d node_modules/puppeteer ] && echo "✅ puppeteer已清理" || echo "⚠️ puppeteer仍存在"
+          
+          echo "=== 文件系统检查完成 ==="
 
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'

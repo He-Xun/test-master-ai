@@ -38,6 +38,7 @@ ParserError: Missing type name after '['.
 - name: Verify build integrity before packaging (Unix)
   if: runner.os != 'Windows'
   run: |
+    echo "=== 验证构建完整性 (Unix) ==="
     [ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
     [ -d node_modules/electron ] && echo "✅ electron模块存在" || echo "❌ electron模块缺失"
 ```
@@ -344,41 +345,41 @@ Exit code: 255. Command failed: 7za.exe a -bd -mx=7
 "target": [{"target": "nsis", "arch": ["x64"]}]
 ```
 
+### 问题14: GitHub Actions YAML语法错误 ✅ 已修复
+```
+Error: every step must define a `uses` or `run` key
+```
+
+**问题分析**：
+1. **缺少必需键**: 在添加分离的验证脚本时，Unix版本的步骤缺少了`run:`键
+2. **YAML语法错误**: GitHub Actions要求每个步骤必须有`uses`或`run`键之一
+3. **步骤不完整**: 定义了步骤名称和条件，但没有指定要执行的内容
+
+**问题代码**：
+```yaml
+- name: Verify build integrity before packaging (Unix)
+  if: runner.os != 'Windows'
+  # 缺少 run: 键，直接跳到下一个步骤
+- name: Build Electron app for macOS
+```
+
+**修复方案**：
+```yaml
+- name: Verify build integrity before packaging (Unix)
+  if: runner.os != 'Windows'
+  run: |
+    echo "=== 验证构建完整性 (Unix) ==="
+    [ -f dist/main.js ] && echo "✅ dist/main.js exists" || echo "❌ dist/main.js missing"
+    [ -d node_modules/electron ] && echo "✅ electron模块存在" || echo "❌ electron模块缺失"
+```
+
+**关键改进**：
+- ✅ 为Unix验证步骤添加完整的`run:`键和脚本内容
+- ✅ 删除重复的通用验证步骤，避免冗余
+- ✅ 确保每个步骤都有正确的YAML语法结构
+- ✅ 保持Windows和Unix脚本的功能一致性
+
 ## 验证方法
 
 ### 本地构建测试
-```bash
-# 检查环境
-git --version
-node --version
-npm --version
-
-# 测试构建
-npm run build:vite
-npm run build:electron
-npm run build
-
-# 生成图标
-npm run generate:icons
 ```
-
-### 推送代码
-```bash
-git add .
-git commit -m "修复构建问题"
-git push origin main
-```
-
-## 当前状态
-
-✅ **所有构建问题已修复**  
-✅ **本地构建验证成功**  
-✅ **代码已推送到远程仓库**  
-✅ **GitHub Actions应该能正常构建**  
-
-构建流程现在应该能够：
-- 正确安装依赖（使用--omit=dev）
-- 成功编译Vite项目
-- 正确处理生产依赖
-- 避免代码签名错误
-- 生成正确的应用包 
