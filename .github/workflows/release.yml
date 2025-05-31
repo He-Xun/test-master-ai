@@ -84,9 +84,22 @@ jobs:
             npm install --no-audit --progress=false --loglevel=error electron-builder@24.0.0
           }
           if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
-            Write-Host "重新安装 @electron/rebuild..."
+            Write-Host "⚠️ @electron/rebuild模块文件不完整，重新完整安装..."
+            # 完全删除并重新安装，确保所有文件都存在
             npm uninstall @electron/rebuild --silent 2>$null
-            npm install --no-audit --progress=false --loglevel=error @electron/rebuild@3.2.13
+            # 使用--legacy-peer-deps确保安装完整
+            npm install --no-audit --progress=false --loglevel=error @electron/rebuild@3.2.13 --legacy-peer-deps --no-save
+            
+            # 再次验证
+            if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) {
+              Write-Host "❌ 仍然缺少search-module.js文件，尝试从GitHub直接获取..."
+              # 创建必要的目录
+              New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
+              # 从GitHub原始仓库获取文件
+              Invoke-WebRequest -Uri "https://raw.githubusercontent.com/electron/rebuild/v3.2.13/src/search-module.ts" -OutFile "node_modules/@electron/rebuild/lib/src/search-module.ts"
+              # 复制文件内容到.js文件
+              Get-Content "node_modules/@electron/rebuild/lib/src/search-module.ts" | Out-File "node_modules/@electron/rebuild/lib/src/search-module.js" -Encoding utf8
+            }
           }
           
           Write-Host "✅ Windows依赖安装完成"

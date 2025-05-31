@@ -753,3 +753,68 @@ git push
 1. 自动更新package-lock.json
 2. 更加宽容地处理版本差异
 3. 允许使用较宽松的版本范围
+
+### 问题23: @electron/rebuild模块文件结构不完整 ❌ 待修复
+
+**问题分析**：
+1. **模块安装不完整**: Windows构建中`@electron/rebuild`模块虽然已安装，但内部文件结构不完整
+2. **特定文件缺失**: 缺少`@electron/rebuild/lib/src/search-module.js`文件
+3. **依赖链检查不足**: 验证步骤只检查了模块存在性，没有检查内部文件结构完整性
+
+**日志证据**:
+```
+Error: Cannot find module '@electron/rebuild/lib/src/search-module'
+Require stack:
+- D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\out\util\yarn.js
+- D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\out\packager.js
+```
+
+**进展对比**:
+1. **macOS构建**: ✅ 完全成功，生成了所有4个应用包
+2. **Windows构建**: ❌ 依赖安装成功，但构建失败于electron-builder打包阶段
+
+**修复方案**:
+1. **完全重新安装@electron/rebuild**:
+```yaml
+# Windows构建验证阶段添加更全面的检查和修复
+- name: Install dependencies for Windows (batch strategy)
+  if: runner.os == 'Windows'
+  timeout-minutes: 45
+  shell: pwsh
+  run: |
+    # 验证关键依赖
+    Write-Host "=== 验证关键依赖 ==="
+    # 检查@electron/rebuild是否完整安装
+    if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
+      Write-Host "⚠️ @electron/rebuild模块文件不完整，重新完整安装..."
+      # 完全删除并重新安装，确保所有文件都存在
+      npm uninstall @electron/rebuild --no-save
+      # 使用--legacy-peer-deps确保安装完整
+      npm install @electron/rebuild@3.2.13 --legacy-peer-deps --no-save
+      
+      # 再次验证
+      if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) {
+        Write-Host "❌ 仍然缺少search-module.js文件，尝试从GitHub直接获取..."
+        # 创建必要的目录
+        New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
+        # 从GitHub原始仓库获取文件
+        Invoke-WebRequest -Uri "https://raw.githubusercontent.com/electron/rebuild/v3.2.13/src/search-module.ts" -OutFile "node_modules/@electron/rebuild/lib/src/search-module.ts"
+        # 复制文件内容到.js文件
+        Get-Content "node_modules/@electron/rebuild/lib/src/search-module.ts" | Out-File "node_modules/@electron/rebuild/lib/src/search-module.js" -Encoding utf8
+      }
+    }
+```
+
+2. **分析原因**:
+   - npm安装时可能使用了缓存，导致文件不完整
+   - 网络问题导致部分文件下载失败
+   - 包管理器在Windows环境中的特殊行为
+
+**预期效果**:
+- 🍎 **macOS**: ✅ 已经完全成功，无需修改
+- 🪟 **Windows**: 🔧 重新安装并手动确保关键文件存在应该能解决问题
+
+**下一步行动**:
+1. 实施更严格的依赖完整性检查
+2. 添加手动复制关键文件的备选方案
+3. 考虑禁用electron-builder中对@electron/rebuild的依赖
