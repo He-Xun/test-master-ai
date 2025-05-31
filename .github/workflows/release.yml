@@ -19,7 +19,7 @@ jobs:
   # 跨平台构建 - 推送到main或创建release时都运行
   build:
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 60
+    timeout-minutes: 90
     strategy:
       matrix:
         include:
@@ -44,10 +44,10 @@ jobs:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
 
-      - name: Install dependencies
+      - name: Install all dependencies (including dev)
         timeout-minutes: 15
         run: |
-          echo "开始安装依赖..."
+          echo "安装完整依赖用于构建..."
           npm ci --prefer-offline --no-audit --progress=false
         env:
           npm_config_cache: .npm
@@ -55,36 +55,52 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
-      - name: Build renderer and main process
-        run: npm run build
+      - name: Build renderer process with optimizations
+        timeout-minutes: 30
+        run: |
+          echo "开始Vite构建（启用优化）..."
+          npm run build:vite
+        env:
+          NODE_ENV: production
+          CI: true
+          # Vite优化选项
+          VITE_BUILD_MINIFY: true
+          VITE_BUILD_CHUNK_SIZE_WARNING_LIMIT: 2000
+
+      - name: Build main process
+        run: npm run build:electron
         env:
           NODE_ENV: production
           CI: true
 
-      - name: Clean and install production dependencies only (Unix)
-        if: runner.os != 'Windows'
+      - name: Create production node_modules
+        timeout-minutes: 10
         run: |
-          echo "清理node_modules并只安装生产依赖..."
-          rm -rf node_modules
-          npm ci --only=production --prefer-offline --no-audit --progress=false
+          echo "创建纯净的生产依赖目录..."
+          mkdir -p temp_node_modules
+          npm ci --only=production --prefix ./temp_prod --prefer-offline --no-audit --progress=false
+          cp -r ./temp_prod/node_modules ./temp_node_modules/
+          rm -rf ./temp_prod
         env:
           npm_config_cache: .npm
           npm_config_prefer-offline: true
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
-      - name: Clean and install production dependencies only (Windows)
+      - name: Replace node_modules (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "替换为生产依赖..."
+          rm -rf node_modules
+          mv temp_node_modules/node_modules ./
+
+      - name: Replace node_modules (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
         run: |
-          Write-Host "清理node_modules并只安装生产依赖..."
+          Write-Host "替换为生产依赖..."
           if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }
-          npm ci --only=production --prefer-offline --no-audit --progress=false
-        env:
-          npm_config_cache: .npm
-          npm_config_prefer-offline: true
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+          Move-Item "temp_node_modules/node_modules" "./"
 
       - name: Optimize build for packaging
         run: npm run optimize:build
@@ -100,6 +116,8 @@ jobs:
           ls -la dist/ || echo "Dist directory not found"
           echo "=== Icon files ==="
           ls -la electron/icon.${{ matrix.icon-ext }} || echo "Icon file not found"
+          echo "=== Node modules size ==="
+          du -sh node_modules/ || echo "Node modules not found"
 
       - name: Verify build output (Windows)
         if: runner.os == 'Windows'
@@ -111,9 +129,12 @@ jobs:
           if (Test-Path "dist") { Get-ChildItem -Path "dist" -Force } else { Write-Host "Dist directory not found" }
           Write-Host "=== Icon files ==="
           if (Test-Path "electron/icon.${{ matrix.icon-ext }}") { Get-ChildItem -Path "electron/icon.${{ matrix.icon-ext }}" -Force } else { Write-Host "Icon file not found" }
+          Write-Host "=== Node modules size ==="
+          if (Test-Path "node_modules") { [math]::Round((Get-ChildItem -Recurse node_modules | Measure-Object -Property Length -Sum).Sum / 1MB, 2).ToString() + " MB" } else { Write-Host "Node modules not found" }
 
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'
+        timeout-minutes: 45
         run: npx electron-builder --mac --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
@@ -130,7 +151,7 @@ jobs:
 
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
-        timeout-minutes: 45
+        timeout-minutes: 60
         run: |
           # 清除所有可能的代码签名环境变量
           echo "清除代码签名环境变量..."
