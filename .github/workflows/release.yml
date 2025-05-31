@@ -115,6 +115,12 @@ jobs:
               Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  return null;"
               Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "};"
               
+              # 添加getProjectRootPath函数实现
+              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "exports.getProjectRootPath = function(moduleName) {"
+              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  console.log('Using stub implementation of getProjectRootPath', moduleName);"
+              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  return process.cwd();"
+              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "};"
+              
               # 同样创建out目录下的版本（复制文件）
               Copy-Item "node_modules/@electron/rebuild/lib/src/search-module.js" -Destination "node_modules/@electron/rebuild/out/src/search-module.js" -Force
               

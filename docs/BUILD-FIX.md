@@ -911,3 +911,42 @@ exports.searchForModule = async function(moduleName, includedPaths, requireFunc)
 1. 实施更健壮的搜索模块实现
 2. 尝试从npm源直接下载编译好的模块
 3. 考虑为electron-builder禁用对@electron/rebuild的使用
+
+### 问题25: @electron/rebuild模块中缺少getProjectRootPath函数 ❌ 待修复
+
+**问题分析**：
+1. **缺少函数**: 创建的空实现中缺少`getProjectRootPath`函数，导致`searchModule.getProjectRootPath is not a function`错误
+2. **实现不完整**: 当前的空实现只提供了`searchForModule`函数，但Electron Builder还需要其他函数
+3. **调用位置**: 错误发生在`app-builder-lib/src/util/yarn.ts:160:41`位置，在调用rebuild过程中
+
+**日志证据**:
+```
+⨯ searchModule.getProjectRootPath is not a function  failedTask=build stackTrace=TypeError: searchModule.getProjectRootPath is not a function
+  at rebuild (D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\src\util\yarn.ts:160:41)
+  at installOrRebuild (D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\src\util\yarn.ts:29:5)
+  at Packager.installAppDependencies (D:\a\test-master-ai\test-master-ai\node_modules\app-builder-lib\src\packager.ts:525:7)
+```
+
+**进展对比**:
+1. **macOS构建**: ✅ 依然完全成功
+2. **Windows构建**: ❌ 安装和检查改进，但仍在electron-builder打包阶段失败，错误由文件缺失变为函数缺失
+
+**修复方案**:
+1. **完善stub函数实现**: 添加所有需要的函数
+```yaml
+# 添加getProjectRootPath函数实现
+Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "exports.getProjectRootPath = function(moduleName) {"
+Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  console.log('Using stub implementation of getProjectRootPath', moduleName);"
+Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  return process.cwd();"
+Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "};"
+```
+
+2. **构建时禁用electron-rebuild**: 也可以尝试通过配置禁用应用打包时的rebuild步骤
+```json
+{
+  "build": {
+    "npmRebuild": false,
+    ...
+  }
+}
+```
