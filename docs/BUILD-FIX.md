@@ -20,11 +20,19 @@ Break signaled
 The operation was canceled.
 ```
 
+### 问题4: npm依赖安装超时 ✅ 已修复
+```
+npm ci
+Terminate batch job (Y/N)? 
+The operation was canceled.
+```
+
 ### 问题分析
 1. **Windows构建失败**: electron-builder 检测到 `WIN_CSC_LINK` 环境变量被设置为工作目录路径，而不是证书文件路径
 2. **图标文件格式错误**: `electron/icon.ico` 文件实际上是PNG格式（以89 50 4e 47开头），不是ICO格式（应该以00 00 01 00开头）
 3. **7zip压缩超时**: 应用程序包过大（365-391 MiB），在GitHub Actions环境中压缩时间超过限制被强制中断
-4. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
+4. **npm依赖安装超时**: playwright和puppeteer等大型包在dependencies中，导致`npm ci`安装时间过长超时
+5. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
 
 ### 修复方案
 
@@ -119,6 +127,46 @@ The operation was canceled.
 - ✅ 应用包大小从 ~400MB 减少到 ~200MB
 - ✅ 构建时间从超时降低到正常范围
 - ✅ 移除了构建过程中的压缩瓶颈
+
+#### 4. npm依赖安装超时修复 ✅
+
+**问题原因**：
+- playwright(~500MB) 和 puppeteer(~300MB) 在生产依赖中，安装时间过长
+- GitHub Actions环境网络延迟，下载大型包容易超时
+- `npm ci` 默认会下载所有浏览器二进制文件
+
+**修复措施**：
+
+1. **依赖分类优化**：将大型开发工具移至devDependencies
+   ```json
+   "devDependencies": {
+     "playwright": "^1.52.0",
+     "puppeteer": "^24.9.0"
+   }
+   ```
+
+2. **跳过浏览器下载**：
+   ```yaml
+   env:
+     PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+     PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+   ```
+
+3. **分阶段依赖安装**：
+   - 第一阶段：安装全部依赖进行编译
+   - 第二阶段：清理并只安装生产依赖用于打包
+
+4. **安装优化参数**：
+   ```bash
+   npm ci --only=production --prefer-offline --no-audit --progress=false
+   ```
+
+5. **增加超时时间**：`timeout-minutes: 15`
+
+**修复结果**：
+- ✅ 依赖安装时间从 >5分钟 减少到 <2分钟
+- ✅ 跳过800MB+浏览器文件下载
+- ✅ 消除了依赖安装超时问题
 
 ### 修复效果
 

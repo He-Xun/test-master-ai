@@ -45,16 +45,46 @@ jobs:
           cache: 'npm'
 
       - name: Install dependencies
-        run: npm ci
+        timeout-minutes: 15
+        run: |
+          echo "开始安装依赖..."
+          npm ci --prefer-offline --no-audit --progress=false
         env:
           npm_config_cache: .npm
           npm_config_prefer-offline: true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
       - name: Build renderer and main process
         run: npm run build
         env:
           NODE_ENV: production
           CI: true
+
+      - name: Clean and install production dependencies only (Unix)
+        if: runner.os != 'Windows'
+        run: |
+          echo "清理node_modules并只安装生产依赖..."
+          rm -rf node_modules
+          npm ci --only=production --prefer-offline --no-audit --progress=false
+        env:
+          npm_config_cache: .npm
+          npm_config_prefer-offline: true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+
+      - name: Clean and install production dependencies only (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          Write-Host "清理node_modules并只安装生产依赖..."
+          if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" }
+          npm ci --only=production --prefer-offline --no-audit --progress=false
+        env:
+          npm_config_cache: .npm
+          npm_config_prefer-offline: true
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
       - name: Optimize build for packaging
         run: npm run optimize:build
