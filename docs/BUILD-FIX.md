@@ -2,6 +2,36 @@
 
 ## 最新问题修复 (2025-05-31)
 
+### 问题19: GitHub Actions配置参数错误及Windows批处理命令语法 ✅ 已修复
+```
+##[warning]Unexpected input(s) 'timeout-minutes', 'retry-attempts', 'retry-delay', valid inputs are ['repository', 'ref', 'token', 'ssh-key', 'ssh-known-hosts', 'ssh-strict', 'ssh-user', 'persist-credentials', 'path', 'clean', 'filter', 'sparse-checkout', 'sparse-checkout-cone-mode', 'fetch-depth', 'fetch-tags', 'show-progress', 'lfs', 'submodules', 'set-safe-directory', 'github-server-url']
+
+'#' is not recognized as an internal or external command,
+operable program or batch file.
+```
+
+**问题分析**：
+1. **Actions配置错误**: checkout操作不支持`timeout-minutes`、`retry-attempts`和`retry-delay`参数
+2. **批处理命令语法错误**: Windows批处理脚本中使用了`#`作为注释，Windows中应使用`REM`或`::`
+3. **缺少echo off**: 批处理脚本没有禁用命令回显，导致错误信息显示混乱
+
+**修复方案**：
+1. **移除不支持的参数**：删除checkout操作中的自定义超时和重试参数
+2. **修复批处理语法**：
+```cmd
+@echo off
+          
+REM 清除所有可能的代码签名环境变量
+set CSC_LINK=
+set WIN_CSC_LINK=
+...
+```
+
+**关键改进**：
+- ✅ 正确使用Windows批处理语法，`#`注释改为`REM`
+- ✅ 添加`@echo off`禁用命令回显，减少输出噪音
+- ✅ 在shell指令之前声明使用cmd解释器`shell: cmd`
+
 ### 问题18: @electron/rebuild模块内部文件缺失 ✅ 已修复
 ```
 Error: Cannot find module '@electron/rebuild/lib/src/search-module'

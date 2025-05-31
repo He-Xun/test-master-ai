@@ -60,7 +60,7 @@ jobs:
           
           # 第一批：核心构建工具
           Write-Host "第1批：安装核心构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild
+          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
           
           # 第二批：前端框架
           Write-Host "第2批：安装前端框架..."
@@ -87,7 +87,7 @@ jobs:
           if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js")) { 
             Write-Host "重新安装 @electron/rebuild..."
             npm uninstall @electron/rebuild --silent 2>$null
-            npm install --no-audit --progress=false @electron/rebuild
+            npm install --no-audit --progress=false @electron/rebuild@3.2.13
           }
           
           Write-Host "✅ Windows依赖安装完成"
@@ -293,9 +293,11 @@ jobs:
       - name: Build Electron app for Windows  
         if: matrix.platform == 'win'
         timeout-minutes: 60
+        shell: cmd
         run: |
-          # 清除所有可能的代码签名环境变量
-          echo "清除代码签名环境变量..."
+          @echo off
+          
+          REM 清除所有可能的代码签名环境变量
           set CSC_LINK=
           set WIN_CSC_LINK=
           set CSC_KEY_PASSWORD=
@@ -306,9 +308,8 @@ jobs:
           set CSC_FOR_PULL_REQUEST=true
           set DEBUG=electron-builder
           
-          echo "开始构建Windows应用（仅64位，无压缩模式）..."
+          REM 开始构建Windows应用（仅64位，无压缩模式）
           npx electron-builder --win --x64 --publish never
-        shell: cmd
         env:
           # 明确禁用所有代码签名相关环境变量
           CSC_LINK: ""
