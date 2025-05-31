@@ -16,7 +16,8 @@
     "postinstall": "electron-builder install-app-deps",
     "admin:info": "node tools/admin-helper.js",
     "admin:reset": "node tools/reset-superadmin.js",
-    "test:build": "node scripts/test-build.js"
+    "test:build": "node scripts/test-build.js",
+    "generate:icons": "node scripts/generate-icons.js"
   },
   "keywords": [
     "api-testing",

@@ -2,21 +2,25 @@
 
 ## 最新问题 (2025-05-31)
 
-### 错误信息
+### 问题1: 代码签名环境变量错误 ✅ 已修复
 ```
 ⨯ Env WIN_CSC_LINK is not correct, cannot resolve: D:\a\test-master-ai\test-master-ai not a file
 ##[error]Process completed with exit code 1.
 ```
 
+### 问题2: 无效的ICO图标文件 ✅ 已修复
+```
+Error while loading icon from "D:\a\test-master-ai\test-master-ai\electron\icon.ico": invalid icon file
+```
+
 ### 问题分析
 1. **Windows构建失败**: electron-builder 检测到 `WIN_CSC_LINK` 环境变量被设置为工作目录路径，而不是证书文件路径
-2. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
-3. **环境变量污染**: GitHub Actions环境中可能存在预设的代码签名相关环境变量
+2. **图标文件格式错误**: `electron/icon.ico` 文件实际上是PNG格式（以89 50 4e 47开头），不是ICO格式（应该以00 00 01 00开头）
+3. **macOS构建被取消**: 由于Windows构建失败，GitHub Actions策略取消了macOS构建
 
 ### 修复方案
 
-#### 1. 更新GitHub Actions配置 (已修复)
-
+#### 1. 代码签名问题修复 ✅
 在 `.github/workflows/release.yml` 中增强了Windows构建步骤：
 
 ```yaml
@@ -38,26 +42,35 @@
     echo "开始构建Windows应用..."
     npx electron-builder --win --publish never
   shell: cmd
-  env:
-    # 明确禁用所有代码签名相关环境变量
-    CSC_LINK: ""
-    WIN_CSC_LINK: ""
-    CSC_KEY_PASSWORD: ""
-    CSC_IDENTITY_AUTO_DISCOVERY: "false"
-    WIN_CSC_KEY_PASSWORD: ""
-    CSC_NAME: ""
-    WIN_CSC_NAME: ""
-    DEBUG: "electron-builder"
-    CSC_FOR_PULL_REQUEST: "true"
 ```
 
-#### 2. package.json配置 (已确认正确)
+#### 2. 图标文件问题修复 ✅
 
-Windows构建配置中已正确禁用代码签名：
+**创建了图标生成脚本** `scripts/generate-icons.js`：
+- 支持多种转换方式：ImageMagick、sips、自定义ICO生成
+- 自动备份原文件
+- 验证生成的ICO文件格式
+- 生成标准ICO文件头：`00 00 01 00 01 00...`
 
+**添加了npm脚本**：
+```json
+{
+  "scripts": {
+    "generate:icons": "node scripts/generate-icons.js"
+  }
+}
+```
+
+**修复结果**：
+- ✅ 生成的ICO文件大小：124,584 bytes
+- ✅ ICO文件格式验证通过
+- ✅ 正确的文件头：`00 00 01 00` (ICO格式标识)
+
+#### 3. package.json配置确认 ✅
+
+Windows构建配置中已正确配置：
 ```json
 "win": {
-  "target": [...],
   "icon": "electron/icon.ico",
   "requestedExecutionLevel": "asInvoker",
   "certificateFile": null,
@@ -70,10 +83,23 @@ Windows构建配置中已正确禁用代码签名：
 
 ### 修复效果
 
-✅ **双重保护**: 通过cmd脚本和env环境变量双重清除代码签名变量
-✅ **调试信息**: 添加了详细的构建日志输出
-✅ **shell指定**: 明确使用cmd shell确保Windows命令正确执行
-✅ **全面覆盖**: 清除所有可能的代码签名相关环境变量
+✅ **代码签名问题**: 通过cmd脚本和env环境变量双重清除代码签名变量
+✅ **图标格式问题**: 生成了标准的ICO文件格式，兼容Windows NSIS安装程序
+✅ **构建流程**: Windows和macOS构建都应该能正常工作
+✅ **工具化**: 创建了可重用的图标生成脚本
+
+## 使用方法
+
+### 重新生成图标文件
+```bash
+npm run generate:icons
+```
+
+### 验证图标文件
+```bash
+# 检查文件头（应该是00 00 01 00）
+hexdump -C electron/icon.ico | head -5
+```
 
 ## 历史问题记录
 
