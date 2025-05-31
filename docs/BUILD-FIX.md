@@ -693,3 +693,63 @@ Windows:
 **预期效果**:
 - 🍎 **macOS**: 应该能完成依赖安装，避免权限错误
 - 🪟 **Windows**: 应该能完成分批安装，不再因缓存清理而失败
+
+### 问题22: package.json与package-lock.json不同步导致npm ci失败 ❌ 待修复
+
+**问题分析**：
+1. **依赖版本不同步**: 添加了@electron/rebuild@3.2.13到package.json，但没有更新package-lock.json
+2. **npm ci严格校验**: npm ci要求package.json和package-lock.json完全同步，否则会直接失败
+3. **Windows依赖安装也失败**: Windows构建也在git fetch阶段被取消，可能是网络问题
+
+**日志证据**:
+```
+npm error `npm ci` can only install packages when your package.json and package-lock.json or npm-shrinkwrap.json are in sync. Please update your lock file with `npm install` before continuing.
+
+npm error Missing: @electron/rebuild@3.2.13 from lock file
+npm error Invalid: lock file's @types/node@18.19.105 does not satisfy @types/node@20.17.57
+```
+
+**根本原因分析**:
+- 之前的修复尝试直接在package.json中添加了@electron/rebuild@3.2.13固定版本
+- 但没有执行npm install更新package-lock.json文件
+- 这导致了package.json和package-lock.json不同步
+- npm ci命令对依赖版本要求严格，无法继续执行
+
+**修复方案**:
+1. **使用npm install代替npm ci**:
+```yaml
+# 改用npm install，它更灵活并会更新lock文件
+- name: Install all dependencies (Unix)
+  if: runner.os != 'Windows'
+  timeout-minutes: 25
+  run: |
+    echo "安装完整依赖用于构建..."
+    npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5
+```
+
+2. **或者在本地更新lock文件并提交**:
+```bash
+# 本地执行以更新lock文件
+npm install @electron/rebuild@3.2.13 --package-lock-only
+git add package-lock.json
+git commit -m "更新package-lock.json以包含@electron/rebuild@3.2.13"
+git push
+```
+
+**关键改进**:
+- ✅ 避免package.json和package-lock.json不同步
+- ✅ 优先使用npm install而非npm ci解决版本冲突
+- ✅ 更好的错误处理机制
+
+**回溯历史记录**:
+基于之前的构建日志分析，74f095b是最后一个已知可以构建较长时间的提交。这个版本的可能成功因素：
+1. package.json和package-lock.json是同步的
+2. 没有使用npm ci命令，而是使用了npm install
+3. 没有添加@electron/rebuild固定版本
+4. Windows构建可能使用了不同的权限设置
+
+**推荐策略**:
+回退到使用npm install，它会：
+1. 自动更新package-lock.json
+2. 更加宽容地处理版本差异
+3. 允许使用较宽松的版本范围
