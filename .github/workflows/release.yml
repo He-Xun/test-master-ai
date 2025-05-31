@@ -77,10 +77,18 @@ jobs:
         timeout-minutes: 10
         run: |
           echo "创建纯净的生产依赖目录..."
+          mkdir -p temp_prod
+          # 复制必要的配置文件到临时目录
+          cp package.json temp_prod/
+          cp package-lock.json temp_prod/
+          # 在临时目录中安装生产依赖
+          cd temp_prod
+          npm ci --omit=dev --prefer-offline --no-audit --progress=false
+          cd ..
+          # 复制生产依赖到最终目录
           mkdir -p temp_node_modules
-          npm ci --only=production --prefix ./temp_prod --prefer-offline --no-audit --progress=false
-          cp -r ./temp_prod/node_modules ./temp_node_modules/
-          rm -rf ./temp_prod
+          cp -r temp_prod/node_modules temp_node_modules/
+          rm -rf temp_prod
         env:
           npm_config_cache: .npm
           npm_config_prefer-offline: true
