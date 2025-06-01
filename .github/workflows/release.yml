@@ -501,6 +501,7 @@ jobs:
 
   # 创建正式标签 - 手动触发
   create-release:
+    needs: build
     runs-on: ubuntu-latest
     if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'official'
     steps:
@@ -513,6 +514,23 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
+      
+      - name: Download macOS Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: macos-build
+          path: dist-artifacts/mac
+
+      - name: Download Windows Artifacts  
+        uses: actions/download-artifact@v4
+        with:
+          name: windows-build
+          path: dist-artifacts/win
+
+      - name: List all artifacts
+        run: |
+          echo "=== Downloaded artifacts for official release ==="
+          find dist-artifacts/ -type f -exec ls -lh {} \;
           
       - name: Get package version
         id: package-version
@@ -522,7 +540,7 @@ jobs:
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           echo "datetime=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
           
-      - name: Create Release Tag
+      - name: Create Release Tag with Artifacts
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package-version.outputs.tag }}
@@ -541,6 +559,11 @@ jobs:
             ## 📦 下载
             - 🍎 **macOS**: 下载 `.dmg` 文件
             - 🪟 **Windows**: 下载 `.exe` 文件
+          files: |
+            dist-artifacts/**/*.dmg
+            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.zip
+            dist-artifacts/**/*.blockmap
           draft: false
           prerelease: false
           generate_release_notes: true
