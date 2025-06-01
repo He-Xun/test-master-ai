@@ -434,17 +434,33 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          DATE_TIME=$(date +%Y%m%d%H%M%S)
-          echo "tag=v$VERSION-$DATE_TIME" >> $GITHUB_OUTPUT
           echo "datetime=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          # 固定标签名称为latest-build
+          echo "tag=latest-build" >> $GITHUB_OUTPUT
+
+      - name: Delete existing latest-build tag and release if exists
+        run: |
+          echo "尝试删除已存在的latest-build标签和发布..."
+          # 获取现有标签并尝试删除
+          git fetch --tags
+          if git tag | grep -q "latest-build"; then
+            # 删除远程标签
+            git push --delete origin latest-build || true
+            # 删除本地标签
+            git tag -d latest-build || true
+            echo "已删除已存在的latest-build标签"
+          else
+            echo "未找到已存在的latest-build标签"
+          fi
+        continue-on-error: true
 
       - name: Create Auto Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package-version.outputs.tag }}
-          name: "Auto Build v${{ steps.package-version.outputs.version }} - ${{ steps.package-version.outputs.datetime }}"
+          name: "最新自动构建 v${{ steps.package-version.outputs.version }} - ${{ steps.package-version.outputs.datetime }}"
           body: |
-            🤖 **自动构建版本**
+            🤖 **最新自动构建版本**
             
             📅 构建时间: ${{ steps.package-version.outputs.datetime }}
             📝 提交: ${{ github.sha }}
@@ -454,14 +470,14 @@ jobs:
             - 🍎 **macOS**: 下载 `.dmg` 文件
             - 🪟 **Windows**: 下载 `.exe` 文件
             
-            > ⚠️ 这是自动构建版本，可能包含未完全测试的功能。
+            > ⚠️ 这是自动构建版本，可能包含未完全测试的功能。此标签总是指向最新的自动构建。
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
             dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
           prerelease: true
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
