@@ -6,6 +6,16 @@ on:
       - main
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      release_type:
+        description: '发布类型'
+        required: true
+        default: 'auto'
+        type: choice
+        options:
+          - auto
+          - official
 
 permissions:
   contents: write
@@ -393,11 +403,11 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
-  # 自动发布 - 仅在推送到main时运行（创建预发布版本）
+  # 自动发布 - 仅在推送到main时运行或手动触发auto类型时（创建预发布版本）
   auto-release:
     needs: build
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && github.ref == 'refs/heads/main') || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'auto')
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -424,17 +434,19 @@ jobs:
         run: |
           VERSION=$(node -p "require('./package.json').version")
           echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "tag=v$VERSION-$(date +%Y%m%d%H%M%S)" >> $GITHUB_OUTPUT
+          DATE_TIME=$(date +%Y%m%d%H%M%S)
+          echo "tag=v$VERSION-$DATE_TIME" >> $GITHUB_OUTPUT
+          echo "datetime=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
 
       - name: Create Auto Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package-version.outputs.tag }}
-          name: "Auto Build v${{ steps.package-version.outputs.version }} - $(date '+%Y-%m-%d %H:%M:%S')"
+          name: "Auto Build v${{ steps.package-version.outputs.version }} - ${{ steps.package-version.outputs.datetime }}"
           body: |
             🤖 **自动构建版本**
             
-            📅 构建时间: $(date '+%Y-%m-%d %H:%M:%S')
+            📅 构建时间: ${{ steps.package-version.outputs.datetime }}
             📝 提交: ${{ github.sha }}
             🔗 分支: ${{ github.ref_name }}
             
@@ -484,5 +496,53 @@ jobs:
             dist-artifacts/**/*.exe
             dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # 创建正式标签 - 手动触发
+  create-release:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'official'
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          
+      - name: Get package version
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+          echo "datetime=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
+          
+      - name: Create Release Tag
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.package-version.outputs.tag }}
+          name: "v${{ steps.package-version.outputs.version }} 正式版"
+          body: |
+            # 💯 TestMaster AI v${{ steps.package-version.outputs.version }} 正式发布
+            
+            📅 发布日期: ${{ steps.package-version.outputs.datetime }}
+            
+            ## 🚀 功能亮点
+            - 高效测试多个提示词模板
+            - 结果分析与对比
+            - 多模型支持
+            - 直观的数据可视化
+            
+            ## 📦 下载
+            - 🍎 **macOS**: 下载 `.dmg` 文件
+            - 🪟 **Windows**: 下载 `.exe` 文件
+          draft: false
+          prerelease: false
+          generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
