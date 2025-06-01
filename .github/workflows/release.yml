@@ -237,6 +237,13 @@ jobs:
         env:
           NODE_ENV: production
 
+      - name: Clean test data for release
+        run: |
+          echo "清理测试数据和默认配置..."
+          node scripts/clean-release-data.js
+        env:
+          NODE_ENV: production
+
       - name: Verify build output (Unix)
         if: runner.os != 'Windows'
         run: |
