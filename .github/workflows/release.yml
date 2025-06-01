@@ -249,6 +249,31 @@ jobs:
           echo "=== Node modules size ==="
           du -sh node_modules/ || echo "Node modules not found"
 
+      - name: Prepare Mac Helper Scripts
+        if: matrix.platform == 'mac'
+        run: |
+          echo "准备 macOS 辅助脚本..."
+          # 确保脚本目录存在
+          mkdir -p release/mac-helpers
+          
+          # 复制脚本文件到发布目录
+          cp scripts/mac-gatekeeper-bypass.sh release/mac-helpers/
+          cp "scripts/MAC应用无法打开解决方案.md" release/mac-helpers/
+          
+          # 添加执行权限
+          chmod +x release/mac-helpers/mac-gatekeeper-bypass.sh
+          
+          # 创建自述文件
+          echo "# TestMaster AI - macOS 辅助工具" > release/mac-helpers/README.txt
+          echo "" >> release/mac-helpers/README.txt
+          echo "此目录包含帮助您在 macOS 上运行未签名应用程序的工具。" >> release/mac-helpers/README.txt
+          echo "如果您看到应用程序已损坏的错误信息，请查看「MAC应用无法打开解决方案.md」文件获取解决方法。" >> release/mac-helpers/README.txt
+          
+          # 打包为 zip 文件
+          cd release
+          zip -r mac-helpers.zip mac-helpers
+          echo "✅ macOS 辅助脚本已准备完毕"
+
       - name: Verify build output (Windows)
         if: runner.os == 'Windows'
         shell: pwsh
@@ -470,12 +495,16 @@ jobs:
             - 🍎 **macOS**: 下载 `.dmg` 文件
             - 🪟 **Windows**: 下载 `.exe` 文件
             
+            ### macOS用户注意
+            - 如果遇到"应用已损坏"错误，请下载 `mac-helpers.zip` 并按照说明操作
+            
             > ⚠️ 这是自动构建版本，可能包含未完全测试的功能。此标签总是指向最新的自动构建。
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
             dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
+            dist-artifacts/**/mac-helpers.zip
           prerelease: true
           generate_release_notes: false
         env:
@@ -575,11 +604,16 @@ jobs:
             ## 📦 下载
             - 🍎 **macOS**: 下载 `.dmg` 文件
             - 🪟 **Windows**: 下载 `.exe` 文件
+            
+            ### macOS用户注意
+            - 如果遇到"应用已损坏"错误，请下载 `mac-helpers.zip` 并按照说明操作
+            
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
             dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
+            dist-artifacts/**/mac-helpers.zip
           draft: false
           prerelease: false
           generate_release_notes: true
