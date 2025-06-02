@@ -51,6 +51,24 @@ jobs:
       - name: Print start time (before install)
         run: date
 
+      - name: Install all dependencies (Windows)
+        if: runner.os == 'Windows'
+        timeout-minutes: 60
+        run: |
+          echo "安装完整依赖用于构建（Windows）..."
+          date
+          npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5
+          date
+        env:
+          npm_config_timeout: 900000
+          npm_config_maxsockets: 1
+          npm_config_fetch_timeout: 600000
+          npm_config_fetch_retry_mintimeout: 60000
+          npm_config_fetch_retry_maxtimeout: 300000
+          npm_config_registry: https://registry.npmjs.org/
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+
       - name: Install all dependencies (Unix)
         if: runner.os != 'Windows'
         timeout-minutes: 60
