@@ -42,6 +42,7 @@ interface UserProfileProps {
 const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => {
   const { t } = useTranslation();
   const [profileModalVisible, setProfileModalVisible] = useState(false);
+  const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
   const [loading, setLoading] = useState(false);
 
@@ -143,33 +144,37 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
     return true;
   };
 
-  const menu = (
-    <Menu>
-      <Menu.Item 
-        key="profile" 
-        icon={<UserOutlined />}
-        onClick={() => setProfileModalVisible(true)}
-      >
-        {t('profile.myProfile')}
-      </Menu.Item>
-      <Menu.Item key="settings" icon={<SettingOutlined />}>
-        {t('profile.accountSettings')}
-      </Menu.Item>
-      <Menu.Divider />
-      <Menu.Item 
-        key="logout" 
-        icon={<LogoutOutlined />}
-        onClick={handleLogout}
-        className="text-red-600"
-      >
-        {t('auth.logout')}
-      </Menu.Item>
-    </Menu>
-  );
+  const menuItems = [
+    {
+      key: 'profile',
+      icon: <UserOutlined />, 
+      label: t('profile.myProfile')
+    },
+    {
+      key: 'settings',
+      icon: <SettingOutlined />, 
+      label: t('profile.accountSettings')
+    },
+    {
+      type: 'divider'
+    },
+    {
+      key: 'logout',
+      icon: <LogoutOutlined />, 
+      label: <span className="text-red-600">{t('auth.logout')}</span>
+    }
+  ] as any;
+
+  const handleMenuClick = ({ key }) => {
+    if (key === 'profile') setProfileModalVisible(true);
+    if (key === 'logout') handleLogout();
+    if (key === 'settings') setSettingsModalVisible(true);
+    // 其它key可按需扩展
+  };
 
   return (
     <>
-      <Dropdown overlay={menu} placement="bottomRight" arrow>
+      <Dropdown menu={{ items: menuItems, onClick: handleMenuClick }} placement="bottomRight" arrow>
         <div className="flex items-center space-x-2 cursor-pointer hover:bg-gray-100 rounded-lg px-3 py-2 transition-colors">
           <Avatar 
             src={getDisplayAvatarUrl()} 
@@ -283,6 +288,26 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
             <Button type="primary" icon={<SettingOutlined />}>
               {t('profile.accountSettings')}
             </Button>
+          </div>
+        </Card>
+      </Modal>
+
+      <Modal
+        title={
+          <div className="flex items-center space-x-2">
+            <SettingOutlined className="text-blue-500" />
+            <span>{t('profile.accountSettings')}</span>
+          </div>
+        }
+        open={settingsModalVisible}
+        onCancel={() => setSettingsModalVisible(false)}
+        footer={null}
+        width={500}
+      >
+        <Card className="border-0 shadow-none">
+          <div className="text-center text-gray-500 py-8">
+            <InfoCircleOutlined className="text-2xl mb-2 text-blue-400" />
+            <div>{t('profile.accountSettingsDesc') || '账户设置功能开发中，敬请期待。'}</div>
           </div>
         </Card>
       </Modal>

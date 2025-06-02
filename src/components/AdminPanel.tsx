@@ -361,7 +361,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         danger: true,
       },
     ],
-    onClick: ({ key }: { key: string }) => {
+    onClick: ({ key }) => {
       switch (key) {
         case 'resetPassword':
           handleBatchResetPassword();
@@ -615,6 +615,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         onCancel={() => setEditModalVisible(false)}
         onOk={handleSubmitUser}
         width={500}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       >
         <Form
           form={form}
@@ -685,6 +687,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         onCancel={() => setPasswordModalVisible(false)}
         onOk={handleSubmitPassword}
         width={400}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       >
         <Form
           form={passwordForm}
@@ -734,6 +738,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         onCancel={() => setBatchPasswordModalVisible(false)}
         onOk={handleSubmitBatchPassword}
         width={400}
+        okText={t('common.confirm')}
+        cancelText={t('common.cancel')}
       >
         <div className="mb-4">
           <Text type="secondary">{t('admin.willResetPasswordFor')}</Text>
@@ -791,6 +797,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         open={userDetailVisible}
         onClose={() => setUserDetailVisible(false)}
         width={500}
+        styles={{ body: { padding: '24px' } }}
       >
         {selectedUser && (
           <div>
