@@ -410,9 +410,17 @@ jobs:
           echo "=== Downloaded artifacts for official release ==="
           find dist-artifacts/ -type f -exec ls -lh {} \;
 
+      - name: Get package version
+        id: package-version
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=v$VERSION" >> $GITHUB_OUTPUT
+
       - name: Attach to Official Release
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ steps.package-version.outputs.tag }}
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
