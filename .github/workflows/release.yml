@@ -51,103 +51,22 @@ jobs:
       - name: Print start time (before install)
         run: date
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-
-      - name: Install dependencies for Windows (batch strategy)
-        if: runner.os == 'Windows'
-        timeout-minutes: 45
-        shell: pwsh
+      - name: Install all dependencies (Unix)
+        if: runner.os != 'Windows'
+        timeout-minutes: 60
         run: |
-          Write-Host "=== Windows分批依赖安装策略 ==="
-          
-          # 只清理旧的node_modules，不清理缓存
-          if (Test-Path "node_modules") { 
-            Write-Host "清理旧的node_modules..."
-            Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue
-          }
-          
-          # 第一批：核心构建工具
-          Write-Host "第1批：安装核心构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 electron@25.0.0 electron-builder@24.0.0 @electron/rebuild@3.2.13
-          
-          # 第二批：前端框架
-          Write-Host "第2批：安装前端框架..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 react@18.2.0 react-dom@18.2.0 antd@5.21.6
-          
-          # 第三批：构建工具
-          Write-Host "第3批：安装构建工具..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --loglevel=error --fetch-retries=5 vite@5.2.0 typescript@5.6.3 @vitejs/plugin-react@4.2.1
-          
-          # 第四批：剩余依赖
-          Write-Host "第4批：安装剩余开发依赖..."
-          npm install --no-audit --progress=false --no-fund --silent --maxsockets=1 --ignore-scripts --ignore-optional --loglevel=error --fetch-retries=5
-          
-          # 验证关键依赖
-          Write-Host "=== 验证关键依赖 ==="
-          if (!(Test-Path "node_modules/electron")) { 
-            Write-Host "重试安装 electron..."
-            npm install --no-audit --progress=false --loglevel=error electron@25.0.0
-          }
-          if (!(Test-Path "node_modules/electron-builder")) { 
-            Write-Host "重试安装 electron-builder..."
-            npm install --no-audit --progress=false --loglevel=error electron-builder@24.0.0
-          }
-          if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -or !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) { 
-            Write-Host "⚠️ @electron/rebuild模块文件不完整，尝试完整重新安装..."
-            # 完全删除
-            npm uninstall @electron/rebuild --silent 2>$null
-            # 清理npm缓存中的此模块
-            npm cache clean --force @electron/rebuild
-            # 强制从源安装
-            npm install --no-audit --progress=false --loglevel=error @electron/rebuild@3.2.13 --force --no-save
-            
-            # 如果仍然失败，使用替代方案
-            if (!(Test-Path "node_modules/@electron/rebuild/lib/src/search-module.js") -and !(Test-Path "node_modules/@electron/rebuild/out/src/search-module.js")) {
-              Write-Host "❌ 模块安装仍不完整，尝试替代解决方案..."
-              
-              # 方案1: 创建一个空的实现，逐行写入而不使用多行字符串
-              # 确保目录存在
-              New-Item -Path "node_modules/@electron/rebuild/lib/src" -ItemType Directory -Force
-              New-Item -Path "node_modules/@electron/rebuild/out/src" -ItemType Directory -Force
-              
-              # 写入第一行
-              Set-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "// Empty implementation of search-module.js"
-              # 写入第二行
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "'use strict';"
-              # 写入第三行
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "Object.defineProperty(exports, '__esModule', { value: true });"
-              # 写入第四行（空行）
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value ""
-              # 写入第五行开始的函数
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "exports.searchForModule = async function(moduleName, includedPaths, requireFunc) {"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  console.log('Using stub implementation of searchForModule', moduleName);"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  return null;"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "};"
-              
-              # 添加getProjectRootPath函数实现
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "exports.getProjectRootPath = function(moduleName) {"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  console.log('Using stub implementation of getProjectRootPath', moduleName);"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "  return process.cwd();"
-              Add-Content -Path "node_modules/@electron/rebuild/lib/src/search-module.js" -Value "};"
-              
-              # 同样创建out目录下的版本（复制文件）
-              Copy-Item "node_modules/@electron/rebuild/lib/src/search-module.js" -Destination "node_modules/@electron/rebuild/out/src/search-module.js" -Force
-              
-              Write-Host "✅ 创建了空实现替代文件"
-            }
-          }
-          
-          Write-Host "✅ Windows依赖安装完成"
+          echo "安装完整依赖用于构建..."
+          date
+          npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5
+          date
         env:
-          npm_config_timeout: 900000  # 15分钟超时
-          npm_config_maxsockets: 1    # 降到最低并发
-          npm_config_fetch_timeout: 600000  # 10分钟获取超时
-          npm_config_fetch_retry_mintimeout: 60000
-          npm_config_fetch_retry_maxtimeout: 300000
+          npm_config_timeout: 600000  # 10分钟超时
+          npm_config_maxsockets: 2    # 降低并发
+          npm_config_fetch_timeout: 300000
+          npm_config_fetch_retry_mintimeout: 30000
+          npm_config_fetch_retry_maxtimeout: 120000
+          npm_config_cache: .npm
+          npm_config_prefer-offline: true
           npm_config_registry: https://registry.npmjs.org/
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
