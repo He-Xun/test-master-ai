@@ -8,56 +8,199 @@ import {
   TestConfigDraft,
   TestParams,
   TestResult,
-  UserRole
+  UserRole,
+  DefaultTestInput
 } from '../types';
 
-// SQLite数据库管理器
+// 环境检测
+const isElectron = (): boolean => {
+  return !!(window as any).electron || navigator.userAgent.includes('Electron');
+};
+
+// SQLite数据库管理器 - 支持Electron和浏览器环境
 class SQLiteStorage {
   private db: any = null;
   private isInitialized = false;
   private dbName = 'api_test_tool.db';
   private SQL: any = null;
+  private initializePromise: Promise<void> | null = null;
+  private environment: 'electron' | 'browser' = 'browser';
 
-  // 初始化数据库
+  constructor() {
+    this.environment = isElectron() ? 'electron' : 'browser';
+    console.log(`[SQLite] 🔍 检测到运行环境: ${this.environment}`);
+  }
+
+  // 初始化数据库 - 根据环境选择最佳策略
   async initialize(): Promise<void> {
     if (this.isInitialized) return;
-
+    if (this.initializePromise) {
+      console.log('[SQLite] 检测到重复初始化调用，等待现有初始化完成...');
+      return this.initializePromise;
+    }
+    this.initializePromise = this._performInitialization();
     try {
-      console.log('[SQLite] 正在初始化数据库...');
-      
-      // 动态导入sql.js避免webpack问题
-      const initSqlJs = await import('sql.js');
-      this.SQL = await initSqlJs.default({
-        locateFile: (file: string) => `https://sql.js.org/dist/${file}`
-      });
+      await this.initializePromise;
+    } finally {
+      this.initializePromise = null;
+    }
+  }
 
-      // 尝试从IndexedDB加载现有数据库
-      const savedDb = await this.loadDatabaseFromIndexedDB();
-      
-      if (savedDb) {
-        this.db = new this.SQL.Database(savedDb);
-        console.log('[SQLite] 从IndexedDB加载现有数据库');
+  // 实际的初始化逻辑 - 环境自适应
+  private async _performInitialization(): Promise<void> {
+    try {
+      console.log(`[SQLite] 🚀 开始 ${this.environment} 环境数据库初始化...`);
+      if (this.environment === 'electron') {
+        await this.initializeElectronSQLite();
+      } else {
+        await this.initializeBrowserSQLite();
+      }
+      // 优先从IndexedDB加载快照
+      let dbData = await this.loadDatabaseFromIndexedDB();
+      if (dbData) {
+        this.db = new this.SQL.Database(new Uint8Array(dbData));
+        console.log('[SQLite] 已从IndexedDB加载数据库');
       } else {
         this.db = new this.SQL.Database();
-        console.log('[SQLite] 创建新数据库');
+        console.log('[SQLite] 新建空数据库');
       }
-
-      // 创建表结构
       await this.createTables();
-      
-      // 迁移localStorage数据（如果存在）
-      await this.migrateFromLocalStorage();
-      
-      // 保存数据库到IndexedDB
-      await this.saveDatabaseToIndexedDB();
-      
       this.isInitialized = true;
-      console.log('[SQLite] 数据库初始化完成');
-      
+      console.log(`[SQLite] 🎉 ${this.environment} 环境数据库初始化完成！`);
     } catch (error) {
-      console.error('[SQLite] 数据库初始化失败:', error);
+      console.error(`[SQLite] ❌ ${this.environment} 环境数据库初始化失败:`, error);
+      this.isInitialized = false;
       throw error;
     }
+  }
+
+  // Electron环境的SQLite初始化
+  private async initializeElectronSQLite(): Promise<void> {
+    console.log('[SQLite] 🖥️ 使用Electron原生SQLite初始化...');
+    
+    try {
+      // 在Electron中，优先使用本地资源
+      console.log('[SQLite] 📁 加载Electron本地sql.js资源...');
+      
+      // 方案1：直接引入sql.js（Electron打包时包含）
+      const sqljs = await import('sql.js');
+      if (sqljs.default) {
+        this.SQL = await sqljs.default({
+          locateFile: (file: string) => {
+            // Electron中的本地路径
+            const electronPath = `./node_modules/sql.js/dist/${file}`;
+            console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, electronPath);
+            return electronPath;
+          }
+        });
+        console.log('[SQLite] ✅ Electron原生sql.js加载成功');
+        return;
+      }
+    } catch (electronError) {
+      console.log('[SQLite] ⚠️ Electron原生方式失败，使用通用方式:', electronError);
+    }
+
+    // 回退到通用浏览器方式
+    await this.initializeBrowserSQLite();
+  }
+
+  // 浏览器环境的SQLite初始化
+  private async initializeBrowserSQLite(): Promise<void> {
+    console.log('[SQLite] 🌐 使用浏览器通用SQLite初始化...');
+    
+    let initSqlJs: any;
+    
+    try {
+      // 使用简化的CDN方式，避免复杂的本地文件加载
+      console.log('[SQLite] 🌐 使用CDN方式加载sql.js...');
+      
+      // 动态加载sql.js
+      const response = await fetch('https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/sql-wasm.js');
+      if (!response.ok) {
+        throw new Error(`CDN加载失败: ${response.status}`);
+      }
+      
+      const jsCode = await response.text();
+      
+      // 安全地执行JavaScript代码
+      const scriptElement = document.createElement('script');
+      scriptElement.textContent = jsCode;
+      document.head.appendChild(scriptElement);
+      
+      // 等待initSqlJs在全局作用域中可用
+      let attempts = 0;
+      const maxAttempts = 50; // 5秒超时
+      
+      while (attempts < maxAttempts) {
+        // @ts-ignore
+        if (typeof window.initSqlJs === 'function') {
+          // @ts-ignore
+          initSqlJs = window.initSqlJs;
+          console.log('[SQLite] ✅ CDN方式加载成功');
+          break;
+        }
+        await new Promise(resolve => setTimeout(resolve, 100));
+        attempts++;
+      }
+      
+      if (!initSqlJs) {
+        throw new Error('CDN加载超时，initSqlJs未在全局作用域中找到');
+      }
+      
+    } catch (cdnError) {
+      console.log('[SQLite] ❌ CDN加载失败，尝试npm包方式:', cdnError);
+      
+      try {
+        // 备选方案：直接导入npm包（适用于开发环境）
+        const sqljs = await import('sql.js');
+        initSqlJs = sqljs.default || sqljs;
+        console.log('[SQLite] ✅ npm包方式加载成功');
+      } catch (npmError) {
+        console.error('[SQLite] ❌ 所有加载方式都失败:', npmError);
+        throw new Error(`SQL.js加载失败: CDN(${cdnError.message}) 和 NPM(${npmError.message})`);
+      }
+    }
+
+    // 初始化SQL.js
+    console.log('[SQLite] ⚙️ 开始初始化SQL.js...');
+    
+    const initPromise = initSqlJs({
+      locateFile: (file: string) => {
+        // 使用CDN地址
+        const cdnPath = `https://cdnjs.cloudflare.com/ajax/libs/sql.js/1.8.0/${file}`;
+        console.log(`[SQLite] 🌐 定位文件 ${file} 到:`, cdnPath);
+        return cdnPath;
+      }
+    });
+
+    // 设置超时
+    const timeoutMs = 20000; // 20秒超时
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error(`SQL.js初始化超时（${timeoutMs/1000}秒）`)), timeoutMs);
+    });
+
+    try {
+      this.SQL = await Promise.race([initPromise, timeoutPromise]);
+      console.log('[SQLite] ✅ SQL.js初始化成功');
+    } catch (initError) {
+      console.error('[SQLite] ❌ SQL.js初始化失败:', initError);
+      throw initError;
+    }
+  }
+
+  // 获取环境信息
+  getEnvironmentInfo(): {
+    environment: 'electron' | 'browser';
+    isInitialized: boolean;
+    dbName: string;
+    performance: 'fast' | 'slow';
+  } {
+    return {
+      environment: this.environment,
+      isInitialized: this.isInitialized,
+      dbName: this.dbName,
+      performance: this.environment === 'electron' ? 'fast' : 'slow'
+    };
   }
 
   // 创建数据库表
@@ -145,6 +288,18 @@ class SQLiteStorage {
         data TEXT NOT NULL, -- JSON字符串
         last_modified TEXT NOT NULL,
         auto_saved INTEGER NOT NULL, -- 0 or 1
+        FOREIGN KEY (user_id) REFERENCES users (id)
+      )`,
+      
+      // 默认输入模板表
+      `CREATE TABLE IF NOT EXISTS default_test_inputs (
+        id TEXT PRIMARY KEY,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        content TEXT NOT NULL,
+        category TEXT,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id)
       )`
     ];
@@ -337,7 +492,7 @@ class SQLiteStorage {
   }
 
   // 用户管理方法
-  createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): User {
+  async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
     if (!this.db) throw new Error('数据库未初始化');
 
     const user: User = {
@@ -353,7 +508,7 @@ class SQLiteStorage {
       VALUES (?, ?, ?, ?, ?, ?, ?)
     `, [user.id, user.username, user.email, user.role, user.avatar || null, user.createdAt, user.updatedAt]);
 
-    this.saveDatabaseToIndexedDB();
+    await this.saveDatabaseToIndexedDB();
     return user;
   }
 
@@ -880,18 +1035,18 @@ class SQLiteStorage {
   }
 
   // 存储用户密码
-  storeUserPassword(userId: string, password: string): void {
-    if (!this.db) return;
+  async storeUserPassword(userId: string, password: string): Promise<void> {
+    if (!this.db) throw new Error('数据库未初始化');
     try {
       this.db.run('INSERT OR REPLACE INTO user_passwords (user_id, password_hash) VALUES (?, ?)', [userId, password]);
-      this.saveDatabaseToIndexedDB();
+      await this.saveDatabaseToIndexedDB();
     } catch (error) {
       // 忽略
     }
   }
 
   // 更新用户信息
-  updateUser(userId: string, updates: Partial<User>): boolean {
+  async updateUser(userId: string, updates: Partial<User>): Promise<boolean> {
     if (!this.db) return false;
 
     try {
@@ -925,7 +1080,7 @@ class SQLiteStorage {
         WHERE id = ?
       `, values);
 
-      this.saveDatabaseToIndexedDB();
+      await this.saveDatabaseToIndexedDB();
       return true;
     } catch (error) {
       console.error('[SQLite] 更新用户失败:', error);
@@ -934,8 +1089,8 @@ class SQLiteStorage {
   }
 
   // 删除用户及其所有相关数据
-  deleteUser(userId: string): boolean {
-    if (!this.db) return false;
+  async deleteUser(userId: string): Promise<boolean> {
+    if (!this.db) throw new Error('数据库未初始化');
 
     try {
       // 开始事务（模拟）
@@ -947,10 +1102,86 @@ class SQLiteStorage {
       this.db.run('DELETE FROM user_sessions WHERE user_id = ?', [userId]);
       this.db.run('DELETE FROM users WHERE id = ?', [userId]);
 
-      this.saveDatabaseToIndexedDB();
+      await this.saveDatabaseToIndexedDB();
       return true;
     } catch (error) {
       console.error('[SQLite] 删除用户失败:', error);
+      return false;
+    }
+  }
+
+  // 默认输入模板管理
+  createDefaultTestInput(userId: string, data: { name: string; content: string; category?: string }): DefaultTestInput {
+    if (!this.db) throw new Error('数据库未初始化');
+    const input: DefaultTestInput = {
+      id: this.generateId(),
+      name: data.name,
+      content: data.content,
+      category: data.category || '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    this.db.run(
+      `INSERT INTO default_test_inputs (id, user_id, name, content, category, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [input.id, userId, input.name, input.content, input.category, input.createdAt, input.updatedAt]
+    );
+    this.saveDatabaseToIndexedDB();
+    return input;
+  }
+
+  getDefaultTestInputs(userId: string): DefaultTestInput[] {
+    if (!this.db) return [];
+    try {
+      const result = this.db.exec(
+        `SELECT id, name, content, category, created_at, updated_at FROM default_test_inputs WHERE user_id = ? ORDER BY updated_at DESC`,
+        [userId]
+      );
+      if (result.length === 0) return [];
+      return result[0].values.map((row: any[]) => ({
+        id: row[0] as string,
+        name: row[1] as string,
+        content: row[2] as string,
+        category: row[3] as string,
+        createdAt: row[4] as string,
+        updatedAt: row[5] as string,
+      }));
+    } catch (error) {
+      console.error('[SQLite] 获取默认输入模板失败:', error);
+      return [];
+    }
+  }
+
+  updateDefaultTestInput(userId: string, id: string, updates: Partial<DefaultTestInput>): boolean {
+    if (!this.db) return false;
+    try {
+      const setClause: string[] = [];
+      const values: any[] = [];
+      if (updates.name) { setClause.push('name = ?'); values.push(updates.name); }
+      if (updates.content) { setClause.push('content = ?'); values.push(updates.content); }
+      if (updates.category) { setClause.push('category = ?'); values.push(updates.category); }
+      setClause.push('updated_at = ?'); values.push(new Date().toISOString());
+      values.push(userId, id);
+      this.db.run(
+        `UPDATE default_test_inputs SET ${setClause.join(', ')} WHERE user_id = ? AND id = ?`,
+        values
+      );
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 更新默认输入模板失败:', error);
+      return false;
+    }
+  }
+
+  deleteDefaultTestInput(userId: string, id: string): boolean {
+    if (!this.db) return false;
+    try {
+      this.db.run('DELETE FROM default_test_inputs WHERE user_id = ? AND id = ?', [userId, id]);
+      this.saveDatabaseToIndexedDB();
+      return true;
+    } catch (error) {
+      console.error('[SQLite] 删除默认输入模板失败:', error);
       return false;
     }
   }
