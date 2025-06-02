@@ -79,13 +79,20 @@ npm run dist
 
 ## 🛠️ 技术栈
 
-- **前端框架**: React 18 + TypeScript
-- **UI组件**: Ant Design + Tailwind CSS  
-- **桌面应用**: Electron 25
-- **构建工具**: Vite
-- **数据存储**: Electron Store
-- **国际化**: react-i18next
-- **数据处理**: xlsx
+- **前端框架**：React 18 + TypeScript
+- **UI 组件**：Ant Design 5 + Tailwind CSS
+- **桌面应用**：Electron 25
+- **构建工具**：Vite 5
+- **数据持久化**：
+  - **全平台主力**：SQLite（sql.js，Electron 下支持 better-sqlite3），所有业务数据均存储于 SQLite
+  - **数据快照备份**：IndexedDB（用于 SQLite 数据的持久化快照，提升数据安全性）
+  - **配置/偏好**：electron-store（仅桌面端，极少量设置）
+  - **localStorage**：仅用于历史数据迁移和兼容，**不再作为主数据存储**
+- **智能存储适配**：StorageAdapter 自动切换最优方案，支持数据迁移与降级
+- **国际化**：i18next + react-i18next
+- **数据处理**：xlsx
+- **自动化测试**：Playwright、Puppeteer
+- **CI/CD**：GitHub Actions + electron-builder
 
 ## 📁 项目结构
 
@@ -103,6 +110,29 @@ test-master-ai/
 ├── release/                # 打包输出
 └── docs/                   # 项目文档
 ```
+
+## 🚀 版本发布流程
+
+1. **更新版本号**
+   ```bash
+   npm version patch   # 修订号 +0.0.1
+   npm version minor   # 次版本 +0.1.0
+   npm version major   # 主版本 +1.0.0
+   ```
+2. **同步文档版本号**
+   - `README.md`、`RELEASE-NOTES.md`、`PROJECT_OVERVIEW.md`、`package.json` 保持一致。
+3. **编写发布说明**
+   - 在 `RELEASE-NOTES.md` 顶部添加新版本条目。
+4. **推送代码与标签**
+   ```bash
+   git add .
+   git commit -m "chore: 发布 vX.X.X"
+   npm run release:tag
+   ```
+5. **自动发布**
+   - 推送带 `vX.X.X` 语义化 tag 后，GitHub Actions 会自动构建并发布正式版安装包。
+6. **详细操作与规范**
+   - 详见 [`VERSION-UPDATE-GUIDE.md`](./VERSION-UPDATE-GUIDE.md)
 
 ## 🔒 安全特性
 

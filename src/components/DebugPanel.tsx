@@ -101,97 +101,71 @@ const DebugPanel: React.FC = () => {
           className="mb-4"
         />
         
-        <Collapse className="bg-gray-50 border-0">
-          <Panel 
-            header={
-              <div className="flex items-center justify-between">
-                <span>{t('debug.promptData')}</span>
-                <Tag color="purple">{t('common.countItems', { count: debugData.prompts?.length || 0 })}</Tag>
-              </div>
-            } 
-            key="prompts"
-            className="bg-white mb-2 rounded-lg border border-gray-200"
-          >
-            <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify(debugData.prompts, null, 2)}
-            </pre>
-          </Panel>
-          
-          <Panel 
-            header={
-              <div className="flex items-center justify-between">
-                <span>{t('debug.apiConfigData')}</span>
-                <Tag color="blue">{t('common.countItems', { count: debugData.apiConfigs?.length || 0 })}</Tag>
-              </div>
-            } 
-            key="apiConfigs"
-            className="bg-white mb-2 rounded-lg border border-gray-200"
-          >
-            <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify(debugData.apiConfigs, null, 2)}
-            </pre>
-          </Panel>
-          
-          <Panel 
-            header={
-              <div className="flex items-center justify-between">
-                <span>{t('debug.modelData')}</span>
-                <Tag color="green">{t('common.countItems', { count: debugData.models?.length || 0 })}</Tag>
-              </div>
-            } 
-            key="models"
-            className="bg-white mb-2 rounded-lg border border-gray-200"
-          >
-            <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify(debugData.models, null, 2)}
-            </pre>
-          </Panel>
-          
-          <Panel 
-            header={
-              <div className="flex items-center justify-between">
-                <span>{t('debug.defaultInputData')}</span>
-                <Tag color="orange">{t('common.countItems', { count: debugData.defaultInputs?.length || 0 })}</Tag>
-              </div>
-            } 
-            key="defaultInputs"
-            className="bg-white mb-2 rounded-lg border border-gray-200"
-          >
-            <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify(debugData.defaultInputs, null, 2)}
-            </pre>
-          </Panel>
-          
-          <Panel 
-            header={
-              <div className="flex items-center justify-between">
-                <span>{t('debug.localStorageData')}</span>
-                <Tag color="default">
-                  {(() => {
-                    try {
-                      const storageSize = JSON.stringify(localStorage).length;
-                      const itemCount = localStorage.length;
-                      return t('debug.localStorageStat', { count: itemCount, size: (storageSize/1024).toFixed(1) });
-                    } catch {
-                      return t('debug.unknownSize');
-                    }
-                  })()}
-                </Tag>
-              </div>
-            } 
-            key="localStorage"
-            className="bg-white rounded-lg border border-gray-200"
-          >
-            <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
-              {JSON.stringify({
-                prompts: localStorage.getItem('prompts'),
-                apiConfigs: localStorage.getItem('apiConfigs'),
-                models: localStorage.getItem('models'),
-                defaultTestInputs: localStorage.getItem('defaultTestInputs'),
-              }, null, 2)}
-            </pre>
-          </Panel>
-        </Collapse>
+        <Collapse
+          className="bg-gray-50 border-0"
+          items={[
+            {
+              key: 'prompts',
+              label: (
+                <div className="flex items-center justify-between">
+                  <span>{t('debug.promptData')}</span>
+                  <Tag color="purple">{t('common.countItems', { count: debugData.prompts?.length || 0 })}</Tag>
+                </div>
+              ),
+              children: (
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                  {JSON.stringify(debugData.prompts, null, 2)}
+                </pre>
+              ),
+              className: 'bg-white mb-2 rounded-lg border border-gray-200',
+            },
+            {
+              key: 'apiConfigs',
+              label: (
+                <div className="flex items-center justify-between">
+                  <span>{t('debug.apiConfigData')}</span>
+                  <Tag color="blue">{t('common.countItems', { count: debugData.apiConfigs?.length || 0 })}</Tag>
+                </div>
+              ),
+              children: (
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                  {JSON.stringify(debugData.apiConfigs, null, 2)}
+                </pre>
+              ),
+              className: 'bg-white mb-2 rounded-lg border border-gray-200',
+            },
+            {
+              key: 'localStorage',
+              label: (
+                <div className="flex items-center justify-between">
+                  <span>{t('debug.localStorageData')}</span>
+                  <Tag color="default">
+                    {(() => {
+                      try {
+                        const storageSize = JSON.stringify(localStorage).length;
+                        const itemCount = localStorage.length;
+                        return t('debug.localStorageStat', { count: itemCount, size: (storageSize/1024).toFixed(1) });
+                      } catch {
+                        return t('debug.unknownSize');
+                      }
+                    })()}
+                  </Tag>
+                </div>
+              ),
+              children: (
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                  {JSON.stringify({
+                    prompts: localStorage.getItem('prompts'),
+                    apiConfigs: localStorage.getItem('apiConfigs'),
+                    models: localStorage.getItem('models'),
+                    defaultTestInputs: localStorage.getItem('defaultTestInputs'),
+                  }, null, 2)}
+                </pre>
+              ),
+              className: 'bg-white rounded-lg border border-gray-200',
+            },
+          ]}
+        />
       </Card>
     </div>
   );

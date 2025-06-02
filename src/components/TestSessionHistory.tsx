@@ -339,7 +339,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
           onCancel={() => setDetailVisible(false)}
           footer={null}
           width={1000}
-          destroyOnClose
+          destroyOnHidden
         >
           {selectedSession && (
             <div>
@@ -508,7 +508,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
         onCancel={onClose}
         footer={null}
         width={1200}
-        destroyOnClose
+        destroyOnHidden
       >
         <div style={{ maxHeight: '70vh', overflowY: 'auto' }}>
           <MainContent />
@@ -522,7 +522,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
         onCancel={() => setDetailVisible(false)}
         footer={null}
         width={1000}
-        destroyOnClose
+        destroyOnHidden
       >
         {selectedSession && (
           <div>

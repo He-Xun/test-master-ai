@@ -605,14 +605,14 @@ const ApiConfigManagement: React.FC = () => {
         open={isModalVisible}
         onClose={handleCancel}
         width="70%"
-        bodyStyle={{ maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', padding: 0 }}
+        styles={{ body: { maxHeight: 'calc(100vh - 120px)', overflowY: 'auto', padding: 0 } }}
         footer={
           <div style={{ textAlign: 'right', padding: '16px 24px', borderTop: '1px solid #f0f0f0', background: '#fff' }}>
             <Button onClick={handleCancel} style={{ marginRight: 8 }} size="large">{t('api.cancel')}</Button>
             <Button onClick={handleSubmit} type="primary" size="large" className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none">{t('api.save')}</Button>
           </div>
         }
-        destroyOnClose
+        destroyOnHidden
       >
         <Form form={form} layout="vertical">
           <Tabs 
