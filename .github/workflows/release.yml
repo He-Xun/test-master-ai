@@ -48,6 +48,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Print start time (before install)
+        run: date
+
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
@@ -149,26 +152,8 @@ jobs:
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
 
-      - name: Install all dependencies (Unix)
-        if: runner.os != 'Windows'
-        timeout-minutes: 25
-        run: |
-          echo "安装完整依赖用于构建..."
-          # 不再清理缓存，避免权限问题
-          # npm cache clean --force || echo "缓存清理跳过"
-          # 使用npm install替代npm ci，解决package.json和package-lock.json不同步问题
-          npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5
-        env:
-          npm_config_timeout: 600000  # 10分钟超时
-          npm_config_maxsockets: 2    # 降低并发
-          npm_config_fetch_timeout: 300000
-          npm_config_fetch_retry_mintimeout: 30000
-          npm_config_fetch_retry_maxtimeout: 120000
-          npm_config_cache: .npm
-          npm_config_prefer-offline: true
-          npm_config_registry: https://registry.npmjs.org/
-          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
-          PUPPETEER_SKIP_CHROMIUM_DOWNLOAD: true
+      - name: Print end time (after install)
+        run: date
 
       - name: Build renderer process with optimizations
         timeout-minutes: 30
