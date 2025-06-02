@@ -63,4 +63,4 @@ userData/
 
 # 测试
 .coverage/
-tools/
+tools/.DS_Store
