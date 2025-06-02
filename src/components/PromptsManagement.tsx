@@ -24,7 +24,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import { Prompt, DefaultTestInput } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
-import { defaultTestInputStorage } from '../utils/storage-simple';
 
 const { TextArea } = Input;
 const { Text, Paragraph } = Typography;
@@ -55,8 +54,8 @@ const PromptsManagement: React.FC = () => {
   };
 
   // 加载默认输入模板
-  const loadDefaultInputs = () => {
-    const inputs = storageAdapter.getDefaultTestInputs();
+  const loadDefaultInputs = async () => {
+    const inputs = await storageAdapter.getDefaultTestInputs();
     setDefaultInputs(inputs);
   };
 
@@ -145,14 +144,13 @@ const PromptsManagement: React.FC = () => {
   const saveDefaultInput = async (values: any) => {
     try {
       if (editingInput) {
-        defaultTestInputStorage.update(editingInput.id, values);
+        await storageAdapter.updateDefaultTestInput(editingInput.id, values);
         message.success(t('prompts.templateUpdateSuccess'));
       } else {
-        defaultTestInputStorage.create(values);
+        await storageAdapter.createDefaultTestInput(values);
         message.success(t('prompts.templateCreateSuccess'));
       }
-      
-      loadDefaultInputs();
+      await loadDefaultInputs();
       closeInputModal();
     } catch (error) {
       console.error('保存测试模板失败:', error);
@@ -160,11 +158,11 @@ const PromptsManagement: React.FC = () => {
     }
   };
 
-  const deleteDefaultInput = (id: string) => {
+  const deleteDefaultInput = async (id: string) => {
     try {
-      defaultTestInputStorage.delete(id);
+      await storageAdapter.deleteDefaultTestInput(id);
       message.success(t('prompts.templateDeleteSuccess'));
-      loadDefaultInputs();
+      await loadDefaultInputs();
     } catch (error) {
       console.error('删除测试模板失败:', error);
       message.error(t('prompts.deleteFailed'));
@@ -359,109 +357,116 @@ const PromptsManagement: React.FC = () => {
 
       {/* 标签页内容 */}
       <Card className="shadow-sm border-gray-200">
-        <Tabs defaultActiveKey="prompts" size="large">
-          <TabPane 
-            tab={
-              <span>
-                <MessageOutlined />
-{t('prompts.promptTemplates')} ({prompts.length})
-              </span>
-            } 
-            key="prompts"
-          >
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => openModal()}
-                size="large"
-                className="bg-gradient-to-r from-purple-500 to-pink-500 border-none shadow-lg hover:shadow-xl"
-              >
-{t('prompts.addPrompt')}
-              </Button>
-            </div>
-            
-            <Table
-              columns={promptColumns}
-              dataSource={prompts}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total }),
-              }}
-              className="custom-table"
-              locale={{
-                emptyText: (
-                  <div className="py-12 text-center">
-                    <MessageOutlined className="text-4xl text-gray-300 mb-4" />
-                    <p className="text-gray-500 mb-4">{t('prompts.noPrompts')}</p>
-                    <Button 
-                      type="primary" 
+        <Tabs
+          defaultActiveKey="prompts"
+          size="large"
+          items={[
+            {
+              key: 'prompts',
+              label: (
+                <span>
+                  <MessageOutlined />
+                  {t('prompts.promptTemplates')} ({prompts.length})
+                </span>
+              ),
+              children: (
+                <>
+                  <div className="mb-4 flex justify-end">
+                    <Button
+                      type="primary"
                       icon={<PlusOutlined />}
                       onClick={() => openModal()}
-                      className="bg-gradient-to-r from-purple-500 to-pink-500 border-none"
+                      size="large"
+                      className="bg-gradient-to-r from-purple-500 to-pink-500 border-none shadow-lg hover:shadow-xl"
                     >
-{t('prompts.createFirstPrompt')}
+                      {t('prompts.addPrompt')}
                     </Button>
                   </div>
-                )
-              }}
-            />
-          </TabPane>
-
-          <TabPane 
-            tab={
-              <span>
-                <AppstoreOutlined />
-{t('prompts.testInputTemplates')} ({defaultInputs.length})
-              </span>
-            } 
-            key="inputs"
-          >
-            <div className="mb-4 flex justify-end">
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={() => openInputModal()}
-                size="large"
-                className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none shadow-lg hover:shadow-xl"
-              >
-{t('prompts.addTestTemplate')}
-              </Button>
-            </div>
-            
-            <Table
-              columns={inputColumns}
-              dataSource={defaultInputs}
-              rowKey="id"
-              pagination={{
-                pageSize: 10,
-                showSizeChanger: true,
-                showQuickJumper: true,
-                showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total }),
-              }}
-              className="custom-table"
-              locale={{
-                emptyText: (
-                  <div className="py-12 text-center">
-                    <AppstoreOutlined className="text-4xl text-gray-300 mb-4" />
-                    <p className="text-gray-500 mb-4">{t('prompts.noTestTemplates')}</p>
-                    <Button 
-                      type="primary" 
+                  <Table
+                    columns={promptColumns}
+                    dataSource={prompts}
+                    rowKey="id"
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total }),
+                    }}
+                    className="custom-table"
+                    locale={{
+                      emptyText: (
+                        <div className="py-12 text-center">
+                          <MessageOutlined className="text-4xl text-gray-300 mb-4" />
+                          <p className="text-gray-500 mb-4">{t('prompts.noPrompts')}</p>
+                          <Button 
+                            type="primary" 
+                            icon={<PlusOutlined />}
+                            onClick={() => openModal()}
+                            className="bg-gradient-to-r from-purple-500 to-pink-500 border-none"
+                          >
+                            {t('prompts.createFirstPrompt')}
+                          </Button>
+                        </div>
+                      )
+                    }}
+                  />
+                </>
+              )
+            },
+            {
+              key: 'inputs',
+              label: (
+                <span>
+                  <AppstoreOutlined />
+                  {t('prompts.testInputTemplates')} ({defaultInputs.length})
+                </span>
+              ),
+              children: (
+                <>
+                  <div className="mb-4 flex justify-end">
+                    <Button
+                      type="primary"
                       icon={<PlusOutlined />}
                       onClick={() => openInputModal()}
-                      className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none"
+                      size="large"
+                      className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none shadow-lg hover:shadow-xl"
                     >
-{t('prompts.createFirstTemplate')}
+                      {t('prompts.addTestTemplate')}
                     </Button>
                   </div>
-                )
-              }}
-            />
-          </TabPane>
-        </Tabs>
+                  <Table
+                    columns={inputColumns}
+                    dataSource={defaultInputs}
+                    rowKey="id"
+                    pagination={{
+                      pageSize: 10,
+                      showSizeChanger: true,
+                      showQuickJumper: true,
+                      showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total }),
+                    }}
+                    className="custom-table"
+                    locale={{
+                      emptyText: (
+                        <div className="py-12 text-center">
+                          <AppstoreOutlined className="text-4xl text-gray-300 mb-4" />
+                          <p className="text-gray-500 mb-4">{t('prompts.noTestTemplates')}</p>
+                          <Button 
+                            type="primary" 
+                            icon={<PlusOutlined />}
+                            onClick={() => openInputModal()}
+                            className="bg-gradient-to-r from-blue-500 to-indigo-500 border-none"
+                          >
+                            {t('prompts.createFirstTemplate')}
+                          </Button>
+                        </div>
+                      )
+                    }}
+                  />
+                </>
+              )
+            }
+          ]}
+        />
       </Card>
 
       {/* 新建/编辑模态框 */}

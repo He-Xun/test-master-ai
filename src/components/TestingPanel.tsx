@@ -339,234 +339,40 @@ const TestingPanel: React.FC = () => {
   }, []);
 
   const loadData = async () => {
-    console.log('[TestingPanel] 开始加载数据...');
     setDataLoading(true);
-    setNotificationShown(false);
-    
     try {
-      // 获取当前用户会话 - 只获取一次
       const currentSession = storageAdapter.getCurrentSession();
-      const userId = currentSession?.user?.id || null;
-      const userRole = currentSession?.user?.role;
-      
-      console.log('[TestingPanel] 当前用户信息:', {
-        userId,
-        userRole,
-        hasSession: !!currentSession,
-        sessionUser: currentSession?.user,
-        fullSession: currentSession
-      });
-      
-      // 添加详细的会话状态检查
-      console.log('[TestingPanel] 会话状态检查:', {
-        'currentSession存在': !!currentSession,
-        'userId存在': !!userId,
-        'userRole存在': !!userRole,
-        '将使用SQLite': !!(userId && userRole && currentSession),
-        '将使用localStorage': !(userId && userRole && currentSession)
-      });
-      
+      const userId = currentSession?.user?.id;
       let loadedPrompts: Prompt[] = [];
       let loadedModels: any[] = [];
-      let loadedDefaultInputs: DefaultTestInput[] = [];
-      
-      // 根据用户状态选择合适的存储方法
-      if (userId && userRole && currentSession) {
-        console.log('[TestingPanel] ✅ 用户已登录，使用SQLite存储');
-        
-        // 使用storageAdapter获取数据，确保当前会话有效
-        try {
-          console.log('[TestingPanel] 📝 开始获取提示词...');
-          const allPrompts = await storageAdapter.getPrompts();
-          console.log('[TestingPanel] ✅ 获取到提示词数量:', allPrompts.length, '详情:', allPrompts);
-          
-          // 添加数据库调试 - 检查是否有数据库连接问题
-          console.log('[TestingPanel] 🔍 调试：检查数据库状态');
-          try {
-            // @ts-ignore - 临时调试代码
-            const sqliteStorage = window.sqliteStorage || (await import('../utils/sqlite-storage')).sqliteStorage;
-            if (sqliteStorage && sqliteStorage.db) {
-              console.log('[TestingPanel] 📊 数据库已连接，查询所有用户的提示词...');
-              // @ts-ignore
-              const allPromptsInDB = sqliteStorage.db.exec('SELECT user_id, id, name, content FROM prompts ORDER BY created_at DESC');
-              console.log('[TestingPanel] 📊 数据库中所有提示词:', allPromptsInDB);
-              
-              // 查询当前用户的提示词
-              // @ts-ignore
-              const userPromptsInDB = sqliteStorage.db.exec('SELECT id, name, content FROM prompts WHERE user_id = ?', [userId]);
-              console.log(`[TestingPanel] 📊 用户 ${userId} 的提示词:`, userPromptsInDB);
-              
-              // 如果数据库中没有提示词，检查localStorage并尝试手动迁移
-              if (allPromptsInDB.length === 0) {
-                console.log('[TestingPanel] 🔄 数据库中没有提示词，检查localStorage...');
-                
-                // 检查localStorage中的提示词
-                const userPrompts = localStorage.getItem(`${userId}_prompts`);
-                const globalPrompts = localStorage.getItem('prompts');
-                
-                console.log('[TestingPanel] 📦 localStorage中的用户提示词:', userPrompts);
-                console.log('[TestingPanel] 📦 localStorage中的全局提示词:', globalPrompts);
-                
-                let promptsToMigrate: any[] = [];
-                
-                if (userPrompts) {
-                  promptsToMigrate = JSON.parse(userPrompts);
-                  console.log(`[TestingPanel] 🎯 找到用户专属提示词 ${promptsToMigrate.length} 个`);
-                } else if (globalPrompts) {
-                  promptsToMigrate = JSON.parse(globalPrompts);
-                  console.log(`[TestingPanel] 🎯 找到全局提示词 ${promptsToMigrate.length} 个`);
-                }
-                
-                // 手动迁移提示词
-                if (promptsToMigrate.length > 0) {
-                  console.log('[TestingPanel] 🚀 开始手动迁移提示词到SQLite...');
-                  let migratedCount = 0;
-                  
-                  for (const prompt of promptsToMigrate) {
-                    try {
-                      console.log(`[TestingPanel] 📝 迁移提示词: ${prompt.name}`);
-                      await storageAdapter.createPrompt({
-                        name: prompt.name,
-                        content: prompt.content
-                      });
-                      migratedCount++;
-                    } catch (error) {
-                      console.error(`[TestingPanel] ❌ 迁移提示词失败: ${prompt.name}`, error);
-                    }
-                  }
-                  
-                  console.log(`[TestingPanel] ✅ 提示词迁移完成，成功迁移 ${migratedCount} 个`);
-                  
-                  // 重新加载数据
-                  if (migratedCount > 0) {
-                    console.log('[TestingPanel] 🔄 重新加载提示词数据...');
-                    const newPrompts = await storageAdapter.getPrompts();
-                    console.log('[TestingPanel] 🎉 重新加载后的提示词:', newPrompts);
-                    setPrompts(newPrompts);
-                    
-                    // 更新loadedPrompts变量，确保后续逻辑使用正确的数据
-                    loadedPrompts = newPrompts;
-                    
-                    message.success(`成功迁移 ${migratedCount} 个提示词到SQLite数据库！`);
-                  }
-                } else {
-                  console.log('[TestingPanel] 📝 没有找到可迁移的提示词，创建测试提示词验证存储功能...');
-                  
-                  try {
-                    const testPrompt = await storageAdapter.createPrompt({
-                      name: '测试提示词 - 系统自动创建',
-                      content: '这是系统自动创建的测试提示词，用于验证存储功能。您可以根据需要修改或删除此提示词。\n\n请回答以下问题：{用户输入}'
-                    });
-                    
-                    console.log('[TestingPanel] ✅ 测试提示词创建成功:', testPrompt);
-                    
-                    // 重新加载数据
-                    const newPrompts = await storageAdapter.getPrompts();
-                    console.log('[TestingPanel] 🎉 重新加载后的提示词:', newPrompts);
-                    setPrompts(newPrompts);
-                    
-                    // 更新loadedPrompts变量，确保后续逻辑使用正确的数据
-                    loadedPrompts = newPrompts;
-                    
-                    message.success('已自动创建测试提示词，存储功能正常！');
-                  } catch (error) {
-                    console.error('[TestingPanel] ❌ 创建测试提示词失败:', error);
-                    message.error('提示词存储功能异常，请检查系统状态');
-                  }
-                }
-              }
-            } else {
-              console.log('[TestingPanel] ❌ 数据库未连接或不可用');
-            }
-          } catch (dbError) {
-            console.error('[TestingPanel] 数据库调试失败:', dbError);
-          }
-          
-          console.log('[TestingPanel] 📝 开始获取API配置...');
-          const allApiConfigs = await storageAdapter.getApiConfigs();
-          console.log('[TestingPanel] ✅ 获取到API配置数量:', allApiConfigs.length, '详情:', allApiConfigs);
-          
-          console.log('[TestingPanel] 📝 开始获取默认测试输入...');
-          const allDefaultInputs = storageAdapter.getDefaultTestInputs();
-          console.log('[TestingPanel] ✅ 获取到默认测试输入数量:', allDefaultInputs.length);
-          
-          // 处理模型数据 - 展开所有API配置中的模型
-          const models: Array<{ id: string; name: string; apiConfigName: string }> = [];
-          allApiConfigs.forEach(config => {
-            console.log(`[TestingPanel] 📊 处理API配置: ${config.name}, 模型数量: ${config.models?.length || 0}`);
-            if (config.models && Array.isArray(config.models)) {
-              config.models.forEach(model => {
-                if (model.enabled !== false) { // 如果enabled字段不存在或为true，则包含该模型
-                  const modelInfo = {
-                    id: `${config.id}_${model.id}`,
-                    name: model.name || model.modelId,
-                    apiConfigName: config.name
-                  };
-                  models.push(modelInfo);
-                  console.log(`[TestingPanel] ➕ 添加模型:`, modelInfo);
-                }
-              });
-            }
-          });
-          
-          loadedPrompts = allPrompts;
-          loadedModels = models;
-          loadedDefaultInputs = allDefaultInputs;
-          
-          console.log('[TestingPanel] 🎯 SQLite数据加载完成:', {
-            prompts: loadedPrompts.length,
-            models: loadedModels.length,
-            apiConfigs: allApiConfigs.length,
-            defaultInputs: loadedDefaultInputs.length
-          });
-          
-        } catch (error) {
-          console.error('[TestingPanel] ❌ SQLite数据加载失败:', error);
-          throw error;
-        }
-        
+      let loadedDefaultInputs: any[] = [];
+
+      const isSQLite = storageAdapter.getStorageInfo().sqliteEnabled;
+      if (userId && isSQLite) {
+        loadedPrompts = await storageAdapter.getPrompts();
+        loadedModels = await storageAdapter.getApiConfigs();
+        loadedDefaultInputs = await storageAdapter.getDefaultTestInputs();
       } else {
-        console.log('[TestingPanel] ⚠️ 用户未登录，使用localStorage');
-        
-        // 使用storage-simple获取数据（兼容性）
+        // 兼容localStorage老用户
         loadedPrompts = promptStorage.getAll();
         loadedModels = apiConfigStorage.getAllModels();
         loadedDefaultInputs = defaultTestInputStorage.getAll();
-        
-        console.log('[TestingPanel] 📦 localStorage数据加载完成:', {
-          prompts: loadedPrompts.length,
-          models: loadedModels.length,
-          defaultInputs: loadedDefaultInputs.length
-        });
       }
-      
-      console.log('[TestingPanel] 🏁 最终数据设置:', {
-        prompts: loadedPrompts.length,
-        models: loadedModels.length,
-        defaultInputs: loadedDefaultInputs.length,
-        promptsDetails: loadedPrompts,
-        modelsDetails: loadedModels
-      });
-      
+
       setPrompts(loadedPrompts);
       setModels(loadedModels);
       setDefaultInputs(loadedDefaultInputs);
       
-      // 如果有配置了，重置全局通知状态
-      if (loadedPrompts.length > 0 && loadedModels.length > 0) {
-        globalNotificationShown = false;
-        setNotificationShown(false);
-      }
-      
-      // 如果没有数据，尝试初始化
-      if (loadedPrompts.length === 0 && loadedModels.length === 0) {
-        console.log('[TestingPanel] 没有数据，尝试初始化...');
-        await initializeDefaultData(loadedPrompts, loadedModels, userId);
-      }
+      console.log('[TestingPanel] 🎯 SQLite数据加载完成:', {
+        prompts: loadedPrompts.length,
+        models: loadedModels.length,
+        apiConfigs: loadedModels.length,
+        defaultInputs: loadedDefaultInputs.length
+      });
       
     } catch (error) {
-      console.error('[TestingPanel] 加载数据失败:', error);
-      message.error('加载数据失败，请检查存储状态');
+      console.error('[TestingPanel] ❌ SQLite数据加载失败:', error);
+      throw error;
     } finally {
       setDataLoading(false);
     }

@@ -7,7 +7,8 @@ import {
   message,
   Modal,
   Alert,
-  Typography
+  Typography,
+  Checkbox
 } from 'antd';
 import {
   UserOutlined,
@@ -26,6 +27,7 @@ const { Text } = Typography;
 interface LoginForm {
   username: string;
   password: string;
+  rememberMe?: boolean;
 }
 
 interface RegisterForm {
@@ -58,31 +60,44 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
   }, [defaultTab, visible, inline]);
 
   const handleLogin = async () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     try {
       setLoading(true);
-      const values = await loginForm.validateFields();
-      
-      console.log('[UserAuth] 尝试登录:', values.username);
-      const session = storageAdapter.login(values.username, values.password);
-      if (session) {
-        console.log('[UserAuth] 登录成功:', session.user.username);
-        message.success(t('auth.loginSuccess'));
-        onLogin(session.user);
-        onClose?.();
-        loginForm.resetFields();
-      } else {
-        console.log('[UserAuth] 登录失败: 用户名或密码错误');
-        message.error(t('auth.loginFailed'));
+      const { username, password } = loginForm.getFieldsValue();
+      // 新增：区分用户不存在和密码错误
+      const result = await storageAdapter.loginWithDetail(username, password);
+      if (result.error === 'not_found') {
+        message.error('用户不存在');
+        setLoading(false);
+        return;
       }
+      if (result.error === 'wrong_password') {
+        message.error('密码错误');
+        setLoading(false);
+        return;
+      }
+      if (!result.session) {
+        message.error('登录失败');
+        setLoading(false);
+        return;
+      }
+      // 登录成功
+      onLogin(result.session.user);
     } catch (error) {
-      console.error('[UserAuth] 登录失败:', error);
-      message.error(t('auth.loginError'));
+      message.error('登录失败');
     } finally {
       setLoading(false);
     }
   };
 
   const handleRegister = async () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     try {
       setLoading(true);
       const values = await registerForm.validateFields();
@@ -101,10 +116,10 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
         username: values.username,
         email: values.email,
         role: 'user', // 默认角色为普通用户
-      });
+      }, values.password); // 直接传递密码
 
-      // 存储密码
-      await storageAdapter.storeUserPassword(user.id, values.password);
+      // 等待 500ms，确保密码写入和数据库持久化完成
+      await new Promise(resolve => setTimeout(resolve, 500));
 
       console.log('[UserAuth] 注册成功，尝试自动登录');
       // 自动登录
@@ -150,159 +165,169 @@ const UserAuth: React.FC<UserAuthProps> = ({ visible = true, onClose, onLogin, d
         onChange={handleTabChange} 
         centered
         size="small"
-      >
-        <TabPane
-          tab={
-            <span className="text-sm">
-              <LoginOutlined />
-              {t('auth.login')}
-            </span>
-          }
-          key="login"
-        >
-          <Form
-            form={loginForm}
-            layout="vertical"
-            onFinish={handleLogin}
-            size="middle"
-          >
-            <Form.Item
-              name="username"
-              label={t('auth.username')}
-              rules={[{ required: true, message: t('auth.usernameRequired') }]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                prefix={<UserOutlined className="text-gray-400" />}
-                placeholder={t('auth.usernamePlaceholder')}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="password"
-              label={t('auth.password')}
-              rules={[{ required: true, message: t('auth.passwordRequired') }]}
-              style={{ marginBottom: 20 }}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="text-gray-400" />}
-                placeholder={t('auth.passwordPlaceholder')}
-              />
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 0 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-                className="bg-blue-500 hover:bg-blue-600 h-10"
+        items={[
+          {
+            key: 'login',
+            label: (
+              <span className="text-sm">
+                <LoginOutlined />
+                {t('auth.login')}
+              </span>
+            ),
+            children: (
+              <Form
+                form={loginForm}
+                layout="vertical"
+                onFinish={handleLogin}
+                size="middle"
               >
-                {t('auth.loginNow')}
-              </Button>
-            </Form.Item>
-          </Form>
-        </TabPane>
+                <Form.Item
+                  name="username"
+                  label={t('auth.username')}
+                  rules={[{ required: true, message: t('auth.usernameRequired') }]}
+                  style={{ marginBottom: 16 }}
+                >
+                  <Input
+                    prefix={<UserOutlined className="text-gray-400" />}
+                    placeholder={t('auth.usernamePlaceholder')}
+                  />
+                </Form.Item>
 
-        <TabPane
-          tab={
-            <span className="text-sm">
-              <UserAddOutlined />
-              {t('auth.register')}
-            </span>
-          }
-          key="register"
-        >
-          <Form
-            form={registerForm}
-            layout="vertical"
-            onFinish={handleRegister}
-            size="middle"
-          >
-            <Form.Item
-              name="username"
-              label={t('auth.username')}
-              rules={[
-                { required: true, message: t('auth.usernameRequired') },
-                { min: 3, message: t('auth.usernameMinLength') },
-                { max: 20, message: t('auth.usernameMaxLength') },
-                { pattern: /^[a-zA-Z0-9_-]+$/, message: t('auth.usernamePattern') },
-              ]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                prefix={<UserOutlined className="text-gray-400" />}
-                placeholder={t('auth.usernamePlaceholder')}
-              />
-            </Form.Item>
+                <Form.Item
+                  name="password"
+                  label={t('auth.password')}
+                  rules={[{ required: true, message: t('auth.passwordRequired') }]}
+                  style={{ marginBottom: 20 }}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className="text-gray-400" />}
+                    placeholder={t('auth.passwordPlaceholder')}
+                  />
+                </Form.Item>
 
-            <Form.Item
-              name="email"
-              label={t('auth.email')}
-              rules={[
-                { required: true, message: t('auth.emailRequired') },
-                { type: 'email', message: t('auth.emailValid') },
-              ]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input
-                prefix={<MailOutlined className="text-gray-400" />}
-                placeholder={t('auth.emailPlaceholder')}
-              />
-            </Form.Item>
+                <Form.Item
+                  name="rememberMe"
+                  valuePropName="checked"
+                  style={{ marginBottom: 16 }}
+                >
+                  <Checkbox>{t('auth.rememberMe')}</Checkbox>
+                </Form.Item>
 
-            <Form.Item
-              name="password"
-              label={t('auth.password')}
-              rules={[
-                { required: true, message: t('auth.passwordRequired') },
-                { min: 6, message: t('auth.passwordMinLength') },
-              ]}
-              style={{ marginBottom: 16 }}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="text-gray-400" />}
-                placeholder={t('auth.passwordPlaceholder')}
-              />
-            </Form.Item>
-
-            <Form.Item
-              name="confirmPassword"
-              label={t('auth.confirmPassword')}
-              dependencies={['password']}
-              rules={[
-                { required: true, message: t('auth.confirmPasswordRequired') },
-                ({ getFieldValue }) => ({
-                  validator(_, value) {
-                    if (!value || getFieldValue('password') === value) {
-                      return Promise.resolve();
-                    }
-                    return Promise.reject(new Error(t('auth.passwordMismatch')));
-                  },
-                }),
-              ]}
-              style={{ marginBottom: 20 }}
-            >
-              <Input.Password
-                prefix={<LockOutlined className="text-gray-400" />}
-                placeholder={t('auth.confirmPasswordPlaceholder')}
-              />
-            </Form.Item>
-
-            <Form.Item style={{ marginBottom: 0 }}>
-              <Button
-                type="primary"
-                htmlType="submit"
-                loading={loading}
-                block
-                className="bg-green-500 hover:bg-green-600 h-10"
+                <Form.Item style={{ marginBottom: 0 }}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    block
+                    className="bg-blue-500 hover:bg-blue-600 h-10"
+                  >
+                    {t('auth.loginNow')}
+                  </Button>
+                </Form.Item>
+              </Form>
+            )
+          },
+          {
+            key: 'register',
+            label: (
+              <span className="text-sm">
+                <UserAddOutlined />
+                {t('auth.register')}
+              </span>
+            ),
+            children: (
+              <Form
+                form={registerForm}
+                layout="vertical"
+                onFinish={handleRegister}
+                size="middle"
               >
-                {t('auth.registerNow')}
-              </Button>
-            </Form.Item>
-          </Form>
-        </TabPane>
-      </Tabs>
+                <Form.Item
+                  name="username"
+                  label={t('auth.username')}
+                  rules={[
+                    { required: true, message: t('auth.usernameRequired') },
+                    { min: 3, message: t('auth.usernameMinLength') },
+                    { max: 20, message: t('auth.usernameMaxLength') },
+                    { pattern: /^[a-zA-Z0-9_-]+$/, message: t('auth.usernamePattern') },
+                  ]}
+                  style={{ marginBottom: 16 }}
+                >
+                  <Input
+                    prefix={<UserOutlined className="text-gray-400" />}
+                    placeholder={t('auth.usernamePlaceholder')}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="email"
+                  label={t('auth.email')}
+                  rules={[
+                    { required: true, message: t('auth.emailRequired') },
+                    { type: 'email', message: t('auth.emailValid') },
+                  ]}
+                  style={{ marginBottom: 16 }}
+                >
+                  <Input
+                    prefix={<MailOutlined className="text-gray-400" />}
+                    placeholder={t('auth.emailPlaceholder')}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="password"
+                  label={t('auth.password')}
+                  rules={[
+                    { required: true, message: t('auth.passwordRequired') },
+                    { min: 6, message: t('auth.passwordMinLength') },
+                  ]}
+                  style={{ marginBottom: 16 }}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className="text-gray-400" />}
+                    placeholder={t('auth.passwordPlaceholder')}
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  name="confirmPassword"
+                  label={t('auth.confirmPassword')}
+                  dependencies={['password']}
+                  rules={[
+                    { required: true, message: t('auth.confirmPasswordRequired') },
+                    ({ getFieldValue }) => ({
+                      validator(_, value) {
+                        if (!value || getFieldValue('password') === value) {
+                          return Promise.resolve();
+                        }
+                        return Promise.reject(new Error(t('auth.passwordMismatch')));
+                      },
+                    }),
+                  ]}
+                  style={{ marginBottom: 20 }}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined className="text-gray-400" />}
+                    placeholder={t('auth.confirmPasswordPlaceholder')}
+                  />
+                </Form.Item>
+
+                <Form.Item style={{ marginBottom: 0 }}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={loading}
+                    block
+                    className="bg-green-500 hover:bg-green-600 h-10"
+                  >
+                    {t('auth.registerNow')}
+                  </Button>
+                </Form.Item>
+              </Form>
+            )
+          }
+        ]}
+      />
     </div>
   );
 

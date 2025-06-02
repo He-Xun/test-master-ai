@@ -470,6 +470,7 @@
     "selectApiConfig": "选择API配置"
   },
   "admin": {
+    "confirmPassword": "确认密码",
     "title": "用户管理面板",
     "subtitle": "管理系统用户、权限和安全设置",
     "superAdminPanel": "超级管理员面板",

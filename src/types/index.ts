@@ -125,6 +125,7 @@ export interface DefaultTestInput {
   content: string;
   category: string;
   createdAt: string;
+  updatedAt: string;
 }
 
 // 用户角色类型

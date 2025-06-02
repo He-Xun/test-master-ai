@@ -4,6 +4,7 @@ import { Card, Button, Typography, Space, Collapse, Tag, Alert } from 'antd';
 import { ReloadOutlined, BugOutlined, InfoCircleOutlined, DatabaseOutlined } from '@ant-design/icons';
 import { promptStorage, apiConfigStorage, defaultTestInputStorage } from '../utils/storage-simple';
 import { storageAdapter } from '../utils/storage-adapter';
+import StorageStatusCard from './StorageStatusCard';
 
 const { Text, Paragraph } = Typography;
 const { Panel } = Collapse;
@@ -61,6 +62,9 @@ const DebugPanel: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* 存储系统状态 */}
+      <StorageStatusCard />
 
       {/* 数据统计 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

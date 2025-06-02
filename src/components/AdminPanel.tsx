@@ -101,6 +101,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // 创建用户
   const handleCreateUser = () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     setCurrentEditUser(null);
     form.resetFields();
     setEditModalVisible(true);
@@ -132,6 +136,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // 删除用户
   const handleDeleteUser = async (user: User) => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     try {
       const success = await storageAdapter.deleteUser(user.id, currentUser.id);
       if (success) {
@@ -148,6 +156,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // 批量删除用户
   const handleBatchDelete = () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     if (selectedRowKeys.length === 0) {
       message.warning(t('admin.selectUsersFirst'));
       return;
@@ -204,6 +216,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // 批量重置密码
   const handleBatchResetPassword = () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     if (selectedRowKeys.length === 0) {
       message.warning(t('admin.selectUsersForPassword'));
       return;
@@ -214,6 +230,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
 
   // 提交用户表单
   const handleSubmitUser = async () => {
+    if (!storageAdapter.getStorageInfo().sqliteEnabled) {
+      message.warning('系统正在初始化数据库，请稍后再试');
+      return;
+    }
     try {
       const values = await form.validateFields();
       
@@ -237,12 +257,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
           username: values.username,
           email: values.email,
           role: values.role,
-        });
-        
-        // 设置密码
-        if (values.password) {
-          await storageAdapter.storeUserPassword(newUser.id, values.password);
-        }
+        }, values.password);
         
         message.success(t('admin.userCreateSuccess'));
         setEditModalVisible(false);

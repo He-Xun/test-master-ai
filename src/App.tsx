@@ -164,6 +164,10 @@ const AppLayout: React.FC = () => {
   const [authDefaultTab, setAuthDefaultTab] = useState<'login' | 'register'>('login');
   const [dataLoading, setDataLoading] = useState(true);
   const [isInitialized, setIsInitialized] = useState(false);
+  // 新增：全局迁移进度
+  const [migrationProgress, setMigrationProgress] = useState(0);
+  const [migrationStatus, setMigrationStatus] = useState('');
+  const [migrationDone, setMigrationDone] = useState(false);
   
   // 配置暂存相关
   const { hasDraft, restoreDraft, clearDraft } = useConfigDraft();
@@ -180,79 +184,82 @@ const AppLayout: React.FC = () => {
     return 'testing';
   };
 
-  // 初始化存储适配器
+  // 初始化存储适配器和数据迁移
   useEffect(() => {
     const initializeStorage = async () => {
       try {
-        await storageAdapter.initialize();
-        console.log('[App] 存储系统初始化完成');
-        
-        // 初始化超级管理员账户
-        try {
-          await storageAdapter.createSuperAdmin();
-          console.log('[App] 超级管理员账户初始化完成');
-        } catch (error) {
-          console.error('[App] 超级管理员初始化失败:', error);
+        setMigrationStatus('正在初始化存储系统...');
+        setMigrationProgress(10);
+        // 浏览器环境下强制串行SQLite初始化和迁移
+        if (storageAdapter.getStorageInfo().environment === 'browser') {
+          setMigrationStatus('正在初始化SQLite...');
+          setMigrationProgress(20);
+          await storageAdapter.forceEnableSQLiteAndMigrate?.();
+          setMigrationStatus('SQLite初始化和数据迁移完成');
+          setMigrationProgress(80);
+        } else {
+          await storageAdapter.initialize();
         }
-        
-        // 开发环境下添加调试工具
-        if (process.env.NODE_ENV === 'development') {
-          console.log('[App] 开发模式已启用超级管理员调试工具');
-          console.log('使用 debugSuperAdmin() 检查超级管理员状态');
-          console.log('使用 resetSuperAdminPassword() 重置超级管理员密码');
-          
-          // 自动执行一次检查
-          setTimeout(() => {
-            AdminDebugger.checkSuperAdminStatus();
-          }, 2000);
-        }
-        
+        setMigrationStatus('正在加载用户数据...');
+        setMigrationProgress(90);
+        await storageAdapter.getPrompts?.();
+        setMigrationProgress(100);
+        setMigrationStatus('初始化完成');
+        setTimeout(() => setMigrationDone(true), 300);
         setIsInitialized(true);
+        setDataLoading(false);
+        console.log('[App] ✅ 存储系统初始化和数据迁移完成');
       } catch (error) {
-        console.error('[App] 存储系统初始化失败:', error);
-        setIsInitialized(true); // 即使失败也标记为初始化完成
+        setMigrationStatus('初始化失败');
+        setMigrationProgress(100);
+        setMigrationDone(true);
+        setIsInitialized(true);
+        setDataLoading(false);
+        console.error('[App] ❌ 应用初始化失败:', error);
       }
     };
-
     initializeStorage();
   }, []);
 
-  // 检查用户登录状态 - 只在初始化完成后执行一次
+  // 检查用户会话（独立于存储初始化）
   useEffect(() => {
     if (!isInitialized) return;
 
-    const checkUserSession = () => {
+    const tryAutoLogin = () => {
       try {
-        console.log('[App] 开始检查用户会话状态');
-        if (storageAdapter.isSessionValid()) {
-          const session = storageAdapter.getCurrentSession();
-          if (session) {
-            console.log('[App] 用户已登录:', session.user.username);
-            setCurrentUser(session.user);
-            
-            // 超级管理员且当前不在管理面板，自动跳转
-            if (storageAdapter.isSuperAdmin(session.user) && location.pathname !== '/admin') {
-              console.log('[App] 超级管理员会话恢复，跳转到管理面板');
-              navigate('/admin');
+        const rememberMe = localStorage.getItem('rememberMe') === 'true';
+        const userId = localStorage.getItem('rememberUserId');
+        const token = localStorage.getItem('rememberToken');
+        if (rememberMe && userId && token) {
+          // 直接用userId查找用户并恢复session
+          storageAdapter.getUserById(userId).then(user => {
+            if (user) {
+              setCurrentUser(user);
+              console.log('[App] 记住我自动登录:', user.username);
+            } else {
+              setCurrentUser(null);
             }
-          } else {
-            console.log('[App] 会话无效，无用户信息');
-            setCurrentUser(null);
-          }
-        } else {
-          console.log('[App] 用户会话无效或未登录');
-          setCurrentUser(null);
+          });
+          return;
         }
-      } catch (error) {
-        console.error('[App] 检查用户会话失败:', error);
+      } catch (e) {}
+      // 正常session恢复
+      const session = storageAdapter.getCurrentSession();
+      if (session && storageAdapter.isSessionValid()) {
+        setCurrentUser(session.user);
+        console.log('[App] 用户已登录:', session.user.username);
+      } else {
         setCurrentUser(null);
-      } finally {
-        setDataLoading(false);
+        console.log('[App] 用户未登录或会话已过期');
       }
     };
 
-    checkUserSession();
-  }, [isInitialized, navigate, location.pathname]); // 添加必要的依赖
+    // 立即检查会话
+    tryAutoLogin();
+    // 定期检查会话状态
+    const sessionCheckInterval = setInterval(tryAutoLogin, 60000);
+    return () => clearInterval(sessionCheckInterval);
+  }, [isInitialized]);
 
   // 检查配置暂存并提示恢复
   useEffect(() => {
@@ -386,15 +393,26 @@ const AppLayout: React.FC = () => {
     return t('app.title');
   };
 
-  // 如果正在加载，显示加载界面
-  if (dataLoading) {
+  // 全局进度条提示
+  if (!migrationDone) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
           <div className="w-16 h-16 bg-blue-500 rounded-lg flex items-center justify-center mx-auto mb-4">
             <RocketOutlined className="text-white text-2xl" />
           </div>
-          <Text className="text-lg text-gray-600">{t('common.loading')}</Text>
+          <Text className="text-lg text-gray-600 mb-2 block">{migrationStatus || t('common.loading')}</Text>
+          <div style={{ width: 320, margin: '0 auto' }}>
+            <div className="w-full mt-2">
+              <div className="h-3 bg-gray-200 rounded-full overflow-hidden">
+                <div
+                  className="bg-blue-500 h-3 rounded-full transition-all duration-300"
+                  style={{ width: `${migrationProgress}%` }}
+                ></div>
+              </div>
+              <div className="text-xs text-gray-500 mt-1 text-right">{migrationProgress}%</div>
+            </div>
+          </div>
         </div>
       </div>
     );

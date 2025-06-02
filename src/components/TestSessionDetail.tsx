@@ -66,20 +66,9 @@ const TestSessionDetail: React.FC = () => {
   // 加载测试记录详情
   const loadSessionDetail = async () => {
     if (!sessionId) return;
-    
     setLoading(true);
     try {
-      // 如果是临时会话，从localStorage获取
-      if (sessionId.startsWith('temp-')) {
-        const tempSession = localStorage.getItem('temp_session_detail');
-        if (tempSession) {
-          const parsedSession: TestSessionHistory = JSON.parse(tempSession);
-          setSession(parsedSession);
-          return;
-        }
-      }
-      
-      // 从历史记录中获取
+      // 只通过storageAdapter查找所有会话
       const allHistory = await storageAdapter.getTestSessionHistory(1000);
       const targetSession = allHistory.find(h => h.id === sessionId);
       if (targetSession) {
