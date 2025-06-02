@@ -95,7 +95,8 @@
       "!**/{appveyor.yml,.travis.yml,circle.yml}",
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
       "!**/node_modules/playwright/**/*",
-      "!**/node_modules/puppeteer/**/*"
+      "!**/node_modules/puppeteer/**/*",
+      "dev-management/working-notes/fix-gatekeeper.sh"
     ],
     "asarUnpack": [
       "build/**/*"
@@ -165,6 +166,12 @@
           "y": 150,
           "type": "link",
           "path": "/Applications"
+        },
+        {
+          "x": 150,
+          "y": 300,
+          "type": "file",
+          "path": "dev-management/working-notes/fix-gatekeeper.sh"
         }
       ]
     }
