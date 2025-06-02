@@ -19,7 +19,10 @@
     "admin:reset": "node tools/reset-superadmin.js",
     "test:build": "node scripts/test-build.js",
     "generate:icons": "node scripts/generate-icons.js",
-    "optimize:build": "node scripts/optimize-build.js"
+    "optimize:build": "node scripts/optimize-build.js",
+    "release:tag": "node -e \"const v=require('./package.json').version;require('child_process').execSync('git tag v'+v+' && git push --tags',{stdio:'inherit'})\"",
+    "release:version": "npm run version:prompt && npm run release:tag",
+    "version:prompt": "npx standard-version --release-as prompt"
   },
   "keywords": [
     "api-testing",
