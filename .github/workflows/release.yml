@@ -64,7 +64,7 @@ jobs:
         run: |
           echo "安装完整依赖用于构建（Windows）..."
           date
-          npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5
+          npm install --prefer-offline --no-audit --progress=false --no-fund --ignore-scripts --loglevel=error --fetch-retries=5 --legacy-peer-deps
           date
         env:
           npm_config_timeout: 900000
