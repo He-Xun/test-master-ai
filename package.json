@@ -22,7 +22,11 @@
     "optimize:build": "node scripts/optimize-build.js",
     "release:tag": "node -e \"const v=require('./package.json').version;require('child_process').execSync('git tag v'+v+' && git push --tags',{stdio:'inherit'})\"",
     "release:version": "npm run version:prompt && npm run release:tag",
-    "version:prompt": "npx standard-version --release-as prompt"
+    "version:prompt": "npx standard-version --release-as prompt",
+    "dist:win:x64": "electron-builder --win --x64 --dir",
+    "dist:mac:x64": "electron-builder --mac --x64 --dir",
+    "dist:mac:arm64": "electron-builder --mac --arm64 --dir",
+    "dist:mac:universal": "electron-builder --mac --universal --dir"
   },
   "keywords": [
     "api-testing",
