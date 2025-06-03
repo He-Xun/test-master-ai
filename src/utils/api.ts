@@ -274,22 +274,20 @@ export const fetchAvailableModels = async (config: ApiConfig): Promise<Array<{id
   }
 
   try {
-    // 判断是否使用代理
-    const useProxy = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1');
+    // 判断是否开发环境
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     let requestUrl: string;
-    
-    if (useProxy && config.baseUrl.includes('yunwu.ai')) {
-      // 开发环境且是yunwu.ai的请求，使用代理
-      requestUrl = '/api-proxy/v1/models';
-      console.log('🔍 [API调试] 使用代理模式');
+    let base = config.baseUrl.replace(/\/$/, '');
+    if (isDev) {
+      // 走本地万能代理
+      requestUrl = `/proxy/${encodeURIComponent(base)}/models`;
     } else {
-      // 构建直连URL
-      if (config.baseUrl.includes('/v1')) {
-        requestUrl = `${config.baseUrl.replace(/\/$/, '')}/models`;
+      // 生产环境直连
+      if (base.endsWith('/v1')) {
+        requestUrl = `${base}/models`;
       } else {
-        requestUrl = `${config.baseUrl.replace(/\/$/, '')}/v1/models`;
+        requestUrl = `${base}/v1/models`;
       }
-      console.log('🔍 [API调试] 使用直连模式');
     }
     
     console.log('🔍 [API调试] 开始获取模型列表');

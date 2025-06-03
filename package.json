@@ -1,6 +1,6 @@
 {
   "name": "test-master-ai",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "private": true,
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
   "main": "dist/main.js",
@@ -62,7 +62,10 @@
     "antd": "^5.8.0",
     "axios": "^1.5.0",
     "better-sqlite3": "^11.10.0",
+    "cors": "^2.8.5",
     "electron-store": "^8.1.0",
+    "express": "^5.1.0",
+    "http-proxy-middleware": "^3.0.5",
     "i18next": "^25.2.1",
     "i18next-browser-languagedetector": "^8.1.0",
     "react": "^18.2.0",

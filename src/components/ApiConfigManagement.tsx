@@ -656,30 +656,52 @@ const ApiConfigManagement: React.FC = () => {
                       <Input placeholder={t('api.pleaseEnterConfigName')} size="large" />
                     </Form.Item>
                     <Form.Item
-                      name="requestMode"
-                      label={t('api.requestMode')}
-                      rules={[{ required: true, message: t('api.pleaseSelectRequestMode') }]}
+                      noStyle
+                      shouldUpdate={(prevValues, currentValues) => 
+                        prevValues.requestMode !== currentValues.requestMode
+                      }
                     >
-                      <Radio.Group size="large">
-                        <Radio.Button value="url">
-                          <Space>
-                            <LinkOutlined />
-                            {t('api.urlDirectRequest')}
-                            <Tooltip title={t('api.urlDirectRequestTooltip')}>
-                              <InfoCircleOutlined />
-                            </Tooltip>
-                          </Space>
-                        </Radio.Button>
-                        <Radio.Button value="api">
-                          <Space>
-                            <ApiOutlined />
-                            {t('api.apiInterface')}
-                            <Tooltip title={t('api.apiInterfaceTooltip')}>
-                              <InfoCircleOutlined />
-                            </Tooltip>
-                          </Space>
-                        </Radio.Button>
-                      </Radio.Group>
+                      {({ getFieldValue }) => {
+                        const requestMode = getFieldValue('requestMode');
+                        
+                        if (requestMode === 'url') {
+                          return (
+                            <Form.Item
+                              name="directUrl"
+                              label={t('api.requestUrl')}
+                              rules={[
+                                { required: true, message: t('api.pleaseEnterRequestUrl') },
+                                { type: 'url', message: t('api.pleaseEnterValidUrl') },
+                              ]}
+                            >
+                              <Input placeholder="http://127.0.0.1:8008/req" size="large" />
+                            </Form.Item>
+                          );
+                        } else if (requestMode === 'api') {
+                          return (
+                            <>
+                              <Form.Item
+                                name="baseUrl"
+                                label={t('api.baseUrl')}
+                                rules={[
+                                  { required: true, message: t('api.pleaseEnterBaseUrl') },
+                                  { type: 'url', message: t('api.pleaseEnterValidUrl') },
+                                ]}
+                              >
+                                <Input placeholder="https://api.openai.com/v1" size="large" />
+                              </Form.Item>
+                              <Form.Item
+                                name="apiKey"
+                                label={t('api.apiKey')}
+                                rules={[{ required: true, message: t('api.pleaseEnterApiKey') }]}
+                              >
+                                <Input.Password placeholder={t('api.pleaseEnterApiKey')} size="large" visibilityToggle />
+                              </Form.Item>
+                            </>
+                          );
+                        }
+                        return null;
+                      }}
                     </Form.Item>
                   </div>
                 )
