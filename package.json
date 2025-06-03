@@ -99,7 +99,8 @@
       "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
       "!**/node_modules/playwright/**/*",
       "!**/node_modules/puppeteer/**/*",
-      "dev-management/working-notes/fix-gatekeeper.sh"
+      "dev-management/working-notes/fix-gatekeeper.sh",
+      "node_modules/electron/dist/ffmpeg.dll"
     ],
     "asarUnpack": [],
     "mac": {
