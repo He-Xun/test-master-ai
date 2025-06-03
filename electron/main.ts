@@ -24,6 +24,8 @@ function createWindow(): void {
       webSecurity: true,
       // 确保localStorage可以正常工作
       partition: 'persist:main',
+      preload: path.join(process.resourcesPath, 'app.asar.unpacked', 'electron', 'preload.js'),
+      additionalArguments: [`--resourcesPath=${process.resourcesPath}`],
     },
     icon: path.join(__dirname, '../public/favicon.ico'),
     show: false,

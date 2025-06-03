@@ -1,6 +1,6 @@
 {
   "name": "test-master-ai",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "private": true,
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
   "main": "dist/main.js",
@@ -52,7 +52,7 @@
     "babel-plugin-transform-remove-console": "^6.9.4",
     "concurrently": "^8.2.0",
     "electron": "^25.0.0",
-    "electron-builder": "^24.0.0",
+    "electron-builder": "^26.0.12",
     "playwright": "^1.52.0",
     "postcss": "^8.5.4",
     "puppeteer": "^24.9.0",
@@ -91,27 +91,18 @@
     "compression": "store",
     "files": [
       "dist/**/*",
-      "dist/main.js",
-      "node_modules/**/*",
-      "node_modules/sql.js/dist/sql-wasm.wasm",
-      "!node_modules/.cache",
-      "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
-      "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
-      "!**/node_modules/*.d.ts",
-      "!**/node_modules/.bin",
-      "!**/*.{iml,o,hprof,orig,pyc,pyo,rbc,swp,csproj,sln,xproj}",
-      "!.editorconfig",
-      "!**/._*",
-      "!**/{.DS_Store,.git,.hg,.svn,CVS,RCS,SCCS,.gitignore,.gitattributes}",
-      "!**/{__pycache__,thumbs.db,.flowconfig,.idea,.vs,.nyc_output}",
-      "!**/{appveyor.yml,.travis.yml,circle.yml}",
-      "!**/{npm-debug.log,yarn.lock,.yarn-integrity,.yarn-metadata.json}",
-      "!**/node_modules/playwright/**/*",
-      "!**/node_modules/puppeteer/**/*",
-      "dev-management/working-notes/fix-gatekeeper.sh",
-      "node_modules/electron/dist/ffmpeg.dll"
+      "electron/**/*",
+      "node_modules/**/*"
     ],
-    "asarUnpack": [],
+    "extraResources": [
+      {
+        "from": "dist/sql-wasm.wasm",
+        "to": "sql-wasm.wasm"
+      }
+    ],
+    "asarUnpack": [
+      "electron/preload.js"
+    ],
     "mac": {
       "category": "public.app-category.developer-tools",
       "icon": "electron/icon.icns",

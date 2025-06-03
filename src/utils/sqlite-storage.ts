@@ -87,7 +87,26 @@ class SQLiteStorage {
       if (sqljs.default) {
         this.SQL = await sqljs.default({
           locateFile: (file: string) => {
-            // 让 Electron 渲染进程通过 public 目录访问 wasm 文件
+            // 优先使用 preload 注入的 wasmHelper
+            if (typeof window !== 'undefined' && (window as any).wasmHelper && typeof (window as any).wasmHelper.getWasmPath === 'function') {
+              const url = (window as any).wasmHelper.getWasmPath(file);
+              console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, url);
+              return url;
+            }
+            // 彻底兼容 Electron 打包环境，优先用 process.resourcesPath
+            if (typeof process !== 'undefined' && process.versions && process.versions.electron) {
+              try {
+                const path = require('path');
+                const wasmPath = path.join((process as any).resourcesPath, 'public', file);
+                const url = `file://${wasmPath}`;
+                console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, url);
+                return url;
+              } catch (e) {
+                console.warn('[SQLite] Electron wasm 路径自动适配失败，回退 /sql-wasm.wasm', e);
+                return `/sql-wasm.wasm`;
+              }
+            }
+            // 浏览器或 dev server
             const publicPath = `/sql-wasm.wasm`;
             console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, publicPath);
             return publicPath;
