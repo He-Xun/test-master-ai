@@ -172,8 +172,7 @@
           "x": 150,
           "y": 300,
           "type": "file",
-          "path": "dev-management/working-notes/fix-gatekeeper.sh",
-          "label": "解除安全限制\nCtrl+点击 → 终端打开"
+          "path": "dev-management/working-notes/解除安全限制-请Ctrl点击终端打开.sh"
         }
       ]
     }
