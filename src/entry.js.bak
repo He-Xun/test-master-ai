@@ -1,0 +1,2 @@
+console.log('VITE ENTRY JS WORKS');
+document.getElementById('root').innerHTML = '<h1>Hello Vite JS</h1>'; 

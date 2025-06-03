@@ -46,12 +46,16 @@ function createWindow(): void {
     let indexPath: string;
     
     if (app.isPackaged) {
-      // 打包后的路径
-      indexPath = path.join(process.resourcesPath, 'app.asar.unpacked', 'build', 'index.html');
-        } else {
-      // 开发构建的路径
-      indexPath = path.join(__dirname, '..', 'build', 'index.html');
+      // 检查环境变量是否强制打开DevTools
+      if (process.env.OPEN_DEVTOOLS === 'true') {
+        mainWindow.webContents.openDevTools();
       }
+      // 打包后的路径
+      indexPath = path.join(process.resourcesPath, 'app.asar', 'dist', 'index.html');
+    } else {
+      // 开发构建的路径
+      indexPath = path.join(__dirname, '..', 'dist', 'index.html');
+    }
     
     console.log('尝试加载文件:', indexPath);
     
@@ -180,4 +184,10 @@ const template: Electron.MenuItemConstructorOptions[] = [
 ];
 
 const menu = Menu.buildFromTemplate(template);
-Menu.setApplicationMenu(menu); 
+Menu.setApplicationMenu(menu);
+
+if (process.env.NODE_ENV === 'development') {
+  // 只在开发环境加载dotenv
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  require('dotenv').config({ path: path.resolve(__dirname, '../.env') });
+} 
