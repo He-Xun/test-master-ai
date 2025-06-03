@@ -55,6 +55,7 @@
     "sql.js": "^1.13.0",
     "typescript": "^5.0.0",
     "vite": "^6.3.5",
+    "vite-plugin-static-copy": "^3.0.0",
     "wait-on": "^7.0.0"
   },
   "dependencies": {
@@ -88,6 +89,7 @@
       "dist/**/*",
       "dist/main.js",
       "node_modules/**/*",
+      "node_modules/sql.js/dist/sql-wasm.wasm",
       "!node_modules/.cache",
       "!**/node_modules/*/{CHANGELOG.md,README.md,README,readme.md,readme}",
       "!**/node_modules/*/{test,__tests__,tests,powered-test,example,examples}",
