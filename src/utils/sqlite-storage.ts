@@ -87,10 +87,10 @@ class SQLiteStorage {
       if (sqljs.default) {
         this.SQL = await sqljs.default({
           locateFile: (file: string) => {
-            // Electron中的本地路径
-            const electronPath = `./node_modules/sql.js/dist/${file}`;
-            console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, electronPath);
-            return electronPath;
+            // 让 Electron 渲染进程通过 public 目录访问 wasm 文件
+            const publicPath = `/sql-wasm.wasm`;
+            console.log(`[SQLite] 🖥️ Electron环境定位文件 ${file} 到:`, publicPath);
+            return publicPath;
           }
         });
         console.log('[SQLite] ✅ Electron原生sql.js加载成功');
@@ -147,7 +147,7 @@ class SQLiteStorage {
         throw new Error('CDN加载超时，initSqlJs未在全局作用域中找到');
       }
       
-    } catch (cdnError) {
+    } catch (cdnError: any) {
       console.log('[SQLite] ❌ CDN加载失败，尝试npm包方式:', cdnError);
       
       try {
@@ -155,7 +155,7 @@ class SQLiteStorage {
         const sqljs = await import('sql.js');
         initSqlJs = sqljs.default || sqljs;
         console.log('[SQLite] ✅ npm包方式加载成功');
-      } catch (npmError) {
+      } catch (npmError: any) {
         console.error('[SQLite] ❌ 所有加载方式都失败:', npmError);
         throw new Error(`SQL.js加载失败: CDN(${cdnError.message}) 和 NPM(${npmError.message})`);
       }
