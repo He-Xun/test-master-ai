@@ -392,6 +392,11 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && github.event.inputs.release_type == 'official')
     steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Download macOS Artifacts
         uses: actions/download-artifact@v4
         with:
@@ -456,7 +461,7 @@ jobs:
           tag_name: ${{ steps.package-version.outputs.tag }}
           name: "v${{ steps.package-version.outputs.version }} 正式版"
           body: |
-            # 💯 TestMaster AI v${{ steps.package-version.outputs.version }} 正式发布
+            TestMaster AI v${{ steps.package-version.outputs.version }} 正式发布
             
             📅 发布日期: ${{ steps.package-version.outputs.datetime }}
             
