@@ -345,6 +345,14 @@ jobs:
         run: |
           if (Test-Path "release\win-unpacked\ffmpeg.dll") { Write-Host "✅ ffmpeg.dll found in release/win-unpacked" } else { Write-Host "❌ ffmpeg.dll NOT found in release/win-unpacked" }
 
+      - name: Copy sql-wasm.wasm to public (Unix)
+        if: runner.os != 'Windows'
+        run: cp node_modules/sql.js/dist/sql-wasm.wasm public/sql-wasm.wasm
+
+      - name: Copy sql-wasm.wasm to public (Windows)
+        if: runner.os == 'Windows'
+        run: copy node_modules\sql.js\dist\sql-wasm.wasm public\sql-wasm.wasm
+
   # 自动发布 - 仅在推送到main时运行或手动触发auto类型时（创建预发布版本）
   auto-release:
     needs: build
