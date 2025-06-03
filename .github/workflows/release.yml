@@ -399,7 +399,7 @@ jobs:
             > ⚠️ 这是自动构建版本，可能包含未完全测试的功能。
           files: |
             dist-artifacts/**/*.dmg
-            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
           prerelease: true
           generate_release_notes: true
@@ -447,7 +447,7 @@ jobs:
           tag_name: ${{ steps.package-version.outputs.tag }}
           files: |
             dist-artifacts/**/*.dmg
-            dist-artifacts/**/*.exe
+            dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
