@@ -51,6 +51,13 @@ jobs:
       - name: Print start time (before install)
         run: date
 
+      - name: Clean node_modules and lockfile (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          echo "清理 node_modules 和 package-lock.json，确保依赖环境干净（Windows）..."
+          if (Test-Path "node_modules") { Remove-Item -Recurse -Force "node_modules" -ErrorAction SilentlyContinue }
+          if (Test-Path "package-lock.json") { Remove-Item -Force "package-lock.json" -ErrorAction SilentlyContinue }
+
       - name: Install all dependencies (Windows)
         if: runner.os == 'Windows'
         timeout-minutes: 60
