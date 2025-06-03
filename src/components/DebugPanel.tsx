@@ -113,7 +113,7 @@ const DebugPanel: React.FC = () => {
                 </div>
               ),
               children: (
-                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all'}}>
                   {JSON.stringify(debugData.prompts, null, 2)}
                 </pre>
               ),
@@ -128,7 +128,7 @@ const DebugPanel: React.FC = () => {
                 </div>
               ),
               children: (
-                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all'}}>
                   {JSON.stringify(debugData.apiConfigs, null, 2)}
                 </pre>
               ),
@@ -153,7 +153,7 @@ const DebugPanel: React.FC = () => {
                 </div>
               ),
               children: (
-                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96">
+                <pre className="bg-gray-50 p-4 rounded text-sm overflow-auto max-h-96" style={{whiteSpace: 'pre-wrap', wordBreak: 'break-all'}}>
                   {JSON.stringify({
                     prompts: localStorage.getItem('prompts'),
                     apiConfigs: localStorage.getItem('apiConfigs'),

@@ -474,3 +474,15 @@ jobs:
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Ensure ffmpeg.dll in release
+        if: runner.os == 'Windows'
+        run: |
+          $src = "node_modules\electron\dist\ffmpeg.dll"
+          $dst = "release\win-unpacked\ffmpeg.dll"
+          if (Test-Path $src) { Copy-Item $src $dst -Force }
+          Write-Host "ffmpeg.dll copied to release"
+
+      - name: Verify ffmpeg.dll in release
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path "release\win-unpacked\ffmpeg.dll") { Write-Host "ffmpeg.dll found in release" } else { Write-Host "ffmpeg.dll NOT found in release" }

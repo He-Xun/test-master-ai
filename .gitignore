@@ -13,13 +13,6 @@ out/
 .cache/
 .parcel-cache/
 
-# 环境变量
-# .env
-# .env.local
-# .env.development.local
-# .env.test.local
-# .env.production.local
-
 # 日志
 logs
 *.log

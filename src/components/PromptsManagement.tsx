@@ -495,7 +495,12 @@ const PromptsManagement: React.FC = () => {
               { max: 100, message: t('prompts.nameMaxLength') },
             ]}
           >
-            <Input placeholder={t('prompts.promptNamePlaceholder')} size="large" />
+            <Input placeholder={t('prompts.promptNamePlaceholder')} size="large" onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                (e.target as HTMLInputElement).select();
+                e.preventDefault();
+              }
+            }} />
           </Form.Item>
 
           <Form.Item
@@ -511,6 +516,12 @@ const PromptsManagement: React.FC = () => {
               placeholder={t('prompts.promptContentPlaceholder')}
               showCount
               maxLength={5000}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                  (e.target as HTMLTextAreaElement).select();
+                  e.preventDefault();
+                }
+              }}
             />
           </Form.Item>
 
@@ -558,7 +569,12 @@ const PromptsManagement: React.FC = () => {
               { max: 100, message: t('prompts.nameMaxLength') },
             ]}
           >
-            <Input placeholder={t('prompts.templateNamePlaceholder')} size="large" />
+            <Input placeholder={t('prompts.templateNamePlaceholder')} size="large" onKeyDown={(e) => {
+              if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                (e.target as HTMLInputElement).select();
+                e.preventDefault();
+              }
+            }} />
           </Form.Item>
 
           <Form.Item
@@ -598,6 +614,12 @@ const PromptsManagement: React.FC = () => {
               placeholder={t('prompts.testContentPlaceholder')}
               showCount
               maxLength={2000}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                  (e.target as HTMLTextAreaElement).select();
+                  e.preventDefault();
+                }
+              }}
             />
           </Form.Item>
 

@@ -1529,6 +1529,12 @@ const TestingPanel: React.FC = () => {
                   rows={4}
                   className="border-0 shadow-none resize-none"
                   style={{ padding: 0 }}
+                  onKeyDown={(e) => {
+                    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                      (e.target as HTMLTextAreaElement).select();
+                      e.preventDefault();
+                    }
+                  }}
                 />
               </div>
             </div>
