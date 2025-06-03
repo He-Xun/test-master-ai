@@ -1,6 +1,6 @@
 {
   "name": "test-master-ai",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "private": true,
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
   "main": "dist/main.js",
@@ -172,7 +172,8 @@
           "x": 150,
           "y": 300,
           "type": "file",
-          "path": "dev-management/working-notes/fix-gatekeeper.sh"
+          "path": "dev-management/working-notes/fix-gatekeeper.sh",
+          "label": "解除安全限制\nCtrl+点击 → 终端打开"
         }
       ]
     }

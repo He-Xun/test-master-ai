@@ -247,7 +247,7 @@ jobs:
       - name: Build Electron app for macOS
         if: matrix.platform == 'mac'
         timeout-minutes: 45
-        run: npx electron-builder --mac --publish never
+        run: npx electron-builder --mac dmg --publish never
         env:
           CSC_IDENTITY_AUTO_DISCOVERY: false
           DEBUG: electron-builder
@@ -302,7 +302,7 @@ jobs:
           echo "=== Release directory contents ==="
           ls -la release/ || echo "Release directory not found"
           echo "=== Build artifacts ==="
-          find release/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.zip" -o -name "*.AppImage" \) -exec ls -lh {} \; || echo "No build artifacts found"
+          find release/ -type f \( -name "*.dmg" -o -name "*.exe" -o -name "*.AppImage" \) -exec ls -lh {} \; || echo "No build artifacts found"
 
       - name: List build artifacts (Windows)
         if: runner.os == 'Windows'
@@ -380,7 +380,6 @@ jobs:
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
-            dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
           prerelease: true
           generate_release_notes: true
@@ -424,7 +423,6 @@ jobs:
           files: |
             dist-artifacts/**/*.dmg
             dist-artifacts/**/*.exe
-            dist-artifacts/**/*.zip
             dist-artifacts/**/*.blockmap
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

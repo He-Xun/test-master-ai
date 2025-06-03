@@ -1,4 +1,9 @@
 #!/bin/bash
+# 操作提示：
+# 1. 在 Finder 中，按住 Ctrl 并左键点击本图标
+# 2. 选择"打开方式" > "终端"
+# 3. 按提示操作即可自动解除 Gatekeeper 限制
+
 APP_NAME="test-master-ai.app"
 APP_PATH="/Applications/$APP_NAME"
 
