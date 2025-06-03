@@ -180,13 +180,17 @@ A: 确保README、RELEASE-NOTES、PROJECT_OVERVIEW中的版本信息都已更新
 ### Q: 是否需要为每个版本创建详细的changelog？
 A: 重大版本需要，小修复版本可选
 
-## v1.0.5
-- 新增本地万能代理，支持页面动态配置API地址，开发环境无障碍请求任意OpenAI兼容API。
-- 修复API配置管理表单动态渲染、模型获取等相关问题。
+## 🗂️ 版本日志管理规范
 
-## v1.0.6
-- 修复本地万能代理POST请求body无法透传导致API超时问题，现已支持所有POST/JSON请求无障碍转发。
-- 彻底移除express.json()和express.urlencoded()，提升代理兼容性和稳定性。
+- 所有详细版本更新日志（changelog）请统一放在 `dev-management/changelog/` 目录下，文件名格式为：
+  `YYYY-MM-DD-vX.Y.Z-简要描述.md`
+- `VERSION-UPDATE-GUIDE.md` 仅保留各版本索引和简要说明，不再写详细内容。
+- 重大版本/重要修复请务必补充 changelog 文件，便于团队追溯。
+
+## 🗂️ 版本日志索引
+
+- [v1.0.6 - 代理POST body透传修复](dev-management/changelog/2025-06-03-v1.0.6-body-proxy-fix.md)
+- [v1.0.5 - 动态代理与表单修复](dev-management/changelog/2024-xx-xx-v1.0.5-dynamic-proxy-and-fix.md)
 
 ---
 
