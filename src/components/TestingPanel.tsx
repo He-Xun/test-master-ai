@@ -350,7 +350,7 @@ const TestingPanel: React.FC = () => {
       const isSQLite = storageAdapter.getStorageInfo().sqliteEnabled;
       if (userId && isSQLite) {
         loadedPrompts = await storageAdapter.getPrompts();
-        loadedModels = await storageAdapter.getApiConfigs();
+        loadedModels = await storageAdapter.getAllModels();
         loadedDefaultInputs = await storageAdapter.getDefaultTestInputs();
       } else {
         // 兼容localStorage老用户

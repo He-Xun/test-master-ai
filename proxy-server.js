@@ -7,10 +7,8 @@ const app = express();
 const PORT = 3001;
 
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// 不要加 express.json() 和 express.urlencoded()
 
-// 通用代理，支持所有 /proxy/ 后跟任意 encodeURIComponent 目标URL
 app.use(/^\/proxy\/(.+)/, (req, res, next) => {
   try {
     const encodedUrl = req.params[0];
@@ -22,7 +20,8 @@ app.use(/^\/proxy\/(.+)/, (req, res, next) => {
 
     const parsed = url.parse(targetUrl);
     const realTarget = `${parsed.protocol}//${parsed.host}`;
-    const path = parsed.path;
+    let path = parsed.path || '/';
+    path = encodeURI(path);
 
     return createProxyMiddleware({
       target: realTarget,
@@ -30,15 +29,15 @@ app.use(/^\/proxy\/(.+)/, (req, res, next) => {
       secure: false,
       pathRewrite: () => path,
       onError: (err, req, res) => {
-        res.status(500).json({ error: '代理请求失败', detail: err.message });
+        res.status(502).send('代理请求失败: ' + err.message);
       },
-      logLevel: 'warn',
+      // 不需要 onProxyReq，body 会自动透传
     })(req, res, next);
-  } catch (e) {
-    res.status(500).json({ error: '代理服务内部错误', detail: e.message });
+  } catch (err) {
+    res.status(500).send('代理服务内部错误: ' + err.message);
   }
 });
 
 app.listen(PORT, () => {
-  console.log(`万能代理服务器已启动: http://localhost:${PORT}/proxy/<encodeURIComponent(完整目标URL)>`);
+  console.log(`万能代理服务已启动，监听端口 ${PORT}`);
 });

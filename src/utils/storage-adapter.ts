@@ -688,12 +688,17 @@ class StorageAdapter {
   }
 
   async createApiConfig(configData: Omit<ApiConfig, 'id' | 'createdAt' | 'updatedAt'>): Promise<ApiConfig> {
-    const userId = this.getCurrentUserId();
-    if (!userId) throw new Error('用户未登录');
-    if (this.usingSQLite) {
-      return this.sqliteStorage.createApiConfig(userId, configData);
-    } else {
-      return apiConfigStorage.create(configData);
+    try {
+      const userId = this.getCurrentUserId();
+      if (!userId) throw new Error('用户未登录');
+      if (this.usingSQLite) {
+        return this.sqliteStorage.createApiConfig(userId, configData);
+      } else {
+        return apiConfigStorage.create(configData);
+      }
+    } catch (error) {
+      console.error('[StorageAdapter] 创建API配置失败:', error, (error as any)?.stack, configData);
+      throw error;
     }
   }
 

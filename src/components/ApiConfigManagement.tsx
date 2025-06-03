@@ -315,16 +315,41 @@ const ApiConfigManagement: React.FC = () => {
   const handleSubmit = async () => {
     try {
       console.log('[ApiConfigManagement] 开始表单验证...');
-      
       // 先检查当前表单中的原始数据
       const rawValues = form.getFieldsValue();
       console.log('[ApiConfigManagement] 表单原始数据:', rawValues);
       console.log('[ApiConfigManagement] 原始模型数据:', rawValues.models);
-      
       const values = await form.validateFields();
       console.log('[ApiConfigManagement] 表单验证通过，准备保存:', values);
       console.log('[ApiConfigManagement] 验证后的模型数据:', values.models);
       console.log('[ApiConfigManagement] 模型数量:', values.models?.length || 0);
+
+      // 新增：保存前校验 models
+      if (!values.models || !Array.isArray(values.models) || values.models.length === 0) {
+        message.error('请至少选择一个模型');
+        return;
+      }
+      for (const m of values.models as any[]) {
+        if (!m.modelId || !m.name) {
+          message.error('模型ID和名称不能为空');
+          return;
+        }
+      }
+      // 保证 models 字段无非法值
+      values.models = (values.models as any[]).map((m: any) => ({
+        id: m.id || `model-${Date.now()}-${Math.random()}`,
+        modelId: m.modelId,
+        name: m.name,
+        enabled: m.enabled !== false,
+      }));
+
+      // 保证所有必填字段不为undefined
+      values.requestMode = values.requestMode || form.getFieldValue('requestMode') || 'api';
+      values.directUrl = values.directUrl || null;
+      values.baseUrl = values.baseUrl || null;
+      // 新增：保存前强制trim apiKey并打印日志
+      values.apiKey = (values.apiKey || '').trim() || null;
+      console.log('[ApiConfigManagement] 保存前的apiKey:', values.apiKey);
 
       if (editingConfig) {
         const updated = { ...editingConfig, ...values, updatedAt: new Date().toISOString() };
@@ -352,7 +377,6 @@ const ApiConfigManagement: React.FC = () => {
       setEditingConfig(null);
       form.resetFields();
       loadConfigs();
-      
       // 重置状态
       setAvailableModels([]);
       setModelsPanelVisible(false);
@@ -360,7 +384,7 @@ const ApiConfigManagement: React.FC = () => {
       setModelSearchTerm('');
       setActiveTabKey('basic');
     } catch (error) {
-      console.error('[ApiConfigManagement] 保存配置失败:', error);
+      console.error('[ApiConfigManagement] 保存配置失败:', error, (error as any)?.stack);
       message.error(t('api.saveFailed'));
     }
   };

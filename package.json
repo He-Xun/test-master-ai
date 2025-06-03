@@ -1,13 +1,13 @@
 {
   "name": "test-master-ai",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "private": true,
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
   "main": "dist/main.js",
   "homepage": "./",
   "scripts": {
-    "start": "vite",
-    "dev": "vite",
+    "start": "concurrently \"node proxy-server.js\" \"vite\"",
+    "dev": "concurrently \"node proxy-server.js\" \"vite\"",
     "build": "vite build && npm run build:electron",
     "build:vite": "vite build",
     "preview": "vite preview",

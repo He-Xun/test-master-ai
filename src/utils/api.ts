@@ -155,22 +155,20 @@ export const callOpenAIAPI = async (
   }
 
   try {
-    // 判断是否使用代理
-    const useProxy = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1');
+    // 判断是否开发环境
+    const isDev = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
     let requestUrl: string;
-    
-    if (useProxy && config.baseUrl.includes('yunwu.ai')) {
-      // 开发环境且是yunwu.ai的请求，使用代理
-      requestUrl = '/api-proxy/v1/chat/completions';
-      console.log('🔍 [API调试] API调用使用代理模式');
+    let base = config.baseUrl.replace(/\/$/, '');
+    if (isDev) {
+      // 走本地万能代理
+      requestUrl = `/proxy/${encodeURIComponent(base)}/chat/completions`;
+      console.log('🔍 [API调试] API调用使用万能代理模式');
     } else {
-      // 构建直连URL
-      if (!config.baseUrl.includes('/chat/completions') && !config.baseUrl.includes('/v1')) {
-        requestUrl = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
-      } else if (config.baseUrl.includes('/v1') && !config.baseUrl.includes('/chat/completions')) {
-        requestUrl = `${config.baseUrl.replace(/\/$/, '')}/chat/completions`;
+      // 生产环境直连
+      if (base.endsWith('/v1')) {
+        requestUrl = `${base}/chat/completions`;
       } else {
-        requestUrl = config.baseUrl;
+        requestUrl = `${base}/v1/chat/completions`;
       }
       console.log('🔍 [API调试] API调用使用直连模式');
     }
@@ -319,7 +317,7 @@ export const fetchAvailableModels = async (config: ApiConfig): Promise<Array<{id
     });
 
     const requestTime = Date.now() - startTime;
-    console.log('🔍 [API调试] 请求完成，耗时:', requestTime + 'ms');
+    console.log('�� [API调试] 请求完成，耗时:', requestTime + 'ms');
     console.log('🔍 [API调试] 响应状态:', response.status, response.statusText);
     console.log('🔍 [API调试] 响应头:', response.headers);
     console.log('🔍 [API调试] 响应数据类型:', typeof response.data);
