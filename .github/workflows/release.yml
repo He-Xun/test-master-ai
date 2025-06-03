@@ -332,6 +332,19 @@ jobs:
           retention-days: 30
           if-no-files-found: error
 
+      - name: Copy ffmpeg.dll to release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          $src = "node_modules\electron\dist\ffmpeg.dll"
+          $dst = "release\win-unpacked\ffmpeg.dll"
+          if (Test-Path $src) { Copy-Item $src $dst -Force }
+          Write-Host "ffmpeg.dll copied to release/win-unpacked"
+
+      - name: Verify ffmpeg.dll in release (Windows)
+        if: runner.os == 'Windows'
+        run: |
+          if (Test-Path "release\win-unpacked\ffmpeg.dll") { Write-Host "✅ ffmpeg.dll found in release/win-unpacked" } else { Write-Host "❌ ffmpeg.dll NOT found in release/win-unpacked" }
+
   # 自动发布 - 仅在推送到main时运行或手动触发auto类型时（创建预发布版本）
   auto-release:
     needs: build
@@ -497,4 +510,4 @@ jobs:
       - name: Verify ffmpeg.dll in release
         if: runner.os == 'Windows'
         run: |
-          if (Test-Path "release\win-unpacked\ffmpeg.dll") { Write-Host "ffmpeg.dll found in release" } else { Write-Host "ffmpeg.dll NOT found in release" }
+          if (Test-Path "release\win-unpacked\ffmpeg.dll") { Write-Host "✅ ffmpeg.dll found in release/win-unpacked" } else { Write-Host "❌ ffmpeg.dll NOT found in release/win-unpacked" }
