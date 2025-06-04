@@ -39,6 +39,9 @@ import { useConfigDraft } from './hooks/useConfigDraft';
 import { APP_VERSION, APP_NAME, UPDATE_CHECK_URL } from './constants/version';
 import { AdminDebugger } from './utils/debug-admin';
 import './App.css';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/es/locale/zh_CN';
+import enUS from 'antd/es/locale/en_US';
 
 // 使用React.lazy进行代码分割
 const TestingPanel = React.lazy(() => import('./components/TestingPanel'));
@@ -50,6 +53,7 @@ const UserProfile = React.lazy(() => import('./components/UserProfile'));
 const TestSessionHistory = React.lazy(() => import('./components/TestSessionHistory'));
 const TestSessionDetail = React.lazy(() => import('./components/TestSessionDetail'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
+const AccountSettings = React.lazy(() => import('./components/AccountSettings'));
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -60,33 +64,8 @@ const AdminLayout: React.FC<{ currentUser: User; onLogout: () => void }> = ({ cu
   const navigate = useNavigate();
 
   // 检查更新功能
-  const handleCheckUpdate = async () => {
-    try {
-      message.loading('正在检查更新...', 1);
-      
-      setTimeout(() => {
-        Modal.info({
-          title: '版本信息',
-          content: (
-            <div>
-              <p><strong>当前版本</strong>: v{APP_VERSION}</p>
-              <p><strong>发布日期</strong>: 2025-05-29</p>
-              <p><strong>状态</strong>: 已是最新版本</p>
-              <div className="mt-4">
-                <p className="text-gray-600 text-sm">
-                  如需查看更新历史，请访问发布说明页面。
-                </p>
-              </div>
-            </div>
-          ),
-          okText: '确定',
-          width: 400,
-        });
-      }, 1000);
-    } catch (error) {
-      console.error('检查更新失败:', error);
-      message.error('检查更新失败，请稍后重试');
-    }
+  const handleCheckUpdate = () => {
+    window.open('https://github.com/He-Xun/test-master-ai/releases', '_blank');
   };
 
   return (
@@ -349,38 +328,6 @@ const AppLayout: React.FC = () => {
     }
   };
 
-  // 检查更新功能
-  const handleCheckUpdate = async () => {
-    try {
-      message.loading('正在检查更新...', 1);
-      
-      // 模拟检查更新（实际应该调用API）
-      setTimeout(() => {
-        Modal.info({
-          title: '版本信息',
-          content: (
-            <div>
-              <p><strong>当前版本</strong>: v{APP_VERSION}</p>
-              <p><strong>发布日期</strong>: 2025-05-29</p>
-              <p><strong>状态</strong>: 已是最新版本</p>
-              <div className="mt-4">
-                <p className="text-gray-600 text-sm">
-                  如需查看更新历史，请访问发布说明页面。
-                </p>
-              </div>
-            </div>
-          ),
-          okText: '确定',
-          width: 400,
-        });
-      }, 1000);
-      
-    } catch (error) {
-      console.error('检查更新失败:', error);
-      message.error('检查更新失败，请稍后重试');
-    }
-  };
-
   // 获取页面标题
   const getPageTitle = () => {
     const path = location.pathname;
@@ -391,6 +338,11 @@ const AppLayout: React.FC = () => {
     if (path.startsWith('/test-session-detail')) return t('history.testDetails');
     if (path === '/debug') return t('menu.debug');
     return t('app.title');
+  };
+
+  // 检查更新功能
+  const handleCheckUpdate = () => {
+    window.open('https://github.com/He-Xun/test-master-ai/releases', '_blank');
   };
 
   // 全局进度条提示
@@ -424,7 +376,7 @@ const AppLayout: React.FC = () => {
       <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative">
         {/* 语言切换器 - 右上角 */}
         <div className="absolute top-4 right-4 z-10">
-          <LanguageSwitcher style="button" size="large" />
+          <LanguageSwitcher style="select" size="large" />
         </div>
         
         <div className="max-w-md w-full mx-4">
@@ -696,6 +648,7 @@ const AppLayout: React.FC = () => {
                 <Route path="/test-history" element={<TestSessionHistory asPage={true} />} />
                 <Route path="/test-session-detail/:sessionId" element={<TestSessionDetail />} />
                 <Route path="/debug" element={<DebugPanel />} />
+                <Route path="/account-settings" element={<AccountSettings />} />
               </Routes>
             </Suspense>
           </div>
@@ -707,10 +660,14 @@ const AppLayout: React.FC = () => {
 
 // 主App组件
 const App: React.FC = () => {
+  const { i18n } = useTranslation();
+  const antdLocale = i18n.language === 'zh-CN' ? zhCN : enUS;
   return (
-    <Router>
-      <AppLayout />
-    </Router>
+    <ConfigProvider locale={antdLocale}>
+      <Router>
+        <AppLayout />
+      </Router>
+    </ConfigProvider>
   );
 };
 

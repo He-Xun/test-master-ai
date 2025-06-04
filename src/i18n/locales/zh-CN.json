@@ -165,7 +165,9 @@
     "todayTestCount": "今日测试",
     "totalTestCount": "累计测试",
     "testRecords": "测试记录",
-    "configTotal": "配置总数"
+    "configTotal": "配置总数",
+    "preview": "预览提示词",
+    "editCurrent": "编辑当前提示词"
   },
   "results": {
     "viewDetails": "查看详情",
@@ -415,7 +417,9 @@
     "batchDeleteFailed": "批量删除失败",
     "confirmBatchDelete": "确定要删除选中的 {{count}} 条记录吗？",
     "items": "条记录",
-    "searchPlaceholder": "搜索..."
+    "searchPlaceholder": "搜索...",
+    "visualize": "可视化",
+    "rawText": "原文"
   },
   "notification": {
     "title": "通知",
@@ -571,6 +575,7 @@
   "profile": {
     "myProfile": "个人资料",
     "accountSettings": "账户设置",
+    "accountSettingsDesc": "您可以在此修改账户信息、密码和偏好设置。所有更改将立即生效。",
     "accountInfo": "账户信息",
     "userId": "用户ID",
     "username": "用户名",
@@ -582,6 +587,41 @@
     "avatarUploadSuccess": "头像上传成功",
     "avatarUploadFailed": "头像上传失败",
     "avatarFormatError": "只能上传 JPG/PNG 文件!",
-    "avatarSizeError": "图片必须小于 2MB!"
+    "avatarSizeError": "图片必须小于 2MB!",
+    "oldPassword": "密码（旧）",
+    "newPassword": "密码（新）",
+    "defaultLanguage": "默认语言"
+  },
+  "storage": {
+    "title": "存储系统状态",
+    "environment": "运行环境",
+    "desktop": "桌面端",
+    "web": "网页端",
+    "primaryStorage": "主要存储",
+    "performance": "性能等级",
+    "features": "可用功能",
+    "enableAdvanced": "启用高级功能",
+    "disableAdvanced": "禁用高级功能",
+    "refresh": "刷新状态",
+    "fast": "高性能",
+    "medium": "标准",
+    "slow": "受限",
+    "unknown": "未知",
+    "sqlite": "原生SQLite",
+    "indexedDB": "结构化存储",
+    "localStorage": "快速访问",
+    "advancedEnabled": "高级功能已启用",
+    "advancedDisabled": "高级功能已禁用",
+    "enableSuccess": "高级功能启用成功！",
+    "enableFailed": "高级功能启用失败",
+    "disableSuccess": "已切换到基础模式",
+    "disableFailed": "操作失败",
+    "confirmDisable": "确认禁用高级功能",
+    "confirmDisableDesc": "禁用后将失去SQL查询和数据分析功能，确定继续吗？"
+  },
+  "unit": {
+    "times": "次",
+    "records": "条",
+    "ms": "毫秒"
   }
 } 

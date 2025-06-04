@@ -59,29 +59,29 @@ const StorageStatusCard: React.FC = () => {
         return {
           color: 'success',
           icon: <ThunderboltOutlined />,
-          text: '高性能',
-          description: '优化的存储性能'
+          text: t('storage.fast'),
+          description: t('storage.advancedEnabled')
         };
       case 'medium':
         return {
           color: 'warning',
           icon: <ClockCircleOutlined />,
-          text: '标准',
-          description: '平衡的存储性能'
+          text: t('storage.medium'),
+          description: t('storage.features')
         };
       case 'slow':
         return {
           color: 'error',
           icon: <CloseCircleOutlined />,
-          text: '受限',
-          description: '浏览器环境限制'
+          text: t('storage.slow'),
+          description: t('storage.advancedDisabled')
         };
       default:
         return {
           color: 'default',
           icon: <InfoCircleOutlined />,
-          text: '未知',
-          description: '状态未知'
+          text: t('storage.unknown'),
+          description: t('storage.unknown')
         };
     }
   };
@@ -91,18 +91,18 @@ const StorageStatusCard: React.FC = () => {
     if (environment === 'electron') {
       return {
         icon: <DesktopOutlined className="text-blue-500" />,
-        text: '桌面应用',
-        description: 'Electron 原生环境',
+        text: t('storage.desktop'),
+        description: t('storage.environment'),
         color: 'blue',
-        advantages: ['原生SQLite性能', '无限存储空间', '文件系统访问', '高级查询功能']
+        advantages: [t('storage.sqlite'), t('storage.advancedEnabled'), t('storage.features')]
       };
     } else {
       return {
         icon: <GlobalOutlined className="text-orange-500" />,
-        text: '浏览器',
-        description: '网页环境',
+        text: t('storage.web'),
+        description: t('storage.environment'),
         color: 'orange',
-        advantages: ['快速启动', '跨平台兼容', '无需安装', '实时同步']
+        advantages: [t('storage.indexedDB'), t('storage.localStorage'), t('storage.features')]
       };
     }
   };
@@ -159,7 +159,7 @@ const StorageStatusCard: React.FC = () => {
 
   if (loading || !storageInfo) {
     return (
-      <Card title="存储状态" loading={true} className="mb-4">
+      <Card title={t('storage.title')} loading={true} className="mb-4">
         <div className="h-32"></div>
       </Card>
     );
@@ -173,7 +173,7 @@ const StorageStatusCard: React.FC = () => {
       title={
         <Space>
           <DatabaseOutlined />
-          <span>存储系统状态</span>
+          <span>{t('storage.title')}</span>
           <Badge 
             status={storageInfo.performance === 'fast' ? 'success' : 'warning'} 
             text={performanceDisplay.text}
@@ -181,7 +181,7 @@ const StorageStatusCard: React.FC = () => {
         </Space>
       }
       extra={
-        <Tooltip title="刷新状态">
+        <Tooltip title={t('storage.refresh')}>
           <Button 
             type="text" 
             icon={<InfoCircleOutlined />} 
@@ -206,25 +206,25 @@ const StorageStatusCard: React.FC = () => {
             </div>
           </div>
           <Tag color={environmentDisplay.color} className="ml-2">
-            {storageInfo.environment === 'electron' ? '桌面端' : '网页端'}
+            {storageInfo.environment === 'electron' ? t('storage.desktop') : t('storage.web')}
           </Tag>
         </div>
 
         {/* 存储配置 */}
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <Text type="secondary" className="text-sm">主要存储</Text>
+            <Text type="secondary" className="text-sm">{t('storage.primaryStorage')}</Text>
             <div className="flex items-center space-x-2 mt-1">
               <Badge 
                 status="success" 
                 dot={storageInfo.primaryStorage === 'sqlite'} 
               />
-              <Text className="capitalize">{storageInfo.primaryStorage}</Text>
+              <Text className="capitalize">{t(`storage.${storageInfo.primaryStorage}`)}</Text>
             </div>
           </div>
           
           <div>
-            <Text type="secondary" className="text-sm">性能等级</Text>
+            <Text type="secondary" className="text-sm">{t('storage.performance')}</Text>
             <div className="flex items-center space-x-2 mt-1">
               {performanceDisplay.icon}
               <Text>{performanceDisplay.text}</Text>
@@ -235,11 +235,11 @@ const StorageStatusCard: React.FC = () => {
         {/* 功能特性 */}
         {storageInfo.features && storageInfo.features.length > 0 && (
           <div>
-            <Text type="secondary" className="text-sm mb-2 block">可用功能</Text>
+            <Text type="secondary" className="text-sm mb-2 block">{t('storage.features')}</Text>
             <div className="flex flex-wrap gap-1">
               {storageInfo.features.map((feature, index) => (
                 <Tag key={index} color="blue" className="text-xs">
-                  {feature}
+                  {t(`storage.${feature}`) || feature}
                 </Tag>
               ))}
             </div>

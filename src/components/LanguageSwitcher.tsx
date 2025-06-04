@@ -22,6 +22,7 @@ const LanguageSwitcher: React.FC<LanguageSwitcherProps> = ({
   const languages = [
     { code: 'zh-CN', label: '中文', flag: '🇨🇳' },
     { code: 'en-US', label: 'English', flag: '🇺🇸' },
+    // 后续可在此添加更多语言
   ];
 
   const handleLanguageChange = (languageCode: string) => {

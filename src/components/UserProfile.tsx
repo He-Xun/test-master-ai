@@ -25,11 +25,14 @@ import {
   MailOutlined,
   CalendarOutlined,
   KeyOutlined,
-  ExclamationCircleOutlined
+  ExclamationCircleOutlined,
+  DownloadOutlined,
+  UploadOutlined
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { User } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
+import { useNavigate } from 'react-router-dom';
 
 const { Text } = Typography;
 
@@ -45,6 +48,7 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
   const [settingsModalVisible, setSettingsModalVisible] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState(user.avatar);
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   // 默认头像URL（本地图片）
   const defaultAvatarUrl = '/avatar/default.svg';
@@ -144,6 +148,36 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
     return true;
   };
 
+  const handleExport = async () => {
+    try {
+      const data = await storageAdapter.exportUserData(user.id);
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `testmasterai-config-${user.username}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+      message.success(t('common.success'));
+    } catch (e: any) {
+      message.error(e.message || t('common.error'));
+    }
+  };
+
+  const handleImport = async (file: File) => {
+    try {
+      const text = await file.text();
+      const data = JSON.parse(text);
+      await storageAdapter.importUserData(user.id, data);
+      message.success(t('common.success'));
+    } catch (e: any) {
+      message.error(e.message || t('common.error'));
+    }
+  };
+
+  // 文件选择器ref
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
   const menuItems = [
     {
       key: 'profile',
@@ -154,6 +188,16 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
       key: 'settings',
       icon: <SettingOutlined />, 
       label: t('profile.accountSettings')
+    },
+    {
+      key: 'export',
+      icon: <DownloadOutlined />,
+      label: t('common.export')
+    },
+    {
+      key: 'import',
+      icon: <UploadOutlined />,
+      label: t('common.import')
     },
     {
       type: 'divider'
@@ -168,8 +212,9 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
   const handleMenuClick = ({ key }) => {
     if (key === 'profile') setProfileModalVisible(true);
     if (key === 'logout') handleLogout();
-    if (key === 'settings') setSettingsModalVisible(true);
-    // 其它key可按需扩展
+    if (key === 'settings') navigate('/account-settings');
+    if (key === 'export') handleExport();
+    if (key === 'import' && fileInputRef.current) fileInputRef.current.click();
   };
 
   return (
@@ -188,6 +233,17 @@ const UserProfile: React.FC<UserProfileProps> = ({ user, onLogout, onEdit }) => 
           </div>
         </div>
       </Dropdown>
+      <input
+        type="file"
+        accept="application/json"
+        ref={fileInputRef}
+        style={{ display: 'none' }}
+        onChange={e => {
+          const file = e.target.files?.[0];
+          if (file) handleImport(file);
+          e.target.value = '';
+        }}
+      />
 
       <Modal
         title={

@@ -275,7 +275,9 @@
     "confirmDelete": "Are you sure you want to delete this prompt?",
     "deleteSuccess": "Delete successful",
     "saveSuccess": "Save successful",
-    "required": "This field is required"
+    "required": "This field is required",
+    "preview": "Preview Prompt",
+    "editCurrent": "Edit Current Prompt"
   },
   "api": {
     "title": "API Configuration Management",
@@ -414,7 +416,9 @@
     "batchDeleteFailed": "Failed to batch delete",
     "confirmBatchDelete": "Are you sure you want to delete {{count}} selected items?",
     "items": "items",
-    "searchPlaceholder": "Search..."
+    "searchPlaceholder": "Search...",
+    "visualize": "Visualize",
+    "rawText": "Raw Text"
   },
   "notification": {
     "title": "Notification",
@@ -564,6 +568,7 @@
   "profile": {
     "myProfile": "My Profile",
     "accountSettings": "Account Settings",
+    "accountSettingsDesc": "You can modify your account information, password, and preferences here. All changes take effect immediately.",
     "accountInfo": "Account Information",
     "userId": "User ID",
     "username": "Username",
@@ -575,6 +580,41 @@
     "avatarUploadSuccess": "Avatar uploaded successfully",
     "avatarUploadFailed": "Avatar upload failed",
     "avatarFormatError": "Only JPG/PNG files are allowed!",
-    "avatarSizeError": "Image must be smaller than 2MB!"
+    "avatarSizeError": "Image must be smaller than 2MB!",
+    "oldPassword": "Password (Old)",
+    "newPassword": "Password (New)",
+    "defaultLanguage": "Default Language"
+  },
+  "storage": {
+    "title": "Storage System Status",
+    "environment": "Environment",
+    "desktop": "Desktop",
+    "web": "Web",
+    "primaryStorage": "Primary Storage",
+    "performance": "Performance Level",
+    "features": "Available Features",
+    "enableAdvanced": "Enable Advanced Features",
+    "disableAdvanced": "Disable Advanced Features",
+    "refresh": "Refresh Status",
+    "fast": "High Performance",
+    "medium": "Standard",
+    "slow": "Limited",
+    "unknown": "Unknown",
+    "sqlite": "Native SQLite",
+    "indexedDB": "Structured Storage",
+    "localStorage": "Quick Access",
+    "advancedEnabled": "Advanced features enabled",
+    "advancedDisabled": "Advanced features disabled",
+    "enableSuccess": "Advanced features enabled successfully!",
+    "enableFailed": "Failed to enable advanced features",
+    "disableSuccess": "Switched to basic mode",
+    "disableFailed": "Operation failed",
+    "confirmDisable": "Confirm Disable Advanced Features",
+    "confirmDisableDesc": "Disabling will lose SQL query and data analysis features. Continue?"
+  },
+  "unit": {
+    "times": "times",
+    "records": "records",
+    "ms": "ms"
   }
 }

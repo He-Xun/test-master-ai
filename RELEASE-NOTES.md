@@ -98,6 +98,10 @@ Test Master AI 是一款专业的AI提示词测试工具，专注于验证不同
 
 GPL-3.0 开源许可证
 
+## v1.0.9 - 2025-06-04
+
+详见 dev-management/changelog/2025-06-04-v1.0.9-ui-i18n-fix.md
+
 ---
 
 **当前版本: v1.0.0** - 专业的AI提示词测试工具 

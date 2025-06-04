@@ -1001,6 +1001,65 @@ class StorageAdapter {
       return localUserStorage.isSessionValid();
     }
   }
+
+  // 用户配置导出
+  async exportUserData(userId: string): Promise<any> {
+    // 支持SQLite和localStorage
+    let prompts = [];
+    let apiConfigs = [];
+    let testHistory = [];
+    let configDraft = null;
+    if (this.usingSQLite) {
+      prompts = await this.sqliteStorage.getPrompts(userId);
+      apiConfigs = await this.sqliteStorage.getApiConfigs(userId);
+      testHistory = await this.sqliteStorage.getTestSessionHistory(userId, 1000);
+      configDraft = await this.sqliteStorage.getConfigDraft(userId, 'test_config');
+    } else {
+      prompts = JSON.parse(localStorage.getItem(`${userId}_prompts`) || '[]');
+      apiConfigs = JSON.parse(localStorage.getItem(`${userId}_apiConfigs`) || '[]');
+      testHistory = JSON.parse(localStorage.getItem(`${userId}_testHistory`) || '[]');
+      configDraft = JSON.parse(localStorage.getItem(`${userId}_testConfigDraft`) || 'null');
+    }
+    return { prompts, apiConfigs, testHistory, configDraft };
+  }
+
+  // 用户配置导入
+  async importUserData(userId: string, data: any): Promise<void> {
+    if (!data) return;
+    if (this.usingSQLite) {
+      if (Array.isArray(data.prompts)) {
+        for (const prompt of data.prompts) {
+          await this.sqliteStorage.createPrompt(userId, prompt);
+        }
+      }
+      if (Array.isArray(data.apiConfigs)) {
+        for (const config of data.apiConfigs) {
+          await this.sqliteStorage.createApiConfig(userId, config);
+        }
+      }
+      if (Array.isArray(data.testHistory)) {
+        for (const history of data.testHistory) {
+          await this.sqliteStorage.saveTestSessionHistory({ ...history, userId });
+        }
+      }
+      if (data.configDraft) {
+        await this.sqliteStorage.saveConfigDraft(userId, 'test_config', data.configDraft);
+      }
+    } else {
+      if (Array.isArray(data.prompts)) {
+        localStorage.setItem(`${userId}_prompts`, JSON.stringify(data.prompts));
+      }
+      if (Array.isArray(data.apiConfigs)) {
+        localStorage.setItem(`${userId}_apiConfigs`, JSON.stringify(data.apiConfigs));
+      }
+      if (Array.isArray(data.testHistory)) {
+        localStorage.setItem(`${userId}_testHistory`, JSON.stringify(data.testHistory));
+      }
+      if (data.configDraft) {
+        localStorage.setItem(`${userId}_testConfigDraft`, JSON.stringify(data.configDraft));
+      }
+    }
+  }
 }
 
 // 创建全局实例

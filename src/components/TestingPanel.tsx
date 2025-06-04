@@ -21,6 +21,7 @@ import {
   notification,
   Checkbox,
   Popconfirm,
+  Drawer,
 } from 'antd';
 import {
   PlayCircleOutlined,
@@ -39,7 +40,8 @@ import {
   AppstoreOutlined,
   TableOutlined,
   SaveOutlined,
-  EyeOutlined,
+  EyeOutlined as IconEyeOutlined,
+  EyeInvisibleOutlined as IconEyeInvisibleOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { TestParams, TestResult, TestSession, Prompt, DefaultTestInput, TestConfigDraft, User } from '../types';
@@ -48,6 +50,9 @@ import { storageAdapter } from '../utils/storage-adapter';
 import { useConfigDraft, useAutoSave } from '../hooks/useConfigDraft';
 import { callAPI, delay } from '../utils/api';
 import { exportToExcel, exportToCSV, copyResultsToClipboard, copySingleResultToClipboard } from '../utils/export';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import { Form as AntdForm } from 'antd';
 
 const { TextArea } = Input;
 const { Panel } = Collapse;
@@ -121,6 +126,34 @@ const TestingPanel: React.FC = () => {
   
   // 启用自动保存
   useAutoSave(currentConfig, true, 3000);
+
+  // 详情弹窗输入/输出切换
+  const [showInputRaw, setShowInputRaw] = useState(false);
+  const [showOutputRaw, setShowOutputRaw] = useState(false);
+
+  // 在useState下新增
+  const [promptEditModalVisible, setPromptEditModalVisible] = useState(false);
+  const [editingPrompt, setEditingPrompt] = useState<Prompt | null>(null);
+  const [promptEditForm] = Form.useForm();
+
+  const promptId = AntdForm.useWatch ? AntdForm.useWatch('promptId', form) : form.getFieldValue('promptId');
+
+  // 编辑提示词保存方法
+  const handleSavePromptEdit = async () => {
+    if (!editingPrompt) return;
+    try {
+      const values = await promptEditForm.validateFields();
+      await storageAdapter.updatePrompt(editingPrompt.id, values);
+      message.success(t('prompts.promptUpdateSuccess'));
+      // 刷新提示词列表
+      const newPrompts = await storageAdapter.getPrompts();
+      setPrompts(newPrompts);
+      setPromptEditModalVisible(false);
+      setEditingPrompt(null);
+    } catch (error) {
+      message.error(t('prompts.saveFailed'));
+    }
+  };
 
   // 监听表单repetitions字段变化
   useEffect(() => {
@@ -1046,6 +1079,17 @@ const TestingPanel: React.FC = () => {
     return { total, success, error, pending };
   };
 
+  // markdown渲染配置，和TestSessionDetail保持一致
+  const markdownComponents = {
+    li: ({ children, ...props }: { children?: any }) => (
+      <li {...props} style={{ margin: '0.2em 0', paddingLeft: 0, textIndent: 0, display: 'list-item' }}>{children}</li>
+    ),
+    p: ({ node, ...props }: { node?: any, children?: any }) => {
+      if (node && node.parent && node.parent.tagName === 'li') return <>{props.children}</>;
+      return <p {...props} />;
+    }
+  };
+
   const resultColumns = [
     {
       title: (
@@ -1169,7 +1213,7 @@ const TestingPanel: React.FC = () => {
           <Tooltip title={t('results.viewDetails')}>
             <Button
               type="text"
-              icon={<EyeOutlined />}
+              icon={<IconEyeOutlined />}
               size="small"
               onClick={() => handleViewResult(record)}
               className="text-blue-500 hover:bg-blue-50"
@@ -1269,7 +1313,7 @@ const TestingPanel: React.FC = () => {
             <div className="grid grid-rows-3 gap-2 mb-2">
               <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-blue-100">
                 <div className="flex flex-col">
-                  <div className="text-lg font-bold text-blue-600">{todayTestCount}次</div>
+                  <div className="text-lg font-bold text-blue-600">{todayTestCount}{t('unit.times')}</div>
                   {renderStatText(t('testing.todayTestCount'))}
                 </div>
                 <div className="text-blue-400 text-2xl">📊</div>
@@ -1277,7 +1321,7 @@ const TestingPanel: React.FC = () => {
               
               <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-green-100">
                 <div className="flex flex-col">
-                  <div className="text-lg font-bold text-green-600">{totalTestCount}次</div>
+                  <div className="text-lg font-bold text-green-600">{totalTestCount}{t('unit.times')}</div>
                   {renderStatText(t('testing.totalTestCount'))}
                 </div>
                 <div className="text-green-400 text-2xl">🎯</div>
@@ -1285,7 +1329,7 @@ const TestingPanel: React.FC = () => {
               
               <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-purple-100">
                 <div className="flex flex-col">
-                  <div className="text-lg font-bold text-purple-600">{totalRecordCount}条</div>
+                  <div className="text-lg font-bold text-purple-600">{totalRecordCount}{t('unit.records')}</div>
                   {renderStatText(t('testing.testRecords'))}
                 </div>
                 <div className="text-purple-400 text-2xl">📝</div>
@@ -1452,6 +1496,42 @@ const TestingPanel: React.FC = () => {
                 }
               />
             )}
+
+            {/* 新增：提示词预览和编辑，只有选择了提示词才显示 */}
+            {(() => {
+              const selectedPrompt = prompts.find(p => p.id === promptId);
+              if (!promptId || !selectedPrompt) return null;
+              return (
+                <Form.Item
+                  label={
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <span>提示词预览</span>
+                      <Button
+                        type="link"
+                        icon={<EditOutlined />}
+                        onClick={() => {
+                          setEditingPrompt(selectedPrompt);
+                          setPromptEditModalVisible(true);
+                          promptEditForm.setFieldsValue({ name: selectedPrompt.name, content: selectedPrompt.content });
+                        }}
+                        style={{ padding: 0, height: 'auto', lineHeight: 1 }}
+                      >
+                        编辑
+                      </Button>
+                    </span>
+                  }
+                  style={{ marginTop: 16 }}
+                >
+                  <TextArea
+                    value={selectedPrompt.content}
+                    autoSize={{ minRows: 3, maxRows: 8 }}
+                    readOnly
+                    style={{ flex: 1 }}
+                    placeholder=""
+                  />
+                </Form.Item>
+              );
+            })()}
           </Form>
         </Card>
       </div>
@@ -1893,24 +1973,27 @@ const TestingPanel: React.FC = () => {
       </Modal>
 
       {/* 结果详情查看模态框 */}
-      <Modal
+      <Drawer
         title={
           <div className="flex items-center space-x-2">
-            <EyeOutlined className="text-blue-500" />
+            <IconEyeOutlined className="text-blue-500" />
             <span>{t('testing.resultDetails')}</span>
           </div>
         }
         open={resultDetailVisible}
-        onCancel={() => setResultDetailVisible(false)}
-        footer={[
-          <Button key="copy" icon={<CopyOutlined />} onClick={() => viewingResult && handleCopySingleResult(viewingResult)}>
-            {t('testing.copyResult')}
-          </Button>,
-          <Button key="close" onClick={() => setResultDetailVisible(false)}>
-            {t('common.close')}
-          </Button>,
-        ]}
-        width={800}
+        onClose={() => setResultDetailVisible(false)}
+        width={1000}
+        extra={
+          <div style={{ display: 'flex', gap: 10, marginRight: 12 }}>
+            <Button key="copy" icon={<CopyOutlined />} onClick={() => viewingResult && handleCopySingleResult(viewingResult)}>
+              {t('testing.copyResult')}
+            </Button>
+            <Button key="close" onClick={() => setResultDetailVisible(false)}>
+              {t('common.close')}
+            </Button>
+          </div>
+        }
+        bodyStyle={{ paddingBottom: 80 }}
       >
         {viewingResult && (
           <div className="space-y-6">
@@ -1959,25 +2042,90 @@ const TestingPanel: React.FC = () => {
 
             {/* 用户输入 */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <Text strong className="text-gray-700">{t('testing.userInputField')}:</Text>
+              <div className="flex items-center justify-between">
+                <Text strong className="text-gray-700">{t('testing.userInputField')}:</Text>
+                <Button
+                  size="small"
+                  icon={showInputRaw ? <IconEyeInvisibleOutlined /> : <IconEyeOutlined />}
+                  onClick={() => setShowInputRaw(v => !v)}
+                  style={{ marginLeft: 10 }}
+                >
+                  {showInputRaw ? t('common.rawText') : t('common.visualize')}
+                </Button>
+              </div>
               <div className="mt-3 p-4 bg-white rounded border whitespace-pre-wrap shadow-sm">
-                {viewingResult.userInput}
+                {showInputRaw
+                  ? <pre className="whitespace-pre-wrap" style={{ margin: 0, background: 'none' }}>{viewingResult.userInput}</pre>
+                  : <div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{viewingResult.userInput}</ReactMarkdown></div>
+                }
               </div>
             </div>
 
             {/* 输出结果或错误信息 */}
             <div className="bg-gray-50 p-4 rounded-lg">
-              <Text strong className="text-gray-700">
-                {viewingResult.status === 'error' ? t('testing.errorMessage') + ':' : t('testing.outputField') + ':'}
-              </Text>
+              <div className="flex items-center justify-between">
+                <Text strong className="text-gray-700">
+                  {viewingResult.status === 'error' ? t('testing.errorMessage') + ':' : t('testing.outputField') + ':'}
+                </Text>
+                {viewingResult.status !== 'error' && (
+                  <Button
+                    size="small"
+                    icon={showOutputRaw ? <IconEyeInvisibleOutlined /> : <IconEyeOutlined />}
+                    onClick={() => setShowOutputRaw(v => !v)}
+                    style={{ marginLeft: 10 }}
+                  >
+                    {showOutputRaw ? t('common.rawText') : t('common.visualize')}
+                  </Button>
+                )}
+              </div>
               <div className={`mt-3 p-4 rounded border whitespace-pre-wrap shadow-sm ${
                 viewingResult.status === 'error' ? 'bg-red-50 border-red-200' : 'bg-white'
               }`}>
-                {viewingResult.status === 'error' ? viewingResult.errorMessage : viewingResult.output}
+                {viewingResult.status === 'error'
+                  ? viewingResult.errorMessage
+                  : showOutputRaw
+                    ? <pre className="whitespace-pre-wrap" style={{ margin: 0, background: 'none' }}>{viewingResult.output}</pre>
+                    : <div className="markdown-body"><ReactMarkdown remarkPlugins={[remarkGfm]} components={markdownComponents}>{viewingResult.output}</ReactMarkdown></div>
+                }
               </div>
             </div>
           </div>
         )}
+      </Drawer>
+
+      {/* 编辑提示词弹窗 */}
+      <Modal
+        title={t('prompts.editPrompt')}
+        open={promptEditModalVisible}
+        onCancel={() => setPromptEditModalVisible(false)}
+        onOk={handleSavePromptEdit}
+        okText={t('prompts.save')}
+        cancelText={t('prompts.cancel')}
+        width={600}
+        destroyOnClose
+      >
+        <Form form={promptEditForm} layout="vertical">
+          <Form.Item
+            label={t('prompts.promptName')}
+            name="name"
+            rules={[
+              { required: true, message: t('prompts.nameRequired') },
+              { max: 100, message: t('prompts.nameMaxLength') },
+            ]}
+          >
+            <Input placeholder={t('prompts.promptNamePlaceholder')} />
+          </Form.Item>
+          <Form.Item
+            label={t('prompts.promptContent')}
+            name="content"
+            rules={[
+              { required: true, message: t('prompts.contentRequired') },
+              { max: 5000, message: t('prompts.contentMaxLength') },
+            ]}
+          >
+            <TextArea rows={8} placeholder={t('prompts.promptContentPlaceholder')} showCount maxLength={5000} />
+          </Form.Item>
+        </Form>
       </Modal>
     </div>
   );

@@ -16,7 +16,8 @@ import {
   message,
   Popconfirm,
   Input,
-  Checkbox
+  Checkbox,
+  Collapse
 } from 'antd';
 import { 
   HistoryOutlined, 
@@ -29,14 +30,17 @@ import {
   SearchOutlined,
   ReloadOutlined,
   DownloadOutlined,
-  CopyOutlined
+  CopyOutlined,
+  EyeInvisibleOutlined
 } from '@ant-design/icons';
 import { TestSessionHistory, TestResult } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 import { exportToExcel, exportToCSV, copyResultsToClipboard } from '../utils/export';
+import ReactMarkdown from 'react-markdown';
 
 const { Title, Text } = Typography;
 const { Search } = Input;
+const { Panel } = Collapse;
 
 interface TestSessionHistoryProps {
   visible?: boolean;
@@ -58,6 +62,8 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
   const [detailVisible, setDetailVisible] = useState(false);
   const [searchText, setSearchText] = useState('');
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]);
+  const [inputRawMap, setInputRawMap] = useState<Record<string, boolean>>({});
+  const [outputRawMap, setOutputRawMap] = useState<Record<string, boolean>>({});
 
   // 加载历史记录
   const loadHistory = async () => {
@@ -156,6 +162,8 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       dataIndex: 'sessionName',
       key: 'sessionName',
       ellipsis: true,
+      width: 200,
+      fixed: 'left' as const,
       render: (text: string, record: TestSessionHistory) => (
         <Space direction="vertical" size="small">
           <Text strong>{text}</Text>
@@ -167,6 +175,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       title: t('history.testTime'),
       key: 'time',
       width: 180,
+      fixed: 'left' as const,
       render: (record: TestSessionHistory) => (
         <Space direction="vertical" size="small">
           <Text type="secondary" style={{ fontSize: '12px' }}>
@@ -181,12 +190,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
     {
       title: t('history.statistics'),
       key: 'stats',
-      width: 200,
+      width: 260,
       render: (record: TestSessionHistory) => (
         <Space size="small">
-          <Tag color="blue">{t('history.total')}: {record.totalTests}</Tag>
-          <Tag color="green">{t('history.success')}: {record.successCount}</Tag>
-          <Tag color="red">{t('history.failed')}: {record.errorCount}</Tag>
+          <Tag color="blue">{t('history.total')}: {record.totalTests}{t('unit.times')}</Tag>
+          <Tag color="green">{t('history.success')}: {record.successCount}{t('unit.times')}</Tag>
+          <Tag color="red">{t('history.failed')}: {record.errorCount}{t('unit.times')}</Tag>
         </Space>
       ),
     },
@@ -195,12 +204,13 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       dataIndex: 'averageDuration',
       key: 'averageDuration',
       width: 120,
-      render: (duration: number) => `${Math.round(duration)}ms`,
+      render: (duration: number) => `${Math.round(duration)}${t('unit.ms')}`,
     },
     {
       title: t('common.actions'),
       key: 'actions',
       width: 150,
+      fixed: 'right' as const,
       render: (record: TestSessionHistory) => (
         <Space size="small">
           <Tooltip title={t('history.viewDetails')}>
@@ -295,10 +305,11 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
             pageSize: 10,
             showSizeChanger: true,
             showQuickJumper: true,
-            showTotal: (total, range) => 
-              `${range[0]}-${range[1]} / ${total} 条记录`,
+            showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total }),
           }}
           size="middle"
+          className="custom-table"
+          scroll={{ x: 'max-content', y: 600 }}
         />
       )}
     </div>
@@ -370,7 +381,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                   </div>
                   <div>
                     <Text strong>{t('history.interval')}: </Text>
-                    <Text>{selectedSession.testParams.interval}ms</Text>
+                    <Text>{selectedSession.testParams.interval}{t('unit.ms')}</Text>
                   </div>
                   <div>
                     <Text strong>{t('history.testInputs')}: </Text>
@@ -380,7 +391,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
               </Card>
 
               <Card title="测试结果" size="small">
-                <div className="mb-4 flex justify-end space-x-2">
+                <div className="mb-4 flex justify-end" style={{ gap: 10 }}>
                   <Button
                     size="small"
                     icon={<DownloadOutlined />}
@@ -423,70 +434,34 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                 </div>
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {selectedSession.results && selectedSession.results.length > 0 ? (
-                    <Table
-                      size="small"
-                      dataSource={selectedSession.results}
-                      rowKey="id"
-                      pagination={false}
-                      columns={[
-                        {
-                          title: '#',
-                          render: (_, record, index) => index + 1,
-                          width: 50,
-                        },
-                        {
-                          title: '状态',
-                          dataIndex: 'status',
-                          render: (status: string) => (
-                            <Tag color={status === 'success' ? 'green' : 'red'}>
-                              {status === 'success' ? '成功' : '失败'}
-                            </Tag>
-                          ),
-                          width: 80,
-                        },
-                        {
-                          title: '输入',
-                          dataIndex: 'userInput',
-                          ellipsis: true,
-                          width: 200,
-                        },
-                        {
-                          title: '输出',
-                          dataIndex: 'output',
-                          ellipsis: true,
-                          render: (text: string, record?: TestResult) => (
-                            record && record.status === 'success' ? text : record?.errorMessage
-                          ),
-                        },
-                        {
-                          title: '请求耗时',
-                          dataIndex: 'requestDuration',
-                          render: (duration?: number) => duration ? `${duration}ms` : '-',
-                          width: 90,
-                        },
-                        {
-                          title: '处理耗时',
-                          dataIndex: 'processingDuration',
-                          render: (duration?: number, record?: TestResult) => {
-                            // 如果有直接的处理耗时，使用它；否则计算 总耗时 - 请求耗时
-                            if (duration && duration > 0) {
-                              return `${duration}ms`;
-                            }
-                            const totalDuration = record?.duration || 0;
-                            const requestDuration = record?.requestDuration || 0;
-                            const calculatedProcessingTime = totalDuration - requestDuration;
-                            return calculatedProcessingTime > 0 ? `${calculatedProcessingTime}ms` : '-';
-                          },
-                          width: 90,
-                        },
-                        {
-                          title: '时间戳',
-                          dataIndex: 'timestamp',
-                          render: (timestamp: string) => new Date(timestamp).toLocaleTimeString(),
-                          width: 100,
-                        },
-                      ]}
-                    />
+                    <Collapse>
+                      <Panel header={<div>输入 <Button>切换</Button></div>} key="input">
+                        {selectedSession.results.map((result, index) => (
+                          <div key={result.id}>
+                            {inputRawMap[result.id] ? (
+                              <ReactMarkdown>{result.userInput}</ReactMarkdown>
+                            ) : (
+                              <pre style={{ margin: 0, background: 'none' }}>{result.userInput}</pre>
+                            )}
+                          </div>
+                        ))}
+                      </Panel>
+                      <Panel header={<div>输出 <Button>切换</Button></div>} key="output">
+                        {selectedSession.results.map((result, index) => (
+                          <div key={result.id}>
+                            {result.status === 'success' ? (
+                              outputRawMap[result.id] ? (
+                                <ReactMarkdown>{result.output}</ReactMarkdown>
+                              ) : (
+                                <pre style={{ margin: 0, background: 'none' }}>{result.output}</pre>
+                              )
+                            ) : (
+                              <span style={{ color: 'red' }}>{result.errorMessage}</span>
+                            )}
+                          </div>
+                        ))}
+                      </Panel>
+                    </Collapse>
                   ) : (
                     <Empty description="暂无测试结果数据" />
                   )}
@@ -517,7 +492,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
 
       {/* 详情弹窗 */}
       <Modal
-        title={`测试详情 - ${selectedSession?.sessionName}`}
+        title={`${t('history.testDetails')} - ${selectedSession?.sessionName}`}
         open={detailVisible}
         onCancel={() => setDetailVisible(false)}
         footer={null}
@@ -540,30 +515,30 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
             <Card title={t('history.testConfiguration')} size="small" style={{ marginBottom: 16 }}>
               <Space direction="vertical" style={{ width: '100%' }}>
                 <div>
-                  <Text strong>提示词ID: </Text>
+                  <Text strong>{t('history.promptId')}: </Text>
                   <Text>{selectedSession.testParams.promptId}</Text>
                 </div>
                 <div>
-                  <Text strong>模型ID: </Text>
+                  <Text strong>{t('history.modelId')}: </Text>
                   <Text>{selectedSession.testParams.modelId}</Text>
                 </div>
                 <div>
-                  <Text strong>重复次数: </Text>
+                  <Text strong>{t('history.repetitions')}: </Text>
                   <Text>{selectedSession.testParams.repetitions}</Text>
                 </div>
                 <div>
-                  <Text strong>间隔时间: </Text>
-                  <Text>{selectedSession.testParams.interval}ms</Text>
+                  <Text strong>{t('history.interval')}: </Text>
+                  <Text>{selectedSession.testParams.interval}{t('unit.ms')}</Text>
                 </div>
                 <div>
-                  <Text strong>测试输入: </Text>
+                  <Text strong>{t('history.testInputs')}: </Text>
                   <Text>{selectedSession.testParams.userInputs?.join(', ')}</Text>
                 </div>
               </Space>
             </Card>
 
             <Card title="测试结果" size="small">
-              <div className="mb-4 flex justify-end space-x-2">
+              <div className="mb-4 flex justify-end" style={{ gap: 10 }}>
                 <Button
                   size="small"
                   icon={<DownloadOutlined />}
@@ -606,70 +581,34 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
               </div>
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {selectedSession.results && selectedSession.results.length > 0 ? (
-                  <Table
-                    size="small"
-                    dataSource={selectedSession.results}
-                    rowKey="id"
-                    pagination={false}
-                    columns={[
-                      {
-                        title: '#',
-                        render: (_, record, index) => index + 1,
-                        width: 50,
-                      },
-                      {
-                        title: '状态',
-                        dataIndex: 'status',
-                        render: (status: string) => (
-                          <Tag color={status === 'success' ? 'green' : 'red'}>
-                            {status === 'success' ? '成功' : '失败'}
-                          </Tag>
-                        ),
-                        width: 80,
-                      },
-                      {
-                        title: '输入',
-                        dataIndex: 'userInput',
-                        ellipsis: true,
-                        width: 200,
-                      },
-                      {
-                        title: '输出',
-                        dataIndex: 'output',
-                        ellipsis: true,
-                        render: (text: string, record?: TestResult) => (
-                          record && record.status === 'success' ? text : record?.errorMessage
-                        ),
-                      },
-                      {
-                        title: '请求耗时',
-                        dataIndex: 'requestDuration',
-                        render: (duration?: number) => duration ? `${duration}ms` : '-',
-                        width: 90,
-                      },
-                      {
-                        title: '处理耗时',
-                        dataIndex: 'processingDuration',
-                        render: (duration?: number, record?: TestResult) => {
-                          // 如果有直接的处理耗时，使用它；否则计算 总耗时 - 请求耗时
-                          if (duration && duration > 0) {
-                            return `${duration}ms`;
-                          }
-                          const totalDuration = record?.duration || 0;
-                          const requestDuration = record?.requestDuration || 0;
-                          const calculatedProcessingTime = totalDuration - requestDuration;
-                          return calculatedProcessingTime > 0 ? `${calculatedProcessingTime}ms` : '-';
-                        },
-                        width: 90,
-                      },
-                      {
-                        title: '时间戳',
-                        dataIndex: 'timestamp',
-                        render: (timestamp: string) => new Date(timestamp).toLocaleTimeString(),
-                        width: 100,
-                      },
-                    ]}
-                  />
+                  <Collapse>
+                    <Panel header={<div>输入 <Button>切换</Button></div>} key="input">
+                      {selectedSession.results.map((result, index) => (
+                        <div key={result.id}>
+                          {inputRawMap[result.id] ? (
+                            <ReactMarkdown>{result.userInput}</ReactMarkdown>
+                          ) : (
+                            <pre style={{ margin: 0, background: 'none' }}>{result.userInput}</pre>
+                          )}
+                        </div>
+                      ))}
+                    </Panel>
+                    <Panel header={<div>输出 <Button>切换</Button></div>} key="output">
+                      {selectedSession.results.map((result, index) => (
+                        <div key={result.id}>
+                          {result.status === 'success' ? (
+                            outputRawMap[result.id] ? (
+                              <ReactMarkdown>{result.output}</ReactMarkdown>
+                            ) : (
+                              <pre style={{ margin: 0, background: 'none' }}>{result.output}</pre>
+                            )
+                          ) : (
+                            <span style={{ color: 'red' }}>{result.errorMessage}</span>
+                          )}
+                        </div>
+                      ))}
+                    </Panel>
+                  </Collapse>
                 ) : (
                   <Empty description="暂无测试结果数据" />
                 )}
