@@ -57,3 +57,6 @@ userData/
 # 测试
 .coverage/
 tools/.DS_Store
+
+# cursor
+.cursor

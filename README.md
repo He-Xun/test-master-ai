@@ -79,20 +79,21 @@ npm run dist
 
 ## 🛠️ 技术栈
 
-- **前端框架**：React 18 + TypeScript
-- **UI 组件**：Ant Design 5 + Tailwind CSS
-- **桌面应用**：Electron 25
-- **构建工具**：Vite 5
-- **数据持久化**：
-  - **全平台主力**：SQLite（sql.js，Electron 下支持 better-sqlite3），所有业务数据均存储于 SQLite
-  - **数据快照备份**：IndexedDB（用于 SQLite 数据的持久化快照，提升数据安全性）
-  - **配置/偏好**：electron-store（仅桌面端，极少量设置）
-  - **localStorage**：仅用于历史数据迁移和兼容，**不再作为主数据存储**
-- **智能存储适配**：StorageAdapter 自动切换最优方案，支持数据迁移与降级
-- **国际化**：i18next + react-i18next
-- **数据处理**：xlsx
-- **自动化测试**：Playwright、Puppeteer
-- **CI/CD**：GitHub Actions + electron-builder
+- **前端框架**:React 18+TypeScript
+- **U| 组件**: Ant Design 5 + Tailwind CSS
+- **桌面应用**:Electron 25
+- **构建工具**:Vite 5
+- **数据持久化**:
+  - **全平台主力**:SQLite(sql.js，Electron 下支持 better-sqlite3)，所有业务数据均存储于 SQLite
+  - **数据快照备份**:IndexedDB(用于 SQLite 数据的持久化快照，提升数据安全性
+  - **配置/偏好**:electron-store(仅桌面端，极少量设置).
+  - **localStorage**:仅用于历史数据迁移和兼容，**不再作为主数据存储****
+- 智能存储适配**:StorageAdapter 自动切换最优方案，支持数据迁移与降级
+- **国际化**:i18next+react-i18next
+- **数据处理**:xlsX
+- **自动化测试**:Playwright、Puppeteer
+- **Markdown 渲染**:react-markdown+remark-gfm(支持可视化/原文切换、代码高亮、表格等)
+- **Cl/CD**: GitHub Actions + electron-builder
 
 ## 📁 项目结构
 
