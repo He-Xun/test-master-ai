@@ -245,25 +245,25 @@ const TestSessionDetail: React.FC = () => {
 
       {/* 统计信息 */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="bg-blue-50 border-blue-200">
+        <Card className="border-blue-200">
           <div className="text-center">
             <div className="text-2xl font-bold text-blue-600">{session.totalTests}{t('unit.times')}</div>
             <div className="text-sm text-gray-500">{t('history.totalTests')}</div>
           </div>
         </Card>
-        <Card className="bg-green-50 border-green-200">
+        <Card className="border-green-200">
           <div className="text-center">
             <div className="text-2xl font-bold text-green-600">{session.successCount}{t('unit.times')}</div>
             <div className="text-sm text-gray-500">{t('history.successCount')}</div>
           </div>
         </Card>
-        <Card className="bg-red-50 border-red-200">
+        <Card className="border-red-200">
           <div className="text-center">
             <div className="text-2xl font-bold text-red-600">{session.errorCount}{t('unit.times')}</div>
             <div className="text-sm text-gray-500">{t('history.errorCount')}</div>
           </div>
         </Card>
-        <Card className="bg-purple-50 border-purple-200">
+        <Card className="border-purple-200">
           <div className="text-center">
             <div className="text-2xl font-bold text-purple-600">{Math.round(session.averageDuration)}{t('unit.ms')}</div>
             <div className="text-sm text-gray-500">{t('history.averageDuration')}</div>

@@ -68,7 +68,7 @@ const DebugPanel: React.FC = () => {
 
       {/* 数据统计 */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="text-center bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 p-4">
+        <Card className="text-center bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200">
           <div className="text-2xl font-bold text-purple-600">{debugData.prompts?.length || 0}</div>
           <div className="text-sm text-gray-600">{t('debug.prompts')}</div>
         </Card>

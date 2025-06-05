@@ -39,6 +39,8 @@ import {
   CloseOutlined,
   SearchOutlined,
 } from '@ant-design/icons';
+import { MenuOutlined } from '@ant-design/icons';
+import { ReactSortable } from 'react-sortablejs';
 import { ApiConfig, ModelConfig, RequestMode } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 import { testApiConfig, fetchAvailableModels } from '../utils/api';
@@ -63,6 +65,9 @@ const ApiConfigManagement: React.FC = () => {
   const [activeTabKey, setActiveTabKey] = useState<string>('basic');
   const formListRef = useRef<any>(null);
   const [formDataBackup, setFormDataBackup] = useState<any>(null);
+  const [isAddingModel, setIsAddingModel] = useState(false);
+  const [editingModelIndex, setEditingModelIndex] = useState<number | null>(null);
+  const [modelForm] = Form.useForm();
 
   // 添加压缩Tab样式
   const compactTabsStyle = `
@@ -456,6 +461,73 @@ const ApiConfigManagement: React.FC = () => {
 
   const groupedModels = groupModels(filteredModels);
 
+  // 拖拽排序相关
+  const DragHandle = () => (
+    <MenuOutlined style={{ cursor: 'grab', color: '#999', fontSize: 18, marginRight: 8 }} />
+  );
+
+  const handleSort = (order: string[], fields: any[]) => {
+    const models = form.getFieldValue('models') || [];
+    // order是key的顺序
+    const keyToIndex = Object.fromEntries(fields.map((f: any, idx: number) => [f.key, idx]));
+    const newModels = order.map((key) => models[keyToIndex[key]]);
+    form.setFieldsValue({ models: newModels });
+  };
+
+  // 打开添加模型弹窗
+  const openAddModelModal = () => {
+    modelForm.resetFields();
+    setEditingModelIndex(null);
+    setIsAddingModel(true);
+  };
+
+  // 打开编辑模型弹窗
+  const openEditModelModal = (index: number, model: any) => {
+    modelForm.setFieldsValue({ modelId: model.modelId, name: model.name });
+    setEditingModelIndex(index);
+    setIsAddingModel(true);
+  };
+
+  // 关闭弹窗
+  const closeModelModal = () => {
+    setIsAddingModel(false);
+    setEditingModelIndex(null);
+    modelForm.resetFields();
+  };
+
+  // 新增或编辑模型
+  const handleModelModalOk = () => {
+    modelForm.validateFields().then(values => {
+      const models = form.getFieldValue('models') || [];
+      if (editingModelIndex !== null) {
+        // 编辑
+        const newModels = [...models];
+        newModels[editingModelIndex] = {
+          ...newModels[editingModelIndex],
+          modelId: values.modelId,
+          name: values.name,
+        };
+        form.setFieldsValue({ models: newModels });
+      } else {
+        // 新增
+        const newModel = {
+          id: `model-${Date.now()}`,
+          modelId: values.modelId,
+          name: values.name,
+          enabled: true,
+        };
+        form.setFieldsValue({ models: [...models, newModel] });
+      }
+      setIsAddingModel(false);
+      setEditingModelIndex(null);
+      modelForm.resetFields();
+    });
+  };
+
+  // 过滤可选模型，排除已选中的
+  const selectedModelIds = (form.getFieldValue('models') || []).map((m: any) => m.modelId);
+  const filteredAvailableModels = availableModels.filter((model: any) => !selectedModelIds.includes(model.id));
+
   const columns = [
     {
       title: t('api.name'),
@@ -567,7 +639,17 @@ const ApiConfigManagement: React.FC = () => {
             </div>
             <div>
               <h1 className="text-2xl font-bold text-gray-900">{t('api.title')}</h1>
-              <p className="text-gray-500 mt-1">{t('api.subtitle')}</p>
+              <p className="text-gray-500 mt-1 flex items-center gap-2">
+                {t('api.subtitle')}
+                <Button
+                  type="link"
+                  size="small"
+                  style={{ padding: 0, height: 'auto', fontSize: 13 }}
+                  onClick={() => window.open('https://yunwu.ai/register?aff=okdc', '_blank')}
+                >
+                  {t('api.recommendPlatform')}
+                </Button>
+              </p>
             </div>
           </div>
           <div className="flex items-center space-x-4">
@@ -886,26 +968,31 @@ const ApiConfigManagement: React.FC = () => {
                                   
                                   {/* 模型列表 - 更紧凑的布局 */}
                                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 max-h-40 overflow-y-auto">
-                                    {groupModels.map(model => (
-                                      <div
-                                        key={model.id}
-                                        className={`p-2 border rounded cursor-pointer transition-all text-xs flex items-center space-x-2 ${
-                                          selectedModels.includes(model.id)
-                                            ? 'border-green-500 bg-green-50'
-                                            : 'border-gray-200 hover:border-green-300 hover:bg-green-25'
-                                        }`}
-                                        onClick={() => {
-                                          if (selectedModels.includes(model.id)) {
-                                            setSelectedModels(selectedModels.filter(id => id !== model.id));
-                                          } else {
-                                            setSelectedModels([...selectedModels, model.id]);
-                                          }
-                                        }}
-                                      >
-                                        {getModelIcon(model.name || model.id)}
-                                        <span>{model.name}</span>
-                                      </div>
-                                    ))}
+                                    {groupModels
+                                      .filter(model => !selectedModelIds.includes(model.id))
+                                      .map(model => (
+                                        <div
+                                          key={model.id}
+                                          className={`p-2 border rounded cursor-pointer transition-all text-xs flex items-center space-x-2 ${
+                                            selectedModels.includes(model.id)
+                                              ? 'border-green-500 bg-green-100 shadow-sm'
+                                              : 'border-gray-200 hover:border-green-300 hover:bg-green-50'
+                                          }`}
+                                          onClick={() => {
+                                            if (selectedModels.includes(model.id)) {
+                                              setSelectedModels(selectedModels.filter(id => id !== model.id));
+                                            } else {
+                                              setSelectedModels([...selectedModels, model.id]);
+                                            }
+                                          }}
+                                        >
+                                          {selectedModels.includes(model.id) && (
+                                            <CheckOutlined className="text-green-500 mr-1" />
+                                          )}
+                                          {getModelIcon(model.name || model.id)}
+                                          <span>{model.name}</span>
+                                        </div>
+                                      ))}
                                   </div>
                                 </div>
                               )
@@ -935,66 +1022,62 @@ const ApiConfigManagement: React.FC = () => {
                         // 保存add和remove方法到ref中以便外部调用
                         formListRef.current = { add, remove };
                         
+                        // 拖拽排序用list
+                        const models = form.getFieldValue('models') || [];
                         return (
                           <>
-                            {fields.map(({ key, name, ...restField }) => (
-                              <div
-                                key={key}
-                                className="mb-2 p-3 border border-gray-200 rounded-md bg-white"
-                              >
-                                <div className="flex items-center gap-3">
+                            <ReactSortable
+                              list={models}
+                              setList={newList => form.setFieldsValue({ models: newList })}
+                              handle=".drag-handle"
+                              animation={200}
+                            >
+                              {models.map((modelData: any, index: number) => (
+                                <div
+                                  key={modelData.id || index}
+                                  className={`mb-2 p-3 border rounded-md bg-white flex items-center gap-3 transition-all duration-150 ${modelData.selected ? 'border-green-600 bg-green-100/90 shadow-lg' : 'border-gray-200 hover:border-green-400 hover:bg-green-50'}`}
+                                  style={modelData.selected ? { boxShadow: '0 0 0 2px #22c55e33, 0 2px 8px #22c55e22' } : {}}
+                                >
+                                  <span className="drag-handle"><DragHandle /></span>
+                                  <div className="flex-1 flex items-center">
+                                    {getModelIcon(modelData?.name)}
+                                    <span className="ml-2">{modelData?.name || '-'}</span>
+                                  </div>
                                   <Form.Item
-                                    {...restField}
-                                    name={[name, 'modelId']}
-                                    rules={[{ required: true, message: '请输入模型ID' }]}
-                                    className="mb-0 flex-1"
-                                  >
-                                    <Input placeholder="gpt-4o" />
-                                  </Form.Item>
-                                  <Form.Item
-                                    {...restField}
-                                    name={[name, 'name']}
-                                    rules={[{ required: true, message: '请输入模型名称' }]}
-                                    className="mb-0 flex-1"
-                                  >
-                                    <Input placeholder="GPT-4o" />
-                                  </Form.Item>
-                                  <Form.Item
-                                    {...restField}
-                                    name={[name, 'enabled']}
+                                    name={[index, 'enabled']}
                                     valuePropName="checked"
                                     className="mb-0"
                                   >
-                                    <Switch 
-                                      size="small"
-                                      checkedChildren={<CheckOutlined />}
-                                      unCheckedChildren={<CloseOutlined />}
-                                    />
+                                    <Switch size="small" />
                                   </Form.Item>
-                                  {fields.length > 1 && (
+                                  <Space>
                                     <Button
                                       type="text"
-                                      danger
                                       size="small"
-                                      icon={<DeleteOutlined />}
-                                      onClick={() => remove(name)}
+                                      icon={<EditOutlined />}
+                                      onClick={() => openEditModelModal(index, modelData)}
                                     />
-                                  )}
+                                    {models.length > 1 && (
+                                      <Button
+                                        type="text"
+                                        danger
+                                        size="small"
+                                        icon={<DeleteOutlined />}
+                                        onClick={() => remove(index)}
+                                      />
+                                    )}
+                                  </Space>
                                 </div>
-                              </div>
-                            ))}
+                              ))}
+                            </ReactSortable>
                             <Button
-                              type="dashed"
-                              onClick={() => add({
-                                id: `model-${Date.now()}`,
-                                modelId: '',
-                                name: '',
-                                enabled: true,
-                              })}
+                              type="primary"
+                              onClick={openAddModelModal}
                               block
                               icon={<PlusOutlined />}
-                              size="small"
-                              className="border-gray-300 text-gray-600 hover:border-blue-500 hover:text-blue-500"
+                              size="large"
+                              style={{ height: 48, fontSize: 18, marginTop: 12, background: 'linear-gradient(90deg,#e0f2fe,#bbf7d0)', border: 'none', color: '#1677ff' }}
+                              className="shadow hover:shadow-lg"
                             >
                               手动添加模型
                             </Button>
@@ -1009,6 +1092,35 @@ const ApiConfigManagement: React.FC = () => {
           />
         </Form>
       </Drawer>
+      
+      {/* 添加模型弹窗 */}
+      <Modal
+        title={editingModelIndex !== null ? '编辑模型' : '添加模型'}
+        open={isAddingModel}
+        onCancel={closeModelModal}
+        onOk={handleModelModalOk}
+        destroyOnClose
+      >
+        <Form
+          form={modelForm}
+          layout="vertical"
+        >
+          <Form.Item
+            name="modelId"
+            label="模型ID"
+            rules={[{ required: true, message: '请输入模型ID' }]}
+          >
+            <Input placeholder="输入模型ID，如gpt-4o" />
+          </Form.Item>
+          <Form.Item
+            name="name"
+            label="模型名称"
+            rules={[{ required: true, message: '请输入模型名称' }]}
+          >
+            <Input placeholder="输入模型显示名称，如GPT-4o" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

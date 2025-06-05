@@ -352,7 +352,8 @@
     "pleaseEnterModelId": "Please enter model ID",
     "modelName": "Model Name",
     "pleaseEnterModelName": "Please enter model name",
-    "manualAddModel": "Manual Add Model"
+    "manualAddModel": "Manual Add Model",
+    "recommendPlatform": "Recommended API Platform"
   },
   "history": {
     "title": "Test History",

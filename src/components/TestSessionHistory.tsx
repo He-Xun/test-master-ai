@@ -175,7 +175,6 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       title: t('history.testTime'),
       key: 'time',
       width: 180,
-      fixed: 'left' as const,
       render: (record: TestSessionHistory) => (
         <Space direction="vertical" size="small">
           <Text type="secondary" style={{ fontSize: '12px' }}>

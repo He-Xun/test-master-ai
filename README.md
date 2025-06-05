@@ -162,7 +162,7 @@ test-master-ai/
 
 ## 📝 版本信息
 
-- **当前版本**: v1.0.10
+- **当前版本**: v1.0.11
 - **发布时间**: 2025年6月5日
 
 详细更新日志请查看 [RELEASE-NOTES.md](RELEASE-NOTES.md)
