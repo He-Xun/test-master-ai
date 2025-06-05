@@ -1,5 +1,6 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { HashRouter as Router, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+const MultiModelCompare = React.lazy(() => import('./components/MultiModelCompare'));
 import Layout from 'antd/es/layout';
 import Menu from 'antd/es/menu';
 import Breadcrumb from 'antd/es/breadcrumb';
@@ -42,6 +43,7 @@ import './App.css';
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/es/locale/zh_CN';
 import enUS from 'antd/es/locale/en_US';
+import MainLogo from '@/assets/main-logo.svg?react';
 
 // 使用React.lazy进行代码分割
 const TestingPanel = React.lazy(() => import('./components/TestingPanel'));
@@ -157,6 +159,7 @@ const AppLayout: React.FC = () => {
     const path = location.pathname;
     if (path === '/' || path === '/home') return 'home';
     if (path === '/testing') return 'testing';
+    if (path === '/multi-model-compare') return 'multi-model-compare';
     if (path === '/prompts') return 'prompts';
     if (path === '/api-config') return 'api-config';
     if (path === '/test-history') return 'test-history';
@@ -313,6 +316,9 @@ const AppLayout: React.FC = () => {
       case 'testing':
         navigate('/testing');
         break;
+      case 'multi-model-compare':
+        navigate('/multi-model-compare');
+        break;
       case 'prompts':
         navigate('/prompts');
         break;
@@ -387,8 +393,8 @@ const AppLayout: React.FC = () => {
         <div className="max-w-md w-full mx-4">
           <Card className="shadow-lg border-0">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-4">
-                <RocketOutlined className="text-white text-2xl" />
+              <div className="w-16 h-16 flex items-center justify-center mx-auto mb-4">
+                <MainLogo style={{ width: 48, height: 48, display: 'block' }} />
               </div>
               <Title level={2} className="mb-2 text-blue-600">
                 {t('app.title')}
@@ -446,6 +452,15 @@ const AppLayout: React.FC = () => {
         </Tooltip>
       ),
     },
+    // {
+    //   key: 'multi-model-compare',
+    //   icon: <ApiOutlined />,
+    //   label: (
+    //     <Tooltip title={t('menu.multiModelCompare') || '多模型对比'} placement="right" getPopupContainer={() => document.body}>
+    //       <span className="truncate block max-w-[180px]">{t('menu.multiModelCompare') || '多模型对比'}</span>
+    //     </Tooltip>
+    //   ),
+    // },
     {
       key: 'testing',
       icon: <ExperimentOutlined />,
@@ -536,8 +551,8 @@ const AppLayout: React.FC = () => {
             className="logo-content"
             onClick={() => navigate('/testing')}
           >
-            <div className="logo-icon">
-              <RocketOutlined className="text-white text-lg" />
+            <div className="logo-icon" style={{ background: 'none' }}>
+              <MainLogo style={{ width: 40, height: 40, display: 'block' }} />
             </div>
             {!collapsed && (
               <div className="logo-text">
@@ -658,6 +673,7 @@ const AppLayout: React.FC = () => {
                 <Route path="/" element={<HomePage />} />
                 <Route path="/home" element={<HomePage />} />
                 <Route path="/testing" element={<TestingPanel />} />
+                <Route path="/multi-model-compare" element={<React.Suspense fallback={<div>Loading...</div>}><MultiModelCompare /></React.Suspense>} />
                 <Route path="/prompts" element={<PromptsManagement />} />
                 <Route path="/api-config" element={<ApiConfigManagement />} />
                 <Route path="/test-history" element={<TestSessionHistory asPage={true} />} />

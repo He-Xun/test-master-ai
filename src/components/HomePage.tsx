@@ -39,7 +39,7 @@ const HomePage: React.FC = () => {
     <>
       <div className="space-y-6">
         <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-green-50">
-          <div className="flex flex-col gap-2 py-6">
+          <div className="flex flex-col gap-2 py-4">
             <div className="flex items-center gap-2 mb-4">
               <AppstoreOutlined className="text-2xl text-blue-500 bg-white/80 rounded-full p-2 shadow" />
               <span className="text-lg font-bold text-blue-700">{t('testing.statistics') || '测试统计'}</span>

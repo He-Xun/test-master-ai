@@ -42,6 +42,7 @@ import {
   SaveOutlined,
   EyeOutlined as IconEyeOutlined,
   EyeInvisibleOutlined as IconEyeInvisibleOutlined,
+  HistoryOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import { TestParams, TestResult, TestSession, Prompt, DefaultTestInput, TestConfigDraft, User } from '../types';
@@ -1302,6 +1303,20 @@ const TestingPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
+      {/* 统计信息卡片区域（100%复用测试记录页面结构和类名） */}
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-indigo-500 rounded-lg flex items-center justify-center">
+              <HistoryOutlined className="text-white text-xl" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{t('testing.pageTitle')}</h1>
+              <p className="text-gray-500 mt-1 text-sm">{t('testing.pageSubtitle')}</p>
+            </div>
+          </div>
+        </div>
+      </div>
       {/* 配置选择（通栏） */}
       <Card title={t('testing.config')} className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl" headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }} bodyStyle={{ background: '#fff' }}>
         <div className="relative">

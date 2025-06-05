@@ -6,11 +6,12 @@
   },
   "menu": {
     "home": "Home",
-    "testing": "Interface Testing",
+    "testing": "Prompt Testing",
     "history": "Test History",
     "prompts": "Prompt Management",
     "api": "API Configuration",
-    "debug": "Debug Information"
+    "debug": "Debug Information",
+    "multiModelCompare": "Multi-Model Compare"
   },
   "auth": {
     "login": "Login",
@@ -64,6 +65,8 @@
   },
   "testing": {
     "title": "Test Configuration",
+    "pageTitle": "Prompt Testing",
+    "pageSubtitle": "View and manage prompt testing",
     "config": "Test Configuration",
     "inputs": "Test Inputs",
     "results": "Test Results",
@@ -622,10 +625,10 @@
   },
   "home": {
     "guideTitle": "How to use this application?",
-    "guideStep1": "1. Select 'Interface Testing' from the left menu to enter the testing page.",
+    "guideStep1": "1. Select 'Prompt Testing' from the left menu to enter the testing page.",
     "guideStep2": "2. Add or edit your prompts in 'Prompt Management'.",
     "guideStep3": "3. Configure your model API and parameters in 'API Configuration'.",
-    "guideStep4": "4. Return to the 'Interface Testing' page, select prompts and models, enter test content, and click Start Test.",
+    "guideStep4": "4. Return to the 'Prompt Testing' page, select prompts and models, enter test content, and click Start Test.",
     "guideStep5": "5. View and export your test results in 'Test History'."
   }
 }

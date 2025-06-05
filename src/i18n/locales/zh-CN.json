@@ -6,11 +6,12 @@
   },
   "menu": {
     "home": "首页",
-    "testing": "接口测试",
+    "testing": "提示词测试",
     "history": "测试记录",
     "prompts": "提示词管理",
     "api": "API配置",
-    "debug": "调试信息"
+    "debug": "调试信息",
+    "multiModelCompare": "多模型对比"
   },
   "auth": {
     "login": "登录",
@@ -64,6 +65,8 @@
   },
   "testing": {
     "title": "测试配置",
+    "pageTitle": "提示词测试",
+    "pageSubtitle": "查看和管理提示词测试",
     "config": "测试配置",
     "inputs": "测试输入",
     "results": "测试结果",

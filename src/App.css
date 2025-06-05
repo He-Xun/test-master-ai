@@ -455,7 +455,7 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
-  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.2);
+  box-shadow: 0 2px 8px rgba(24, 144, 255, 0.18);
 }
 
 .logo-text {
