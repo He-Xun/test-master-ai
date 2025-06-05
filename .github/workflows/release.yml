@@ -474,7 +474,7 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: ${{ env.NODE_VERSION }}
-          
+
       - name: Get package version
         id: package-version
         run: |
@@ -482,29 +482,34 @@ jobs:
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
           echo "datetime=$(date '+%Y-%m-%d %H:%M:%S')" >> $GITHUB_OUTPUT
-          
+
+      - name: Find changelog file
+        id: changelog
+        run: |
+          FILE=$(ls dev-management/changelog/*-v${{ steps.package-version.outputs.version }}-*.md 2>/dev/null || true)
+          if [ -z "$FILE" ]; then
+            echo "未找到对应版本的changelog文件" >&2
+            exit 1
+          fi
+          echo "file=$FILE" >> $GITHUB_OUTPUT
+
+      - name: Read changelog content
+        id: changelog_content
+        run: |
+          CONTENT=$(cat ${{ steps.changelog.outputs.file }})
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo "$CONTENT" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Create Release Tag
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ steps.package-version.outputs.tag }}
           name: "v${{ steps.package-version.outputs.version }} 正式版"
-          body: |
-            TestMaster AI v${{ steps.package-version.outputs.version }} 正式发布
-            
-            📅 发布日期: ${{ steps.package-version.outputs.datetime }}
-            
-            ## 🚀 功能亮点
-            - 高效测试多个提示词模板
-            - 结果分析与对比
-            - 多模型支持
-            - 直观的数据可视化
-            
-            ## 📦 下载
-            - 🍎 **macOS**: 下载 `.dmg` 文件
-            - 🪟 **Windows**: 下载 `.exe` 文件
+          body: ${{ steps.changelog_content.outputs.changelog }}
           draft: false
           prerelease: false
-          generate_release_notes: true
+          generate_release_notes: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - name: Ensure ffmpeg.dll in release
