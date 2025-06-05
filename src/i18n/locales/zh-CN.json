@@ -5,6 +5,7 @@
     "version": "版本"
   },
   "menu": {
+    "home": "首页",
     "testing": "接口测试",
     "history": "测试记录",
     "prompts": "提示词管理",
@@ -167,7 +168,9 @@
     "testRecords": "测试记录",
     "configTotal": "配置总数",
     "preview": "预览提示词",
-    "editCurrent": "编辑当前提示词"
+    "editCurrent": "编辑当前提示词",
+    "resultsPanel": "测试结果区",
+    "controlPanel": "测试控制区"
   },
   "results": {
     "viewDetails": "查看详情",
@@ -623,5 +626,8 @@
     "times": "次",
     "records": "条",
     "ms": "毫秒"
+  },
+  "home": {
+    "guideTitle": "如何使用本应用？"
   }
 } 

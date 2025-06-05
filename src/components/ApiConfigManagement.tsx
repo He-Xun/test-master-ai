@@ -42,6 +42,7 @@ import {
 import { ApiConfig, ModelConfig, RequestMode } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 import { testApiConfig, fetchAvailableModels } from '../utils/api';
+import { getModelIcon } from '@/constants/modelIconMap.tsx';
 
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
@@ -888,7 +889,7 @@ const ApiConfigManagement: React.FC = () => {
                                     {groupModels.map(model => (
                                       <div
                                         key={model.id}
-                                        className={`p-2 border rounded cursor-pointer transition-all text-xs ${
+                                        className={`p-2 border rounded cursor-pointer transition-all text-xs flex items-center space-x-2 ${
                                           selectedModels.includes(model.id)
                                             ? 'border-green-500 bg-green-50'
                                             : 'border-gray-200 hover:border-green-300 hover:bg-green-25'
@@ -901,22 +902,8 @@ const ApiConfigManagement: React.FC = () => {
                                           }
                                         }}
                                       >
-                                        <div className="flex items-center space-x-2">
-                                          <Checkbox 
-                                            checked={selectedModels.includes(model.id)}
-                                            onChange={() => {}}
-                                          />
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-medium text-gray-900 truncate">
-                                              {model.name}
-                                            </div>
-                                            {model.id !== model.name && (
-                                              <div className="text-gray-500 truncate text-xs">
-                                                {model.id}
-                                              </div>
-                                            )}
-                                          </div>
-                                        </div>
+                                        {getModelIcon(model.name || model.id)}
+                                        <span>{model.name}</span>
                                       </div>
                                     ))}
                                   </div>

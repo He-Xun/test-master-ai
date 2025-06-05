@@ -5,6 +5,7 @@
     "version": "Version"
   },
   "menu": {
+    "home": "Home",
     "testing": "Interface Testing",
     "history": "Test History",
     "prompts": "Prompt Management",
@@ -164,7 +165,9 @@
     "statistics": "Statistics",
     "todayTestCount": "Today's Tests",
     "totalTestCount": "Total Tests",
-    "testRecords": "Test Records"
+    "testRecords": "Test Records",
+    "resultsPanel": "Results Panel",
+    "controlPanel": "Control Panel"
   },
   "results": {
     "viewDetails": "View Details",

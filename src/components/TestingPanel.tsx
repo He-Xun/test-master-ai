@@ -53,6 +53,7 @@ import { exportToExcel, exportToCSV, copyResultsToClipboard, copySingleResultToC
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Form as AntdForm } from 'antd';
+import { getModelIcon } from '@/constants/modelIconMap.tsx';
 
 const { TextArea } = Input;
 const { Panel } = Collapse;
@@ -1301,55 +1302,9 @@ const TestingPanel: React.FC = () => {
 
   return (
     <div className="space-y-6">
-      {/* 配置区域 */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* 数据统计卡片优化 */}
-        <Card className="lg:col-span-1 bg-gradient-to-br from-blue-50 to-green-50 border-0 shadow-lg">
-          <div className="flex flex-col gap-2 py-6">
-            <div className="flex items-center gap-2 mb-2">
-              <AppstoreOutlined className="text-2xl text-blue-500 bg-white/80 rounded-full p-2 shadow" />
-              <span className="text-lg font-bold text-blue-700">{t('testing.statistics')}</span>
-            </div>
-            <div className="grid grid-rows-3 gap-2 mb-2">
-              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-blue-100">
-                <div className="flex flex-col">
-                  <div className="text-lg font-bold text-blue-600">{todayTestCount}{t('unit.times')}</div>
-                  {renderStatText(t('testing.todayTestCount'))}
-                </div>
-                <div className="text-blue-400 text-2xl">📊</div>
-              </div>
-              
-              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-green-100">
-                <div className="flex flex-col">
-                  <div className="text-lg font-bold text-green-600">{totalTestCount}{t('unit.times')}</div>
-                  {renderStatText(t('testing.totalTestCount'))}
-                </div>
-                <div className="text-green-400 text-2xl">🎯</div>
-              </div>
-              
-              <div className="bg-white/90 rounded-lg p-3 flex items-center justify-between border border-purple-100">
-                <div className="flex flex-col">
-                  <div className="text-lg font-bold text-purple-600">{totalRecordCount}{t('unit.records')}</div>
-                  {renderStatText(t('testing.testRecords'))}
-                </div>
-                <div className="text-purple-400 text-2xl">📝</div>
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-2 mt-2">
-              <div className="bg-white/80 p-2 rounded-lg border border-green-100 shadow-sm flex flex-col items-center">
-                <div className="font-bold text-green-700 text-base">{prompts.length}</div>
-                <div className="text-green-600 text-xs">{t('testing.prompts')}</div>
-              </div>
-              <div className="bg-white/80 p-2 rounded-lg border border-blue-100 shadow-sm flex flex-col items-center">
-                <div className="font-bold text-blue-700 text-base">{models.length}</div>
-                <div className="text-blue-600 text-xs">{t('testing.models')}</div>
-              </div>
-            </div>
-          </div>
-        </Card>
-
-        {/* 配置选择 */}
-        <Card className="col-span-2" title={t('testing.config')}>
+      {/* 配置选择（通栏） */}
+      <Card title={t('testing.config')} className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl" headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }} bodyStyle={{ background: '#fff' }}>
+        <div className="relative">
           <Form 
             form={form} 
             layout="vertical"
@@ -1395,7 +1350,7 @@ const TestingPanel: React.FC = () => {
                 name="modelId"
                 label={
                   <div className="flex items-center space-x-2">
-                    <ApiOutlined className="text-green-500 flex-shrink-0" />
+                    {getModelIcon(models.find(m => m.id === form.getFieldValue('modelId'))?.name || '')}
                     <Tooltip title={t('testing.selectModel')} placement="top">
                       <span className="truncate">{t('testing.selectModel')}</span>
                     </Tooltip>
@@ -1419,7 +1374,7 @@ const TestingPanel: React.FC = () => {
                     <Select.Option key={model.id} value={model.id}>
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2 flex-1 min-w-0">
-                          <ApiOutlined className="text-green-500 flex-shrink-0" />
+                          {getModelIcon(model.name || model.id)}
                           <span className="truncate">{model.name}</span>
                         </div>
                         <Tag color="default" className="flex-shrink-0 ml-2">{model.apiConfigName}</Tag>
@@ -1524,17 +1479,18 @@ const TestingPanel: React.FC = () => {
                 >
                   <TextArea
                     value={selectedPrompt.content}
-                    autoSize={{ minRows: 3, maxRows: 8 }}
+                    rows={4}
                     readOnly
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, minHeight: 88 }}
+                    className="resize-y"
                     placeholder=""
                   />
                 </Form.Item>
               );
             })()}
           </Form>
-        </Card>
-      </div>
+        </div>
+      </Card>
 
       {/* 测试输入 */}
       <Card 
@@ -1554,7 +1510,7 @@ const TestingPanel: React.FC = () => {
           <Space wrap>
             <Tooltip title={t('testing.useTemplate')} placement="top">
               <Button 
-                type="dashed" 
+                type="default" 
                 icon={<AppstoreOutlined />}
                 onClick={() => setIsDefaultInputModalVisible(true)}
                 size="large"
@@ -1576,241 +1532,249 @@ const TestingPanel: React.FC = () => {
             </Tooltip>
           </Space>
         }
-        className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200"
+        className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl"
+        headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }}
+        bodyStyle={{ background: '#fff' }}
       >
-        <div className="space-y-4">
-          {userInputs.map((input, index) => (
-            <div key={index} className="bg-white rounded-lg border border-gray-200 shadow-sm">
-              <div className="flex items-center justify-between px-4 py-2 bg-gray-50 border-b border-gray-200 rounded-t-lg">
-                <div className="flex items-center space-x-2">
-                  <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                    {index + 1}
+        <div className="relative bg-white/95 rounded-xl p-6">
+          <div className="space-y-4">
+            {userInputs.map((input, index) => (
+              <div key={index} className="bg-gray-50 rounded-lg border border-gray-200 shadow-sm">
+                <div className="flex items-center justify-between px-4 py-2 border-b-2 border-gray-200 rounded-t-lg" style={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)' }}>
+                  <div className="flex items-center space-x-2">
+                    <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                      {index + 1}
+                    </div>
+                    <span className="text-sm font-medium text-gray-700">{t('testing.testInput')} {index + 1}</span>
+                    <Tag color="blue">
+                      {t('testing.willTest')} {repetitions} {t('testing.times')}
+                    </Tag>
                   </div>
-                  <span className="text-sm font-medium text-gray-700">{t('testing.testInput')} {index + 1}</span>
-                  <Tag color="blue">
-                    {t('testing.willTest')} {repetitions} {t('testing.times')}
-                  </Tag>
+                  {userInputs.length > 1 && (
+                    <Button
+                      type="text"
+                      danger
+                      icon={<DeleteOutlined />}
+                      onClick={() => handleRemoveUserInput(index)}
+                      size="small"
+                    />
+                  )}
                 </div>
-                {userInputs.length > 1 && (
-                  <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    onClick={() => handleRemoveUserInput(index)}
-                    size="small"
+                <div className="p-4">
+                  <TextArea
+                    value={input}
+                    onChange={(e) => handleUserInputChange(index, e.target.value)}
+                    placeholder={`${t('testing.inputPlaceholder')} ${index + 1}...`}
+                    rows={4}
+                    className="border-0 shadow-none resize-none"
+                    style={{ padding: 0 }}
+                    onKeyDown={(e) => {
+                      if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
+                        (e.target as HTMLTextAreaElement).select();
+                        e.preventDefault();
+                      }
+                    }}
                   />
-                )}
+                </div>
               </div>
-              <div className="p-4">
-                <TextArea
-                  value={input}
-                  onChange={(e) => handleUserInputChange(index, e.target.value)}
-                  placeholder={`${t('testing.inputPlaceholder')} ${index + 1}...`}
-                  rows={4}
-                  className="border-0 shadow-none resize-none"
-                  style={{ padding: 0 }}
-                  onKeyDown={(e) => {
-                    if ((e.ctrlKey || e.metaKey) && e.key === 'a') {
-                      (e.target as HTMLTextAreaElement).select();
-                      e.preventDefault();
-                    }
-                  }}
-                />
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </Card>
 
       {/* 测试控制 */}
-      <Card className="bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200">
-        <div className="space-y-6">
-          {/* 第一行：统计信息卡片 */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* 有效输入数 */}
-            <div className="bg-white rounded-lg px-4 py-4 border border-gray-200 shadow-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-blue-600 mb-1">
-                  {validInputsCount}
+      <Card title={t('testing.controlPanel') || '测试控制'} className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl" headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }} bodyStyle={{ background: '#fff' }}>
+        <div className="relative">
+          <div className="space-y-6">
+            {/* 第一行：统计信息卡片 */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {/* 有效输入数 */}
+              <div className="bg-gray-50 rounded-lg px-4 py-4 border border-gray-200 shadow">
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold mb-1" style={{ color: '#2563eb' }}>
+                    {validInputsCount}
+                  </div>
+                  <div className="text-sm text-gray-700 font-medium">{t('testing.validInputs')}</div>
                 </div>
-                <div className="text-sm text-gray-500">{t('testing.validInputs')}</div>
+              </div>
+
+              {/* 每次重复数 */}
+              <div className="bg-gray-50 rounded-lg px-4 py-4 border border-gray-200 shadow">
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold mb-1" style={{ color: '#16a34a' }}>
+                    {repetitions}
+                  </div>
+                  <div className="text-sm text-gray-700 font-medium">{t('testing.eachTest')}</div>
+                </div>
+              </div>
+
+              {/* 总测试数 */}
+              <div className="bg-gray-50 rounded-lg px-4 py-4 border border-gray-200 shadow">
+                <div className="text-center">
+                  <div className="text-2xl font-extrabold mb-1" style={{ color: '#ea580c' }}>
+                    {totalTestsCount}
+                  </div>
+                  <div className="text-sm text-gray-700 font-medium">{t('testing.totalTests')}</div>
+                </div>
               </div>
             </div>
 
-            {/* 每次重复数 */}
-            <div className="bg-white rounded-lg px-4 py-4 border border-gray-200 shadow-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-green-600 mb-1">
-                  {repetitions}
-                </div>
-                <div className="text-sm text-gray-500">{t('testing.eachTest')}</div>
-              </div>
-            </div>
-
-            {/* 总测试数 */}
-            <div className="bg-white rounded-lg px-4 py-4 border border-gray-200 shadow-sm">
-              <div className="text-center">
-                <div className="text-2xl font-bold text-orange-600 mb-1">
-                  {totalTestsCount}
-                </div>
-                <div className="text-sm text-gray-500">{t('testing.totalTests')}</div>
-              </div>
-            </div>
-          </div>
-
-          {/* 第二行：控制按钮和导出功能 */}
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-            {/* 左侧：主要控制按钮 */}
-            <div className="flex flex-wrap items-center gap-3">
-              {canStart && (
-                <Button
-                  type="primary"
-                  icon={<PlayCircleOutlined />}
-                  onClick={handleStartTest}
-                  size="large"
-                  className="bg-gradient-to-r from-green-400 via-blue-400 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.startTest')}
-                </Button>
-              )}
-              
-              {isRunning && (
-                <Button
-                  icon={<PauseCircleOutlined />}
-                  onClick={handlePauseTest}
-                  size="large"
-                  className="bg-gradient-to-r from-orange-400 via-yellow-400 to-yellow-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.pauseTest')}
-                </Button>
-              )}
-              
-              {isPaused && (
-                <Button
-                  type="primary"
-                  icon={<PlayCircleOutlined />}
-                  onClick={handleResumeTest}
-                  size="large"
-                  className="bg-gradient-to-r from-blue-400 via-cyan-400 to-cyan-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.resumeTest')}
-                </Button>
-              )}
-              
-              {(isRunning || isPaused) && (
-                <Button
-                  icon={<StopOutlined />}
-                  onClick={handleStopTest}
-                  size="large"
-                  className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 border-none shadow-lg hover:shadow-xl text-white hover:text-white focus:text-white"
-                  style={{ 
-                    color: 'white',
-                    backgroundColor: '#dc2626',
-                    borderColor: 'transparent'
-                  }}
-                >
-                  {t('testing.stopTest')}
-                </Button>
-              )}
-
-              {session && session.results.length > 0 && (
-                <Button
-                  icon={<ReloadOutlined />}
-                  onClick={handleClearResults}
-                  size="large"
-                  className="bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.clearResults')}
-                </Button>
-              )}
-            </div>
-
-            {/* 右侧：导出按钮 */}
-            {session && session.results.length > 0 && (
+            {/* 第二行：控制按钮和导出功能 */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+              {/* 左侧：主要控制按钮 */}
               <div className="flex flex-wrap items-center gap-3">
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={handleExportExcel}
-                  size="large"
-                  className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.exportExcel')}
-                </Button>
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={handleExportCSV}
-                  size="large"
-                  className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.exportCSV')}
-                </Button>
-                <Button
-                  icon={<CopyOutlined />}
-                  onClick={handleCopyResults}
-                  size="large"
-                  className="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 border-none shadow-lg hover:shadow-xl text-white"
-                >
-                  {t('testing.copyResults')}
-                </Button>
+                {canStart && (
+                  <Button
+                    type="primary"
+                    icon={<PlayCircleOutlined />}
+                    onClick={handleStartTest}
+                    size="large"
+                    className="bg-gradient-to-r from-green-400 via-blue-400 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.startTest')}
+                  </Button>
+                )}
+                
+                {isRunning && (
+                  <Button
+                    icon={<PauseCircleOutlined />}
+                    onClick={handlePauseTest}
+                    size="large"
+                    className="bg-gradient-to-r from-orange-400 via-yellow-400 to-yellow-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.pauseTest')}
+                  </Button>
+                )}
+                
+                {isPaused && (
+                  <Button
+                    type="primary"
+                    icon={<PlayCircleOutlined />}
+                    onClick={handleResumeTest}
+                    size="large"
+                    className="bg-gradient-to-r from-blue-400 via-cyan-400 to-cyan-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.resumeTest')}
+                  </Button>
+                )}
+                
+                {(isRunning || isPaused) && (
+                  <Button
+                    icon={<StopOutlined />}
+                    onClick={handleStopTest}
+                    size="large"
+                    className="bg-gradient-to-r from-red-500 via-red-600 to-red-700 border-none shadow-lg hover:shadow-xl text-white hover:text-white focus:text-white"
+                    style={{ 
+                      color: 'white',
+                      backgroundColor: '#dc2626',
+                      borderColor: 'transparent'
+                    }}
+                  >
+                    {t('testing.stopTest')}
+                  </Button>
+                )}
+
+                {session && session.results.length > 0 && (
+                  <Button
+                    icon={<ReloadOutlined />}
+                    onClick={handleClearResults}
+                    size="large"
+                    className="bg-gradient-to-r from-gray-400 via-gray-500 to-gray-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.clearResults')}
+                  </Button>
+                )}
               </div>
-            )}
+
+              {/* 右侧：导出按钮 */}
+              {session && session.results.length > 0 && (
+                <div className="flex flex-wrap items-center gap-3">
+                  <Button
+                    icon={<DownloadOutlined />}
+                    onClick={handleExportExcel}
+                    size="large"
+                    className="bg-gradient-to-r from-green-400 via-green-500 to-green-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.exportExcel')}
+                  </Button>
+                  <Button
+                    icon={<DownloadOutlined />}
+                    onClick={handleExportCSV}
+                    size="large"
+                    className="bg-gradient-to-r from-blue-400 via-blue-500 to-blue-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.exportCSV')}
+                  </Button>
+                  <Button
+                    icon={<CopyOutlined />}
+                    onClick={handleCopyResults}
+                    size="large"
+                    className="bg-gradient-to-r from-purple-400 via-purple-500 to-purple-600 border-none shadow-lg hover:shadow-xl text-white"
+                  >
+                    {t('testing.copyResults')}
+                  </Button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </Card>
 
       {/* 进度显示 */}
       {session && (
-        <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
-                  <Text className="font-medium text-lg">{t('testing.progress')}</Text>
+        <Card className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl" headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }} bodyStyle={{ background: '#fff' }}>
+          <div className="relative">
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center space-x-4">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-3 h-3 bg-blue-500 rounded-full"></div>
+                    <Text className="font-medium text-lg">{t('testing.progress')}</Text>
+                  </div>
+                  <Tag color="blue" className="text-base px-3 py-1">
+                    {session.progress.current} / {session.progress.total}
+                  </Tag>
                 </div>
-                <Tag color="blue" className="text-base px-3 py-1">
-                  {session.progress.current} / {session.progress.total}
-                </Tag>
+                <div className="flex items-center space-x-2">
+                  <div className={`w-3 h-3 rounded-full ${
+                    session.status === 'running' ? 'bg-green-500 animate-pulse' : 
+                    session.status === 'paused' ? 'bg-orange-500' :
+                    session.status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
+                  }`}></div>
+                  <Text type="secondary" className="text-base">
+                    {session.status === 'running' ? t('testing.statusRunning') : 
+                     session.status === 'paused' ? t('testing.statusPaused') :
+                     session.status === 'completed' ? t('testing.statusCompleted') : t('testing.statusStopped')}
+                  </Text>
+                </div>
               </div>
-              <div className="flex items-center space-x-2">
-                <div className={`w-3 h-3 rounded-full ${
-                  session.status === 'running' ? 'bg-green-500 animate-pulse' : 
-                  session.status === 'paused' ? 'bg-orange-500' :
-                  session.status === 'completed' ? 'bg-green-500' : 'bg-gray-500'
-                }`}></div>
-                <Text type="secondary" className="text-base">
-                  {session.status === 'running' ? t('testing.statusRunning') : 
-                   session.status === 'paused' ? t('testing.statusPaused') :
-                   session.status === 'completed' ? t('testing.statusCompleted') : t('testing.statusStopped')}
-                </Text>
+              <Progress
+                percent={Math.round((session.progress.current / session.progress.total) * 100)}
+                status={session.status === 'running' ? 'active' : 
+                       session.status === 'completed' ? 'success' : 'normal'}
+                strokeColor={session.status === 'completed' ? '#22c55e' : 
+                            session.status === 'running' ? '#1890ff' : '#d9d9d9'}
+                trailColor={session.status === 'completed' ? '#dcfce7' : '#f5f5f5'}
+                strokeWidth={12}
+                className="mb-2"
+                showInfo={true}
+                format={(percent) => (
+                  <span style={{ 
+                    color: session.status === 'completed' ? '#16a34a' : 
+                           session.status === 'running' ? '#1890ff' : '#8c8c8c',
+                    fontWeight: 'bold',
+                    fontSize: '16px'
+                  }}>
+                    {percent}%
+                  </span>
+                )}
+              />
+              <div className="text-sm text-gray-600 text-center font-medium">
+                {session.status === 'running' && t('testing.executing')}
+                {session.status === 'paused' && t('testing.testPausedMessage')}
+                {session.status === 'completed' && t('testing.allCompleted')}
+                {session.status === 'stopped' && t('testing.testStoppedMessage')}
               </div>
-            </div>
-            <Progress
-              percent={Math.round((session.progress.current / session.progress.total) * 100)}
-              status={session.status === 'running' ? 'active' : 
-                     session.status === 'completed' ? 'success' : 'normal'}
-              strokeColor={session.status === 'completed' ? '#22c55e' : 
-                          session.status === 'running' ? '#1890ff' : '#d9d9d9'}
-              trailColor={session.status === 'completed' ? '#dcfce7' : '#f5f5f5'}
-              strokeWidth={12}
-              className="mb-2"
-              showInfo={true}
-              format={(percent) => (
-                <span style={{ 
-                  color: session.status === 'completed' ? '#16a34a' : 
-                         session.status === 'running' ? '#1890ff' : '#8c8c8c',
-                  fontWeight: 'bold',
-                  fontSize: '16px'
-                }}>
-                  {percent}%
-                </span>
-              )}
-            />
-            <div className="text-sm text-gray-600 text-center font-medium">
-              {session.status === 'running' && t('testing.executing')}
-              {session.status === 'paused' && t('testing.testPausedMessage')}
-              {session.status === 'completed' && t('testing.allCompleted')}
-              {session.status === 'stopped' && t('testing.testStoppedMessage')}
             </div>
           </div>
         </Card>
@@ -1818,122 +1782,77 @@ const TestingPanel: React.FC = () => {
 
       {/* 测试结果 */}
       {session && session.results.length > 0 && (
-        <Card 
-          title={
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <div className="w-10 h-10 bg-blue-500 rounded-lg flex items-center justify-center">
-                  <TableOutlined className="text-white text-lg" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 m-0">{t('testing.results')}</h3>
-                  <p className="text-sm text-gray-500 m-0">{t('testing.detailedResults')}</p>
-                </div>
-              </div>
-              <div className="flex items-center space-x-3">
-                {(() => {
-                  const stats = getResultStats();
-                  return (
-                    <>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                        <span className="text-sm text-gray-600">{t('results.success')}</span>
-                        <span className="text-sm font-semibold text-green-600">{stats.success}</span>
-                      </div>
-                      <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                        <span className="text-sm text-gray-600">{t('results.failed')}</span>
-                        <span className="text-sm font-semibold text-red-600">{stats.error}</span>
-                      </div>
-                      {stats.pending > 0 && (
-                        <div className="flex items-center space-x-1">
-                          <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-                          <span className="text-sm text-gray-600">{t('status.pending')}</span>
-                          <span className="text-sm font-semibold text-blue-600">{stats.pending}</span>
-                        </div>
-                      )}
-                      <div className="flex items-center space-x-1">
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                        <span className="text-sm text-gray-600">{t('status.total')}</span>
-                        <span className="text-sm font-semibold text-gray-800">{stats.total}</span>
-                      </div>
-                    </>
-                  );
-                })()}
-              </div>
-            </div>
-          }
-          className="shadow-sm border-gray-200"
-          bodyStyle={{ padding: '0 12px 24px 12px' }}
-        >
-          <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 -mx-6 mb-6">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <span className="text-sm text-gray-600">
-                  {t('testing.showResults')} {session?.results.length} {t('testing.resultsCount')}
-                </span>
-                {selectedResultIds.length > 0 && (
-                  <div className="flex items-center space-x-2">
-                    <span className="text-sm text-blue-600">
-                      {t('results.selected')} {selectedResultIds.length} {t('results.items')}
-                    </span>
-                    <Popconfirm
-                      title={`${t('testing.confirmBatchDelete')} ${selectedResultIds.length} ${t('testing.confirmDeleteItems')}`}
-                      onConfirm={handleBatchDelete}
-                      okText={t('testing.confirmDeleteBtn')}
-                      cancelText={t('common.cancel')}
-                    >
-                      <Button
-                        type="primary"
-                        danger
-                        size="small"
-                        icon={<DeleteOutlined />}
+        <Card title={t('testing.resultsPanel') || '测试结果'} className="relative overflow-hidden border border-gray-200 shadow-md rounded-xl" bodyStyle={{ background: '#fff', padding: '0 12px 24px 12px' }} headStyle={{ background: 'linear-gradient(90deg, #f0f4ff 0%, #f8fafc 100%)', borderBottom: '2px solid #e5e7eb' }}>
+          <div className="relative">
+            <div className="bg-gray-50 px-6 py-3 border-b border-gray-200 -mx-6 mb-6">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-4">
+                  <span className="text-sm text-gray-600">
+                    {t('testing.showResults')} {session?.results.length} {t('testing.resultsCount')}
+                  </span>
+                  {selectedResultIds.length > 0 && (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-blue-600">
+                        {t('results.selected')} {selectedResultIds.length} {t('results.items')}
+                      </span>
+                      <Popconfirm
+                        title={`${t('testing.confirmBatchDelete')} ${selectedResultIds.length} ${t('testing.confirmDeleteItems')}`}
+                        onConfirm={handleBatchDelete}
+                        okText={t('testing.confirmDeleteBtn')}
+                        cancelText={t('common.cancel')}
                       >
-                        {t('results.batchDelete')}
-                      </Button>
-                    </Popconfirm>
-                  </div>
-                )}
-              </div>
-              <div className="flex items-center space-x-2">
-                <Button
-                  icon={<DownloadOutlined />}
-                  size="small"
-                  onClick={handleExportExcel}
-                >
-                  Excel
-                </Button>
-                <Button
-                  icon={<CopyOutlined />}
-                  size="small"
-                  onClick={handleCopyResults}
-                >
-                  {t('testing.copy')}
-                </Button>
+                        <Button
+                          type="primary"
+                          danger
+                          size="small"
+                          icon={<DeleteOutlined />}
+                        >
+                          {t('results.batchDelete')}
+                        </Button>
+                      </Popconfirm>
+                    </div>
+                  )}
+                </div>
+                <div className="flex items-center space-x-2">
+                  <Button
+                    icon={<DownloadOutlined />}
+                    size="small"
+                    onClick={handleExportExcel}
+                  >
+                    Excel
+                  </Button>
+                  <Button
+                    icon={<CopyOutlined />}
+                    size="small"
+                    onClick={handleCopyResults}
+                  >
+                    {t('testing.copy')}
+                  </Button>
+                </div>
               </div>
             </div>
+            <Table
+              columns={resultColumns}
+              dataSource={session?.results || []}
+              rowKey="id"
+              pagination={{ 
+                pageSize: 20,
+                showSizeChanger: true,
+                showQuickJumper: true,
+                showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total })
+              }}
+              scroll={{ x: 1200, y: 600 }}
+              size="small"
+              className="custom-table"
+              rowClassName={(record) => {
+                const baseClass = "hover:bg-blue-50 transition-colors";
+                if (record.status === 'success') return `${baseClass} border-l-4 border-l-green-500`;
+                if (record.status === 'error') return `${baseClass} border-l-4 border-l-red-500`;
+                if (record.status === 'pending') return `${baseClass} border-l-4 border-l-blue-500`;
+                return baseClass;
+              }}
+            />
           </div>
-          <Table
-            columns={resultColumns}
-            dataSource={session?.results || []}
-            rowKey="id"
-            pagination={{ 
-              pageSize: 20,
-              showSizeChanger: true,
-              showQuickJumper: true,
-              showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total })
-            }}
-            scroll={{ x: 1200, y: 600 }}
-            size="small"
-            className="custom-table"
-            rowClassName={(record) => {
-              const baseClass = "hover:bg-blue-50 transition-colors";
-              if (record.status === 'success') return `${baseClass} border-l-4 border-l-green-500`;
-              if (record.status === 'error') return `${baseClass} border-l-4 border-l-red-500`;
-              if (record.status === 'pending') return `${baseClass} border-l-4 border-l-blue-500`;
-              return baseClass;
-            }}
-          />
         </Card>
       )}
 

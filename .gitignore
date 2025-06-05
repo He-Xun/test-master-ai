@@ -58,5 +58,5 @@ userData/
 .coverage/
 tools/.DS_Store
 
-# cursor
+# cursor rules + memories
 .cursor

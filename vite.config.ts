@@ -1,6 +1,8 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import { resolve } from 'path'
+import svgr from 'vite-plugin-svgr'
 
 const port = Number(process.env.VITE_PORT) || 5678;
 
@@ -15,8 +17,14 @@ export default defineConfig({
           dest: 'node_modules/sql.js/dist'
         }
       ]
-    })
+    }),
+    svgr(),
   ],
+  resolve: {
+    alias: {
+      '@': resolve(__dirname, 'src'),
+    },
+  },
   server: {
     port,
     proxy: {

@@ -54,6 +54,7 @@ const TestSessionHistory = React.lazy(() => import('./components/TestSessionHist
 const TestSessionDetail = React.lazy(() => import('./components/TestSessionDetail'));
 const AdminPanel = React.lazy(() => import('./components/AdminPanel'));
 const AccountSettings = React.lazy(() => import('./components/AccountSettings'));
+const HomePage = React.lazy(() => import('./components/HomePage'));
 
 const { Header, Sider, Content } = Layout;
 const { Title, Text } = Typography;
@@ -154,13 +155,14 @@ const AppLayout: React.FC = () => {
   // 根据当前路径获取选中的菜单项
   const getSelectedKey = () => {
     const path = location.pathname;
-    if (path === '/' || path === '/testing') return 'testing';
+    if (path === '/' || path === '/home') return 'home';
+    if (path === '/testing') return 'testing';
     if (path === '/prompts') return 'prompts';
     if (path === '/api-config') return 'api-config';
     if (path === '/test-history') return 'test-history';
     if (path.startsWith('/test-session-detail')) return 'test-history';
     if (path === '/debug') return 'debug';
-    return 'testing';
+    return 'home';
   };
 
   // 初始化存储适配器和数据迁移
@@ -273,7 +275,7 @@ const AppLayout: React.FC = () => {
       console.log('[App] 超级管理员登录，跳转到管理面板');
       navigate('/admin');
     } else {
-      navigate('/testing');
+      navigate('/home');
     }
   };
 
@@ -305,6 +307,9 @@ const AppLayout: React.FC = () => {
   // 菜单点击处理
   const handleMenuClick = ({ key }: { key: string }) => {
     switch (key) {
+      case 'home':
+        navigate('/home');
+        break;
       case 'testing':
         navigate('/testing');
         break;
@@ -373,7 +378,7 @@ const AppLayout: React.FC = () => {
   // 如果用户未登录，显示登录界面
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 flex items-center justify-center relative">
+      <div className="min-h-screen bg-white flex items-center justify-center relative">
         {/* 语言切换器 - 右上角 */}
         <div className="absolute top-4 right-4 z-10">
           <LanguageSwitcher style="select" size="large" />
@@ -382,10 +387,10 @@ const AppLayout: React.FC = () => {
         <div className="max-w-md w-full mx-4">
           <Card className="shadow-lg border-0">
             <div className="text-center mb-6">
-              <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl flex items-center justify-center mx-auto mb-4">
+              <div className="w-16 h-16 bg-blue-500 rounded-xl flex items-center justify-center mx-auto mb-4">
                 <RocketOutlined className="text-white text-2xl" />
               </div>
-              <Title level={2} className="mb-2 bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <Title level={2} className="mb-2 text-blue-600">
                 {t('app.title')}
               </Title>
               <Text type="secondary" className="text-base">
@@ -432,6 +437,15 @@ const AppLayout: React.FC = () => {
   }
 
   const menuItems = [
+    {
+      key: 'home',
+      icon: <HomeOutlined />,
+      label: (
+        <Tooltip title={t('menu.home') || '首页'} placement="right" getPopupContainer={() => document.body}>
+          <span className="truncate block max-w-[180px]">{t('menu.home') || '首页'}</span>
+        </Tooltip>
+      ),
+    },
     {
       key: 'testing',
       icon: <ExperimentOutlined />,
@@ -641,7 +655,8 @@ const AppLayout: React.FC = () => {
               </div>
             }>
               <Routes>
-                <Route path="/" element={<TestingPanel />} />
+                <Route path="/" element={<HomePage />} />
+                <Route path="/home" element={<HomePage />} />
                 <Route path="/testing" element={<TestingPanel />} />
                 <Route path="/prompts" element={<PromptsManagement />} />
                 <Route path="/api-config" element={<ApiConfigManagement />} />
