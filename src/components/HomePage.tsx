@@ -70,11 +70,11 @@ const HomePage: React.FC = () => {
         </Card>
         <Card className="mt-6" title={t('home.guideTitle') || '如何使用本应用？'}>
           <div className="space-y-3 text-base text-gray-700">
-            <div>1. 在左侧菜单栏选择"接口测试"进入测试页面。</div>
-            <div>2. 在"提示词管理"中添加或编辑你的提示词。</div>
-            <div>3. 在"API配置"中配置你的模型API和参数。</div>
-            <div>4. 回到"接口测试"页面，选择提示词和模型，输入测试内容，点击开始测试。</div>
-            <div>5. 在"测试历史"中查看和导出你的测试结果。</div>
+            <div>{t('home.guideStep1') || '1. 在左侧菜单栏选择"接口测试"进入测试页面。'}</div>
+            <div>{t('home.guideStep2') || '2. 在"提示词管理"中添加或编辑你的提示词。'}</div>
+            <div>{t('home.guideStep3') || '3. 在"API配置"中配置你的模型API和参数。'}</div>
+            <div>{t('home.guideStep4') || '4. 回到"接口测试"页面，选择提示词和模型，输入测试内容，点击开始测试。'}</div>
+            <div>{t('home.guideStep5') || '5. 在"测试历史"中查看和导出你的测试结果。'}</div>
           </div>
         </Card>
       </div>
