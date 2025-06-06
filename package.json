@@ -1,6 +1,6 @@
 {
   "name": "test-master-ai",
-  "version": "1.0.11",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "description": "一款专注于验证不同提示词对大语言模型多次调用同一内容时输出结果差异的辅助工具",
