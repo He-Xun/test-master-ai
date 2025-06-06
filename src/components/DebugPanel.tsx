@@ -139,17 +139,7 @@ const DebugPanel: React.FC = () => {
               label: (
                 <div className="flex items-center justify-between">
                   <span>{t('debug.localStorageData')}</span>
-                  <Tag color="default">
-                    {(() => {
-                      try {
-                        const storageSize = JSON.stringify(localStorage).length;
-                        const itemCount = localStorage.length;
-                        return t('debug.localStorageStat', { count: itemCount, size: (storageSize/1024).toFixed(1) });
-                      } catch {
-                        return t('debug.unknownSize');
-                      }
-                    })()}
-                  </Tag>
+                  <Tag color="default">{t('common.countItems', { count: localStorage.length })}</Tag>
                 </div>
               ),
               children: (

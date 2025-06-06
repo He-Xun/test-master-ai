@@ -77,7 +77,8 @@
     "validEmail": "Please enter a valid email address",
     "viewDetails": "View details",
     "willResetPasswordFor": "Will reset password for the following users:",
-    "paginationDesc": "Pagination"
+    "paginationDesc": "Pagination",
+    "countItems": "{{count}} items"
   },
   "api": {
     "add": "Add",
@@ -123,7 +124,40 @@
     "testSuccess": "Test success",
     "title": "API Configuration Management",
     "updateSuccess": "Update success",
-    "urlDirectRequest": "URL Direct Request"
+    "urlDirectRequest": "URL Direct Request",
+    "modelConfig": "Model Configuration",
+    "autoFetchModels": "Auto Fetch Models",
+    "autoFetchModelsDescription": "Automatically fetch the list of available models from the API",
+    "manualAddModel": "Manually Add Model",
+    "modelId": "Model ID",
+    "modelName": "Model Name",
+    "group": {
+      "gpt": "GPT Series",
+      "claude": "Claude Series",
+      "qwen": "Qwen Series",
+      "deepseek": "DeepSeek Series",
+      "llama": "LLaMA Series",
+      "opensource": "Open Source Models",
+      "other": "Other Models"
+    },
+    "selectAll": "Select All",
+    "deselectAll": "Deselect All",
+    "addSelected": "Add Selected",
+    "addSelectedModels": "Add selected",
+    "selectedCount": "Selected {{count}} models",
+    "editModel": "Edit Model",
+    "addModel": "Add Model",
+    "pleaseEnterModelId": "Please enter model ID",
+    "pleaseEnterModelName": "Please enter model name",
+    "basicConfig": "Basic Configuration",
+    "refetchModels": "Refetch Models",
+    "fetchModels": "Fetch Models",
+    "selectModels": "Select models to add",
+    "clearSelection": "Clear selection",
+    "unselectAll": "Unselect all",
+    "modelsAdded": "{{count}} models added",
+    "fetchModelsSuccess": "Successfully fetched {{count}} models",
+    "forceRefresh": "Force Refresh"
   },
   "app": {
     "subtitle": "AI Model Intelligent Testing and Analysis Platform",
@@ -191,7 +225,8 @@
     "success": "Success",
     "use": "Use",
     "visualize": "Visualize",
-    "pagination": "Pagination"
+    "pagination": "Pagination",
+    "countItems": "{{count}} items"
   },
   "debug": {
     "apiConfigData": "API Config Data",
@@ -208,7 +243,8 @@
     "subtitle": "View internal system data for development and debugging",
     "title": "Debug Panel",
     "toolDescription": "This panel displays the application's internal data structure for development debugging and troubleshooting",
-    "unknownSize": "Unknown size"
+    "unknownSize": "Unknown size",
+    "localStorageStat": "Local Storage Statistics"
   },
   "footer": {
     "dataIsolated": "Data isolated",
@@ -268,13 +304,13 @@
     "guideTitle": "How to use this application?"
   },
   "menu": {
-    "api": "API",
-    "debug": "Debug",
-    "history": "History",
+    "api": "API Settings",
+    "debug": "Debug Panel",
+    "history": "History Records",
     "home": "Home",
     "multiModelCompare": "Multi-Model Compare",
-    "prompts": "Prompts",
-    "testing": "Testing"
+    "prompts": "Prompts Management",
+    "testing": "Prompts Testing"
   },
   "models": {
     "associatedApiConfig": "Associated API Config",
@@ -419,7 +455,10 @@
     "title": "Storage System Status",
     "unknown": "Unknown",
     "unlimitedStorage": "Unlimited storage",
-    "web": "Web"
+    "web": "Web",
+    "advancedQuery": "Advanced Query",
+    "complexAnalysis": "Complex Analysis",
+    "sqlSupport": "SQL Support"
   },
   "testing": {
     "actionField": "Action",

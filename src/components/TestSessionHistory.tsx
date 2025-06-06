@@ -99,7 +99,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       const success = await storageAdapter.deleteTestSessionHistory(sessionId);
       if (success) {
         await loadHistory(); // 重新加载
-        message.success(t('history.deleteSuccess'));
+        message.success(t('history.deleteSuccess', { count: selectedRowKeys.length }));
       } else {
         message.error(t('history.deleteFailed'));
       }
@@ -118,7 +118,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
       }
       await loadHistory();
       setSelectedRowKeys([]);
-      message.success(`已删除 ${selectedRowKeys.length} 条记录`);
+      message.success(t('history.batchDeleteSuccess', { count: selectedRowKeys.length }));
     } catch (error) {
       console.error('批量删除失败:', error);
       message.error('批量删除失败');

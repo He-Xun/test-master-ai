@@ -75,7 +75,7 @@ const AdminLayout: React.FC<{ currentUser: User; onLogout: () => void }> = ({ cu
     <Layout className="min-h-screen">
       {/* 管理面板顶部导航 */}
       <Header className="bg-white border-b border-gray-200 px-6 flex items-center justify-between shadow-sm h-16">
-        <div className="flex items-center space-x-4 h-full">
+        <div className="flex items-center space-x-[15px] h-full">
           <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
             <SettingOutlined className="text-white text-sm" />
           </div>

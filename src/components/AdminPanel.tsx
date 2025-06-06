@@ -143,7 +143,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     try {
       const success = await storageAdapter.deleteUser(user.id, currentUser.id);
       if (success) {
-        message.success(t('admin.userDeleteSuccess'));
+        message.success(t('admin.userDeleteSuccess', { count: 1 }));
         loadUsers();
       } else {
         message.error(t('admin.deleteUserFailed'));
@@ -361,7 +361,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         danger: true,
       },
     ],
-    onClick: ({ key }) => {
+    onClick: ({ key }: { key: string }) => {
       switch (key) {
         case 'resetPassword':
           handleBatchResetPassword();
@@ -428,11 +428,11 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
       title: t('admin.operations'),
       key: 'actions',
       width: 200,
-      render: (_, record: User) => (
+      render: (_: any, record: User) => (
         <Space size="small">
           <Tooltip title={t('admin.viewDetails')}>
             <Button 
-              type="link" 
+              type="text"
               size="small" 
               icon={<EyeOutlined />}
               onClick={() => handleViewUser(record)}
@@ -493,8 +493,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
     <div className="admin-panel">
       {/* 页面标题 */}
       <div className="mb-8">
-        <Title level={2} className="flex items-center mb-4">
-          <SettingOutlined className="mr-2 text-blue-500" />
+        <Title level={2} className="flex items-center mb-4 space-x-[15px]">
+          <SettingOutlined className="text-blue-500" />
           {t('admin.title')}
         </Title>
         <Text type="secondary">{t('admin.subtitle')}</Text>
@@ -744,7 +744,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ currentUser }) => {
         <div className="mb-4">
           <Text type="secondary">{t('admin.willResetPasswordFor')}</Text>
           <div className="mt-2 p-2 bg-gray-50 rounded">
-            {selectedUsers.map(user => (
+            {selectedUsers.map((user, idx) => (
               <Tag key={user.id} className="mb-1">{user.username}</Tag>
             ))}
           </div>

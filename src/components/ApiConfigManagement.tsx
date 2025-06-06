@@ -161,7 +161,7 @@ const ApiConfigManagement: React.FC = () => {
   const handleDelete = async (id: string) => {
     await storageAdapter.deleteApiConfig(id);
     loadConfigs();
-    message.success(t('api.deleteSuccess'));
+    message.success(t('api.deleteSuccess', { id }));
   };
 
   const handleTest = async (config: ApiConfig) => {
@@ -169,12 +169,12 @@ const ApiConfigManagement: React.FC = () => {
     try {
       const success = await testApiConfig(config);
       if (success) {
-        message.success(t('api.testSuccess'));
+        message.success(t('api.testSuccess', { id: config.id }));
       } else {
-        message.error(t('api.testFailed'));
+        message.error(t('api.testFailed', { id: config.id }));
       }
     } catch (error: any) {
-      message.error(`${t('api.testFailed')}: ${error.message}`);
+      message.error(`${t('api.testFailed', { id: config.id })}: ${error.message}`);
     } finally {
       setTesting(null);
     }
@@ -187,12 +187,12 @@ const ApiConfigManagement: React.FC = () => {
     const requestMode = form.getFieldValue('requestMode');
 
     if (requestMode !== 'api') {
-      message.warning(t('api.onlyApiModeSupport'));
+      message.warning(t('api.onlyApiModeSupport', { requestMode }));
       return;
     }
 
     if (!baseUrl || !apiKey) {
-      message.warning(t('api.fillBaseUrlAndApiKey'));
+      message.warning(t('api.fillBaseUrlAndApiKey', { baseUrl, apiKey }));
       return;
     }
 
@@ -203,7 +203,7 @@ const ApiConfigManagement: React.FC = () => {
     if (cachedModels[cacheKey]) {
       setAvailableModels(cachedModels[cacheKey]);
       setModelsPanelVisible(true);
-      message.success(t('api.fetchModelsSuccess', { count: cachedModels[cacheKey].length }) + ' (来自缓存)');
+      message.success(t('api.fetchModelsSuccess', { count: cachedModels[cacheKey].length }));
       return;
     }
 
@@ -232,7 +232,7 @@ const ApiConfigManagement: React.FC = () => {
       setModelsPanelVisible(true);
       message.success(t('api.fetchModelsSuccess', { count: models.length }));
     } catch (error: any) {
-      message.error(`${t('api.fetchModelsFailed')}: ${error.message}`);
+      message.error(`${t('api.fetchModelsFailed', { error: error.message })}`);
       console.error('获取模型失败:', error);
     } finally {
       setFetchingModels(false);
@@ -256,7 +256,7 @@ const ApiConfigManagement: React.FC = () => {
     const newModels = selectedModelsData.filter(model => !existingIds.has(model.id));
     
     if (newModels.length === 0) {
-      message.warning(t('api.modelAlreadyExists'));
+      message.warning(t('api.modelAlreadyExists', { count: selectedModelIds.length }));
       return;
     }
     
@@ -331,12 +331,12 @@ const ApiConfigManagement: React.FC = () => {
 
       // 新增：保存前校验 models
       if (!values.models || !Array.isArray(values.models) || values.models.length === 0) {
-        message.error('请至少选择一个模型');
+        message.error(t('api.pleaseSelectAtLeastOneModel', { count: 1 }));
         return;
       }
       for (const m of values.models as any[]) {
         if (!m.modelId || !m.name) {
-          message.error('模型ID和名称不能为空');
+          message.error(t('api.modelIdAndNameCannotBeEmpty'));
           return;
         }
       }
@@ -360,7 +360,7 @@ const ApiConfigManagement: React.FC = () => {
         const updated = { ...editingConfig, ...values, updatedAt: new Date().toISOString() };
         console.log('[ApiConfigManagement] 准备更新的配置:', updated);
         await storageAdapter.updateApiConfig(editingConfig.id, updated);
-        message.success(t('api.updateSuccess'));
+        message.success(t('api.updateSuccess', { id: editingConfig.id }));
         console.log('[ApiConfigManagement] 配置更新成功');
       } else {
         const newConfig = {
@@ -370,7 +370,7 @@ const ApiConfigManagement: React.FC = () => {
         };
         console.log('[ApiConfigManagement] 准备保存的新配置:', newConfig);
         await storageAdapter.createApiConfig(newConfig);
-        message.success(t('api.saveSuccess'));
+        message.success(t('api.saveSuccess', { id: newConfig.id }));
         console.log('[ApiConfigManagement] 新配置保存成功');
       }
 
@@ -410,13 +410,13 @@ const ApiConfigManagement: React.FC = () => {
   // 模型分组逻辑
   const groupModels = (models: Array<{id: string, name: string}>) => {
     const groups: Record<string, Array<{id: string, name: string}>> = {
-      'GPT系列': [],
-      'Claude系列': [],
-      'Qwen系列': [],
-      'DeepSeek系列': [],
-      'LLaMA系列': [],
-      '开源模型': [],
-      '其他模型': []
+      gpt: [],
+      claude: [],
+      qwen: [],
+      deepseek: [],
+      llama: [],
+      opensource: [],
+      other: []
     };
 
     models.forEach(model => {
@@ -424,21 +424,21 @@ const ApiConfigManagement: React.FC = () => {
       const id = model.id.toLowerCase();
       
       if (name.includes('gpt') || name.includes('davinci') || name.includes('babbage') || name.includes('curie')) {
-        groups['GPT系列'].push(model);
+        groups['gpt'].push(model);
       } else if (name.includes('claude')) {
-        groups['Claude系列'].push(model);
+        groups['claude'].push(model);
       } else if (name.includes('qwen') || id.includes('qwen')) {
-        groups['Qwen系列'].push(model);
+        groups['qwen'].push(model);
       } else if (name.includes('deepseek') || id.includes('deepseek')) {
-        groups['DeepSeek系列'].push(model);
+        groups['deepseek'].push(model);
       } else if (name.includes('llama') || id.includes('llama') || name.includes('yi-') || id.includes('yi-')) {
-        groups['LLaMA系列'].push(model);
+        groups['llama'].push(model);
       } else if (name.includes('mistral') || name.includes('chatglm') || name.includes('baichuan') || 
                  name.includes('moonshot') || name.includes('gemini') || name.includes('grok') ||
                  name.includes('internlm') || name.includes('aquila') || name.includes('falcon')) {
-        groups['开源模型'].push(model);
+        groups['opensource'].push(model);
       } else {
-        groups['其他模型'].push(model);
+        groups['other'].push(model);
       }
     });
 
@@ -616,7 +616,7 @@ const ApiConfigManagement: React.FC = () => {
           </Tooltip>
           <Tooltip title={t('api.delete')}>
             <Popconfirm
-              title={t('api.confirmDelete')}
+              title={t('api.confirmDelete', { id: record.id })}
               onConfirm={() => handleDelete(record.id)}
               okText={t('common.confirm')}
               cancelText={t('common.cancel')}
@@ -761,7 +761,7 @@ const ApiConfigManagement: React.FC = () => {
             items={[
               {
                 key: 'basic',
-                label: '基本配置',
+                label: t('api.basicConfig'),
                 children: (
                   <div className="space-y-4">
                     <Form.Item
@@ -824,7 +824,7 @@ const ApiConfigManagement: React.FC = () => {
               },
               {
                 key: 'models',
-                label: '模型配置',
+                label: t('api.modelConfig'),
                 children: (
                   <div className="space-y-4">
                     {/* 自动获取模型按钮 */}
@@ -842,8 +842,8 @@ const ApiConfigManagement: React.FC = () => {
                             <div className="mb-3 p-3 bg-gray-50 rounded-md">
                               <div className="flex items-center justify-between">
                                 <div>
-                                  <h4 className="text-sm font-medium text-gray-900 mb-1">自动获取模型</h4>
-                                  <p className="text-xs text-gray-500">从API自动获取可用模型列表</p>
+                                  <h4 className="text-sm font-medium text-gray-900 mb-1">{t('api.autoFetchModels')}</h4>
+                                  <p className="text-xs text-gray-500">{t('api.autoFetchModelsDescription')}</p>
                                 </div>
                                 <Space size="small">
                                   <Button
@@ -855,7 +855,7 @@ const ApiConfigManagement: React.FC = () => {
                                     size="small"
                                     className="bg-gradient-to-r from-green-500 to-blue-500 border-none"
                                   >
-                                    {availableModels.length > 0 ? '重新获取' : '获取模型'}
+                                    {availableModels.length > 0 ? t('api.refetchModels') : t('api.fetchModels')}
                                   </Button>
                                   {availableModels.length > 0 && (
                                     <Button
@@ -872,7 +872,7 @@ const ApiConfigManagement: React.FC = () => {
                                       disabled={!baseUrl || !apiKey || fetchingModels}
                                       size="small"
                                     >
-                                      强制刷新
+                                      {t('api.forceRefresh')}
                                     </Button>
                                   )}
                                 </Space>
@@ -891,7 +891,7 @@ const ApiConfigManagement: React.FC = () => {
                           <div className="flex items-center justify-between">
                             <Space>
                               <CloudDownloadOutlined className="text-green-500" />
-                              <span>选择要添加的模型</span>
+                              <span>{t('api.selectModels')}</span>
                               <Badge count={filteredModels.length} style={{ backgroundColor: '#52c41a' }} />
                             </Space>
                             <Button 
@@ -920,16 +920,16 @@ const ApiConfigManagement: React.FC = () => {
                           />
                           
                           <div className="flex items-center justify-between">
-                            <div className="text-xs text-gray-600">
-                              已选择 {selectedModels.length} / {filteredModels.length} 个模型
-                            </div>
+                            <span className="text-xs text-gray-600">
+                              {t('api.selectedCount', { count: selectedModels.length })} / {filteredModels.length}
+                            </span>
                             <Space size="small">
                               <Button 
                                 size="small" 
                                 onClick={() => setSelectedModels([])}
                                 disabled={selectedModels.length === 0}
                               >
-                                清空选择
+                                {t('api.clearSelection')}
                               </Button>
                               <Button 
                                 type="primary" 
@@ -938,7 +938,7 @@ const ApiConfigManagement: React.FC = () => {
                                 disabled={selectedModels.length === 0}
                                 className="bg-green-500 border-green-500"
                               >
-                                添加选中 ({selectedModels.length})
+                                {t('api.addSelectedModels', { count: selectedModels.length })}
                               </Button>
                             </Space>
                           </div>
@@ -954,7 +954,7 @@ const ApiConfigManagement: React.FC = () => {
                               key: groupName,
                               label: (
                                 <div className="flex items-center space-x-2">
-                                  <span>{groupName}</span>
+                                  <span>{t(`api.group.${groupName}`)}</span>
                                   <Badge count={groupModels.length} size="small" />
                                 </div>
                               ),
@@ -971,7 +971,7 @@ const ApiConfigManagement: React.FC = () => {
                                       onClick={() => handleSelectAll(groupModels)}
                                       className="h-auto p-1 text-xs"
                                     >
-                                      {groupModels.every(model => selectedModels.includes(model.id)) ? '取消全选' : '全选'}
+                                      {groupModels.every(model => selectedModels.includes(model.id)) ? t('api.unselectAll') : t('api.selectAll')}
                                     </Button>
                                   </div>
                                   
@@ -1015,16 +1015,6 @@ const ApiConfigManagement: React.FC = () => {
                         )}
                       </Card>
                     )}
-
-                    {/* 模型列表表头 */}
-                    <div className="mb-2 p-3 bg-gray-50 border border-gray-200 rounded-md">
-                      <div className="flex items-center gap-3 text-sm font-medium text-gray-600">
-                        <div className="flex-1">模型ID</div>
-                        <div className="flex-1">模型名称</div>
-                        <div className="flex items-center justify-center" style={{width: '44px'}}>启用</div>
-                        <div className="flex items-center justify-center" style={{width: '32px'}}>操作</div>
-                      </div>
-                    </div>
 
                     <Form.List name="models">
                       {(fields, { add, remove }) => {
@@ -1086,7 +1076,7 @@ const ApiConfigManagement: React.FC = () => {
                               style={{ height: 48, fontSize: 18, marginTop: 12, background: 'linear-gradient(90deg,#e0f2fe,#bbf7d0)', border: 'none', color: '#1677ff' }}
                               className="shadow hover:shadow-lg"
                             >
-                              手动添加模型
+                              {t('api.manualAddModel')}
                             </Button>
                           </>
                         );
@@ -1102,7 +1092,7 @@ const ApiConfigManagement: React.FC = () => {
       
       {/* 添加模型弹窗 */}
       <Modal
-        title={editingModelIndex !== null ? '编辑模型' : '添加模型'}
+        title={editingModelIndex !== null ? t('api.editModel') : t('api.addModel')}
         open={isAddingModel}
         onCancel={closeModelModal}
         onOk={handleModelModalOk}
@@ -1114,17 +1104,17 @@ const ApiConfigManagement: React.FC = () => {
         >
           <Form.Item
             name="modelId"
-            label="模型ID"
-            rules={[{ required: true, message: '请输入模型ID' }]}
+            label={t('api.modelId')}
+            rules={[{ required: true, message: t('api.pleaseEnterModelId') }]}
           >
-            <Input placeholder="输入模型ID，如gpt-4o" />
+            <Input placeholder={t('api.pleaseEnterModelId')} />
           </Form.Item>
           <Form.Item
             name="name"
-            label="模型名称"
-            rules={[{ required: true, message: '请输入模型名称' }]}
+            label={t('api.modelName')}
+            rules={[{ required: true, message: t('api.pleaseEnterModelName') }]}
           >
-            <Input placeholder="输入模型显示名称，如GPT-4o" />
+            <Input placeholder={t('api.pleaseEnterModelName')} />
           </Form.Item>
         </Form>
       </Modal>

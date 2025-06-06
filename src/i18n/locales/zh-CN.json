@@ -123,7 +123,40 @@
     "testSuccess": "测试成功",
     "title": "API配置管理",
     "updateSuccess": "更新成功",
-    "urlDirectRequest": "URL直接请求"
+    "urlDirectRequest": "URL直接请求",
+    "modelConfig": "模型配置",
+    "autoFetchModels": "自动获取模型",
+    "autoFetchModelsDescription": "从API自动获取可用模型列表",
+    "manualAddModel": "手动添加模型",
+    "modelId": "模型ID",
+    "modelName": "模型名称",
+    "group": {
+      "gpt": "GPT系列",
+      "claude": "Claude系列",
+      "qwen": "Qwen系列",
+      "deepseek": "DeepSeek系列",
+      "llama": "LLaMA系列",
+      "opensource": "开源模型",
+      "other": "其他模型"
+    },
+    "selectAll": "全选",
+    "deselectAll": "取消全选",
+    "addSelected": "添加选中",
+    "addSelectedModels": "添加选中",
+    "selectedCount": "已选择 {{count}} 个模型",
+    "editModel": "编辑模型",
+    "addModel": "添加模型",
+    "pleaseEnterModelId": "请输入模型ID",
+    "pleaseEnterModelName": "请输入模型名称",
+    "basicConfig": "基本配置",
+    "refetchModels": "重新获取",
+    "fetchModels": "获取模型",
+    "selectModels": "选择要添加的模型",
+    "clearSelection": "清空选择",
+    "unselectAll": "取消全选",
+    "modelsAdded": "已添加{{count}}个模型",
+    "fetchModelsSuccess": "成功获取{{count}}个模型",
+    "forceRefresh": "强制刷新"
   },
   "app": {
     "subtitle": "AI模型智能测试与分析平台",
@@ -191,7 +224,8 @@
     "success": "成功",
     "use": "使用",
     "visualize": "可视化",
-    "pagination": "分页"
+    "pagination": "分页",
+    "countItems": "{{count}} 项"
   },
   "debug": {
     "apiConfigData": "API配置数据",
@@ -208,7 +242,8 @@
     "subtitle": "查看系统内部数据，方便开发和调试",
     "title": "调试面板",
     "toolDescription": "此面板显示应用内部数据结构，便于开发调试和问题排查",
-    "unknownSize": "未知大小"
+    "unknownSize": "未知大小",
+    "localStorageStat": "本地存储统计"
   },
   "footer": {
     "dataIsolated": "数据已隔离保存",
@@ -269,12 +304,12 @@
   },
   "menu": {
     "api": "API配置",
-    "debug": "调试",
+    "debug": "调试面板",
     "history": "历史记录",
     "home": "首页",
     "multiModelCompare": "多模型对比",
-    "prompts": "提示词",
-    "testing": "测试"
+    "prompts": "提示词管理",
+    "testing": "提示词测试"
   },
   "models": {
     "associatedApiConfig": "关联API配置",
@@ -414,12 +449,15 @@
     "performance": "性能",
     "primaryStorage": "主要存储",
     "refresh": "刷新",
-    "slow": "慢",
+    "slow": "受限",
     "sqlite": "SQLite",
     "title": "存储系统状态",
     "unknown": "未知",
     "unlimitedStorage": "无限存储",
-    "web": "网页端"
+    "web": "网页端",
+    "advancedQuery": "高级查询",
+    "complexAnalysis": "复杂分析",
+    "sqlSupport": "SQL支持"
   },
   "testing": {
     "actionField": "操作",

@@ -90,10 +90,10 @@ const PromptsManagement: React.FC = () => {
     try {
       if (editingPrompt) {
         await storageAdapter.updatePrompt(editingPrompt.id, values);
-        message.success(t('prompts.promptUpdateSuccess'));
+        message.success(t('prompts.promptUpdateSuccess', { count: prompts.length }));
       } else {
         await storageAdapter.createPrompt(values);
-        message.success(t('prompts.promptCreateSuccess'));
+        message.success(t('prompts.promptCreateSuccess', { count: prompts.length }));
       }
       
       loadPrompts();
@@ -107,7 +107,7 @@ const PromptsManagement: React.FC = () => {
   const deletePrompt = async (id: string) => {
     try {
       await storageAdapter.deletePrompt(id);
-      message.success(t('prompts.promptDeleteSuccess'));
+      message.success(t('prompts.promptDeleteSuccess', { count: prompts.length }));
       loadPrompts();
     } catch (error) {
       console.error('删除提示词失败:', error);
@@ -146,10 +146,10 @@ const PromptsManagement: React.FC = () => {
     try {
       if (editingInput) {
         await storageAdapter.updateDefaultTestInput(editingInput.id, values);
-        message.success(t('prompts.templateUpdateSuccess'));
+        message.success(t('prompts.templateUpdateSuccess', { count: defaultInputs.length }));
       } else {
         await storageAdapter.createDefaultTestInput(values);
-        message.success(t('prompts.templateCreateSuccess'));
+        message.success(t('prompts.templateCreateSuccess', { count: defaultInputs.length }));
       }
       await loadDefaultInputs();
       closeInputModal();
@@ -162,7 +162,7 @@ const PromptsManagement: React.FC = () => {
   const deleteDefaultInput = async (id: string) => {
     try {
       await storageAdapter.deleteDefaultTestInput(id);
-      message.success(t('prompts.templateDeleteSuccess'));
+      message.success(t('prompts.templateDeleteSuccess', { count: defaultInputs.length }));
       await loadDefaultInputs();
     } catch (error) {
       console.error('删除测试模板失败:', error);
