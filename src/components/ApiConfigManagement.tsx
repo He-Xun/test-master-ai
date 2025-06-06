@@ -24,6 +24,7 @@ import {
   Badge,
   Empty,
   Drawer,
+  Select,
 } from 'antd';
 import {
   PlusOutlined,
@@ -46,6 +47,7 @@ import { storageAdapter } from '../utils/storage-adapter';
 import { testApiConfig, fetchAvailableModels } from '../utils/api';
 import { getModelIcon } from '@/constants/modelIconMap.tsx';
 import type { ColumnsType } from 'antd/es/table';
+import { PROVIDERS } from '@/constants/providerList';
 
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
@@ -111,6 +113,7 @@ const ApiConfigManagement: React.FC = () => {
     form.resetFields();
     form.setFieldsValue({
       requestMode: 'api',
+      provider: undefined,
       models: [],
     });
     setAvailableModels([]);
@@ -128,6 +131,7 @@ const ApiConfigManagement: React.FC = () => {
     
     const formValues = {
       ...config,
+      provider: typeof config.provider === 'string' ? config.provider : '',
       models: config.models.length > 0 ? config.models : [
         { id: 'model-1', modelId: 'gpt-4o', name: 'GPT-4o', enabled: true },
       ],
@@ -355,6 +359,9 @@ const ApiConfigManagement: React.FC = () => {
       // 新增：保存前强制trim apiKey并打印日志
       values.apiKey = (values.apiKey || '').trim() || null;
       console.log('[ApiConfigManagement] 保存前的apiKey:', values.apiKey);
+
+      // 新增：保存provider字段
+      values.provider = values.provider || form.getFieldValue('provider') || undefined;
 
       if (editingConfig) {
         const updated = { ...editingConfig, ...values, updatedAt: new Date().toISOString() };
@@ -772,6 +779,41 @@ const ApiConfigManagement: React.FC = () => {
                       <Input placeholder={t('api.pleaseEnterConfigName')} size="large" />
                     </Form.Item>
                     <Form.Item
+                      name="provider"
+                      label={t('api.provider')}
+                      rules={[{ required: true, message: t('api.pleaseSelectProvider') }]}
+                    >
+                      <Select
+                        placeholder={t('api.pleaseSelectProvider')}
+                        size="large"
+                        className="w-full"
+                        onChange={val => {
+                          const provider = PROVIDERS.find(p => p.key === val);
+                          if (provider) {
+                            // 选择自定义时不自动填充
+                            if (val !== 'custom') {
+                              form.setFieldsValue({ baseUrl: provider.baseUrl });
+                            }
+                            // ollama/lmstudio特殊处理
+                            if (val === 'ollama' || val === 'lmstudio') {
+                              form.setFieldsValue({ requestMode: 'url', apiKey: undefined });
+                            } else {
+                              form.setFieldsValue({ requestMode: 'api' });
+                            }
+                          }
+                          form.setFieldsValue({ provider: val });
+                        }}
+                        showSearch
+                        optionFilterProp="children"
+                      >
+                        {PROVIDERS.map(p => (
+                          <Select.Option key={p.key} value={p.key}>
+                            {p.label}
+                          </Select.Option>
+                        ))}
+                      </Select>
+                    </Form.Item>
+                    <Form.Item
                       noStyle
                       shouldUpdate={(prevValues, currentValues) => 
                         prevValues.requestMode !== currentValues.requestMode
@@ -794,6 +836,22 @@ const ApiConfigManagement: React.FC = () => {
                             </Form.Item>
                           );
                         } else if (requestMode === 'api') {
+                          // ollama/lmstudio不显示API Key
+                          const provider = form.getFieldValue('provider');
+                          if (provider === 'ollama' || provider === 'lmstudio') {
+                            return (
+                              <Form.Item
+                                name="baseUrl"
+                                label={t('api.baseUrl')}
+                                rules={[
+                                  { required: true, message: t('api.pleaseEnterBaseUrl') },
+                                  { type: 'url', message: t('api.pleaseEnterValidUrl') },
+                                ]}
+                              >
+                                <Input placeholder="http://localhost:11434" size="large" />
+                              </Form.Item>
+                            );
+                          }
                           return (
                             <>
                               <Form.Item

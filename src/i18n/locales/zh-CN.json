@@ -156,7 +156,12 @@
     "unselectAll": "取消全选",
     "modelsAdded": "已添加{{count}}个模型",
     "fetchModelsSuccess": "成功获取{{count}}个模型",
-    "forceRefresh": "强制刷新"
+    "forceRefresh": "强制刷新",
+    "provider": "服务商",
+    "pleaseSelectProvider": "请选择服务商",
+    "ollama": "Ollama（本地）",
+    "lmstudio": "LM Studio（本地）",
+    "pleaseSelectAtLeastOneModel": "请至少选择一个模型"
   },
   "app": {
     "subtitle": "AI模型智能测试与分析平台",
@@ -561,5 +566,7 @@
   "unit": {
     "ms": "毫秒",
     "times": "次"
-  }
+  },
+  "openai": "OpenAI",
+  "custom": "自定义"
 }

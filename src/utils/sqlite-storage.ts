@@ -275,6 +275,7 @@ class SQLiteStorage {
         direct_url TEXT,
         api_key TEXT,
         base_url TEXT,
+        provider TEXT,
         models TEXT NOT NULL, -- JSON字符串
         created_at TEXT NOT NULL,
         updated_at TEXT NOT NULL,
@@ -342,6 +343,17 @@ class SQLiteStorage {
       // 创建索引
       for (const sql of indexes) {
         this.db.run(sql);
+      }
+      
+      // 自动补充provider字段（兼容老表）
+      try {
+        const columns = this.db.exec("PRAGMA table_info(api_configs)")[0].values.map((row: any[]) => row[1]);
+        if (!columns.includes('provider')) {
+          this.db.run('ALTER TABLE api_configs ADD COLUMN provider TEXT');
+          console.log('[SQLite] 自动补充provider字段成功');
+        }
+      } catch (e) {
+        console.warn('[SQLite] 检查/补充provider字段失败', e);
       }
       
       console.log('[SQLite] 数据库表创建完成');
@@ -681,11 +693,12 @@ class SQLiteStorage {
     };
 
     this.db.run(`
-      INSERT INTO api_configs (id, user_id, name, request_mode, direct_url, api_key, base_url, models, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO api_configs (id, user_id, name, request_mode, direct_url, api_key, base_url, provider, models, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `, [
       config.id, userId, config.name, config.requestMode,
       config.directUrl || null, config.apiKey || null, config.baseUrl || null,
+      config.provider || '',
       JSON.stringify(config.models), config.createdAt, config.updatedAt
     ]);
 
@@ -698,7 +711,7 @@ class SQLiteStorage {
 
     try {
       const result = this.db.exec(`
-        SELECT id, name, request_mode, direct_url, api_key, base_url, models, created_at, updated_at
+        SELECT id, name, request_mode, direct_url, api_key, base_url, provider, models, created_at, updated_at
         FROM api_configs 
         WHERE user_id = ? 
         ORDER BY updated_at DESC
@@ -713,9 +726,10 @@ class SQLiteStorage {
         directUrl: row[3] as string,
         apiKey: row[4] as string,
         baseUrl: row[5] as string,
-        models: JSON.parse(row[6] as string),
-        createdAt: row[7] as string,
-        updatedAt: row[8] as string,
+        provider: row[6] ?? '',
+        models: JSON.parse(row[7] as string),
+        createdAt: row[8] as string,
+        updatedAt: row[9] as string,
       }));
     } catch (error) {
       console.error('[SQLite] 获取API配置失败:', error);
@@ -749,6 +763,10 @@ class SQLiteStorage {
       if (updates.baseUrl !== undefined) {
         setClause.push('base_url = ?');
         values.push(updates.baseUrl);
+      }
+      if (updates.provider !== undefined) {
+        setClause.push('provider = ?');
+        values.push(updates.provider);
       }
       if (updates.models) {
         setClause.push('models = ?');

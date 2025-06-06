@@ -18,10 +18,24 @@ export interface ModelConfig {
   enabled: boolean;
 }
 
+// 服务商类型
+export type Provider =
+  | 'yunwu'
+  | 'qwen'
+  | 'siliconflow'
+  | 'gemini'
+  | 'moonshot'
+  | 'openrouter'
+  | 'jina'
+  | 'deepseek'
+  | 'ollama'
+  | 'lmstudio';
+
 // API配置类型
 export interface ApiConfig {
   id: string;
   name: string;
+  provider?: Provider; // 新增服务商字段
   requestMode: RequestMode;
   // URL模式配置
   directUrl?: string;

@@ -1,8 +1,8 @@
 import pkg from '../../package.json';
 
 // 应用版本信息
-export const APP_VERSION = pkg.version;
-export const BUILD_DATE = '2024-05-31';
+export const APP_VERSION = '1.1.1';
+export const BUILD_DATE = '2025-06-06';
 export const APP_NAME = '智测师 TestMaster AI';
 
 // 更新检查配置

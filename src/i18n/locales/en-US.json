@@ -157,7 +157,10 @@
     "unselectAll": "Unselect all",
     "modelsAdded": "{{count}} models added",
     "fetchModelsSuccess": "Successfully fetched {{count}} models",
-    "forceRefresh": "Force Refresh"
+    "forceRefresh": "Force Refresh",
+    "provider": "Provider",
+    "pleaseSelectProvider": "Please select a provider",
+    "pleaseSelectAtLeastOneModel": "Please select at least one model"
   },
   "app": {
     "subtitle": "AI Model Intelligent Testing and Analysis Platform",
@@ -562,5 +565,9 @@
   "unit": {
     "ms": "ms",
     "times": "times"
-  }
+  },
+  "ollama": "Ollama (Local)",
+  "lmstudio": "LM Studio (Local)",
+  "openai": "OpenAI",
+  "custom": "Custom"
 }
