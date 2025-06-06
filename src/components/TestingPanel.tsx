@@ -1211,7 +1211,7 @@ const TestingPanel: React.FC = () => {
       width: 150,
       fixed: 'right' as const,
       render: (_: any, record: TestResult) => (
-        <Space size="small">
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
           <Tooltip title={t('results.viewDetails')}>
             <Button
               type="text"
@@ -1231,22 +1231,22 @@ const TestingPanel: React.FC = () => {
               className="text-green-500 hover:bg-green-50"
             />
           </Tooltip>
-          <Popconfirm
-            title={t('results.confirmDeleteSingle')}
-            onConfirm={() => handleDeleteResult(record.id)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
-          >
-            <Tooltip title={t('results.delete')}>
+          <Tooltip title={t('results.delete')}>
+            <Popconfirm
+              title={t('results.confirmDeleteSingle')}
+              onConfirm={() => handleDeleteResult(record.id)}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
+            >
               <Button
                 type="text"
                 icon={<DeleteOutlined />}
                 size="small"
                 className="text-red-500 hover:bg-red-50"
               />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];
@@ -1349,6 +1349,16 @@ const TestingPanel: React.FC = () => {
                   disabled={dataLoading || prompts.length === 0}
                   loading={dataLoading}
                   notFoundContent={prompts.length === 0 ? t('testing.noPrompts') : t('testing.notFoundContent')}
+                  filterOption={(input, option) => {
+                    if (!option) return false;
+                    const value = typeof option.value === 'string' ? option.value : '';
+                    const prompt = prompts.find(p => p.id === value);
+                    if (!prompt) return false;
+                    return (
+                      (prompt.name && prompt.name.toLowerCase().includes(input.toLowerCase())) ||
+                      (prompt.content && prompt.content.toLowerCase().includes(input.toLowerCase()))
+                    ) ? true : false;
+                  }}
                 >
                   {prompts.map(prompt => (
                     <Select.Option key={prompt.id} value={prompt.id}>
@@ -1384,6 +1394,17 @@ const TestingPanel: React.FC = () => {
                   disabled={dataLoading || models.length === 0}
                   loading={dataLoading}
                   notFoundContent={models.length === 0 ? t('testing.noModels') : t('testing.notFoundContent')}
+                  filterOption={(input, option) => {
+                    if (!option) return false;
+                    const value = typeof option.value === 'string' ? option.value : '';
+                    const model = models.find(m => m.id === value);
+                    if (!model) return false;
+                    return (
+                      (model.name && model.name.toLowerCase().includes(input.toLowerCase())) ||
+                      (model.id && model.id.toLowerCase().includes(input.toLowerCase())) ||
+                      (model.apiConfigName && model.apiConfigName.toLowerCase().includes(input.toLowerCase()))
+                    ) ? true : false;
+                  }}
                 >
                   {models.map(model => (
                     <Select.Option key={model.id} value={model.id}>

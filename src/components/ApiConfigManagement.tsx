@@ -45,6 +45,7 @@ import { ApiConfig, ModelConfig, RequestMode } from '../types';
 import { storageAdapter } from '../utils/storage-adapter';
 import { testApiConfig, fetchAvailableModels } from '../utils/api';
 import { getModelIcon } from '@/constants/modelIconMap.tsx';
+import type { ColumnsType } from 'antd/es/table';
 
 const { Panel } = Collapse;
 const { TabPane } = Tabs;
@@ -110,9 +111,7 @@ const ApiConfigManagement: React.FC = () => {
     form.resetFields();
     form.setFieldsValue({
       requestMode: 'api',
-      models: [
-        { id: 'model-1', modelId: 'gpt-4o', name: 'GPT-4o', enabled: true },
-      ],
+      models: [],
     });
     setAvailableModels([]);
     setModelsPanelVisible(false);
@@ -528,11 +527,14 @@ const ApiConfigManagement: React.FC = () => {
   const selectedModelIds = (form.getFieldValue('models') || []).map((m: any) => m.modelId);
   const filteredAvailableModels = availableModels.filter((model: any) => !selectedModelIds.includes(model.id));
 
-  const columns = [
+  const columns: ColumnsType<ApiConfig> = [
     {
       title: t('api.name'),
       dataIndex: 'name',
       key: 'name',
+      fixed: 'left' as 'left',
+      width: 180,
+      ellipsis: true,
       render: (text: string, record: ApiConfig) => (
         <Space>
           {record.requestMode === 'url' ? <LinkOutlined /> : <ApiOutlined />}
@@ -544,6 +546,7 @@ const ApiConfigManagement: React.FC = () => {
       title: t('api.requestMode'),
       dataIndex: 'requestMode',
       key: 'requestMode',
+      width: 120,
       render: (mode: RequestMode) => (
         <Tag color={mode === 'url' ? 'blue' : 'green'}>
           {mode === 'url' ? t('api.urlDirectRequest') : t('api.apiInterface')}
@@ -571,6 +574,7 @@ const ApiConfigManagement: React.FC = () => {
     {
       title: t('api.modelCount'),
       key: 'modelCount',
+      width: 100,
       render: (record: ApiConfig) => (
         <Tag color="cyan">
           {record.models.filter(m => m.enabled).length} / {record.models.length}
@@ -581,49 +585,52 @@ const ApiConfigManagement: React.FC = () => {
       title: t('common.createdAt'),
       dataIndex: 'createdAt',
       key: 'createdAt',
+      width: 180,
       render: (date: string) => new Date(date).toLocaleString(),
     },
     {
       title: t('common.actions'),
       key: 'actions',
+      fixed: 'right' as 'right',
+      width: 120,
       render: (_: any, record: ApiConfig) => (
-        <Space size="small">
-          <Button
-            type="primary"
-            size="small"
-            icon={<ExperimentOutlined />}
-            loading={testing === record.id}
-            onClick={() => handleTest(record)}
-            className="bg-green-500 hover:bg-green-600 border-green-500"
-          >
-            {t('api.test')}
-          </Button>
-          <Button
-            type="default"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => handleEdit(record)}
-            className="border-blue-300 text-blue-600 hover:bg-blue-50"
-          >
-            {t('api.edit')}
-          </Button>
-          <Popconfirm
-            title={t('api.confirmDelete')}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
-          >
-            <Button 
-              type="default" 
-              danger 
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
+          <Tooltip title={t('api.test')}>
+            <Button
+              type="text"
               size="small"
-              icon={<DeleteOutlined />}
-              className="border-red-300 text-red-600 hover:bg-red-50"
+              icon={<ExperimentOutlined />}
+              loading={testing === record.id}
+              onClick={() => handleTest(record)}
+              className="text-green-500 hover:bg-green-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('api.edit')}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => handleEdit(record)}
+              className="text-blue-500 hover:bg-blue-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('api.delete')}>
+            <Popconfirm
+              title={t('api.confirmDelete')}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
             >
-              {t('api.delete')}
-            </Button>
-          </Popconfirm>
-        </Space>
+              <Button 
+                type="text" 
+                danger 
+                size="small"
+                icon={<DeleteOutlined />}
+                className="text-red-500 hover:bg-red-50"
+              />
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];
@@ -683,6 +690,8 @@ const ApiConfigManagement: React.FC = () => {
             showTotal: (total, range) => t('common.pagination', { start: range[0], end: range[1], total })
           }}
           className="custom-table"
+          scroll={{ x: 1200 }}
+          bordered
           locale={{
             emptyText: (
               <div className="py-12 text-center">
@@ -1057,15 +1066,13 @@ const ApiConfigManagement: React.FC = () => {
                                       icon={<EditOutlined />}
                                       onClick={() => openEditModelModal(index, modelData)}
                                     />
-                                    {models.length > 1 && (
-                                      <Button
-                                        type="text"
-                                        danger
-                                        size="small"
-                                        icon={<DeleteOutlined />}
-                                        onClick={() => remove(index)}
-                                      />
-                                    )}
+                                    <Button
+                                      type="text"
+                                      danger
+                                      size="small"
+                                      icon={<DeleteOutlined />}
+                                      onClick={() => remove(index)}
+                                    />
                                   </Space>
                                 </div>
                               ))}

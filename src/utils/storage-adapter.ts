@@ -357,11 +357,11 @@ class StorageAdapter {
     
     if (this.environment === 'electron') {
       performance = 'fast';
-      features.push('原生SQLite', '文件系统访问', '高性能查询', '无限存储');
+      features.push('sqlite', 'filesystem', 'highPerformanceQuery', 'unlimitedStorage');
     } else {
       if (this.usingSQLite) {
         performance = 'slow';
-        features.push('高级查询', '复杂分析', 'SQL支持');
+        features.push('advancedQuery', 'complexAnalysis', 'sqlSupport');
       } else if (this.useIndexedDB) {
         performance = 'medium';
         features.push('结构化存储', '大容量');
@@ -512,7 +512,7 @@ class StorageAdapter {
         
         for (const [key, value] of Object.entries(updates)) {
           if (allowedFields.includes(key)) {
-            filteredUpdates[key] = value;
+            filteredUpdates[key as keyof Partial<User>] = value as any;
           }
         }
         
@@ -727,32 +727,29 @@ class StorageAdapter {
   async getAllModels(): Promise<Array<{ id: string; name: string; apiConfigName: string }>> {
     const apiConfigs = await this.getApiConfigs();
     const models: Array<{ id: string; name: string; apiConfigName: string }> = [];
-    
     for (const config of apiConfigs) {
       for (const model of config.models) {
-            models.push({
-          id: `${config.id}_${model.name}`,
-          name: model.name,
-              apiConfigName: config.name,
-        });
+        if (model.enabled) {
+          models.push({
+            id: `${config.id}_${model.id}`,
+            name: model.name,
+            apiConfigName: config.name,
+          });
+        }
       }
     }
-    
     return models;
   }
 
   // 根据模型ID获取API配置和模型信息
   async getModelInfo(modelId: string): Promise<{ apiConfig: any; model: any } | null> {
     try {
-      const [configId, modelName] = modelId.split('_');
+      const [configId, modelConfigId] = modelId.split('_');
       const apiConfigs = await this.getApiConfigs();
       const apiConfig = apiConfigs.find(c => c.id === configId);
-    
       if (!apiConfig) return null;
-    
-      const model = apiConfig.models.find(m => m.name === modelName);
+      const model = apiConfig.models.find(m => m.id === modelConfigId);
       if (!model) return null;
-      
       return { apiConfig, model };
     } catch (error) {
       console.error('[StorageAdapter] 获取模型信息失败:', error);
@@ -1039,7 +1036,7 @@ class StorageAdapter {
       }
       if (Array.isArray(data.testHistory)) {
         for (const history of data.testHistory) {
-          await this.sqliteStorage.saveTestSessionHistory({ ...history, userId });
+          await this.sqliteStorage.saveTestSessionHistory(userId, history);
         }
       }
       if (data.configDraft) {

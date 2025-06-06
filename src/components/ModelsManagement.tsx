@@ -12,6 +12,7 @@ import {
   Popconfirm,
   Typography,
   Tag,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -142,33 +143,33 @@ const ModelsManagement: React.FC = () => {
     {
       title: '操作',
       key: 'action',
-      width: 200,
+      width: 120,
       render: (_: any, record: Model) => (
-        <Space>
-          <Button
-            type="link"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-          >
-            {t('common.edit')}
-          </Button>
-          <Popconfirm
-            title={t('models.deleteConfirm')}
-            onConfirm={() => deleteModel(record.id)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
-          >
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
+          <Tooltip title={t('common.edit')}>
             <Button
-              type="link"
+              type="text"
               size="small"
-              danger
-              icon={<DeleteOutlined />}
+              icon={<EditOutlined />}
+              onClick={() => openModal(record)}
+            />
+          </Tooltip>
+          <Tooltip title={t('common.delete')}>
+            <Popconfirm
+              title={t('models.deleteConfirm')}
+              onConfirm={() => deleteModel(record.id)}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
             >
-              删除
-            </Button>
-          </Popconfirm>
-        </Space>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+              />
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];

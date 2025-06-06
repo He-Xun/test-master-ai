@@ -292,11 +292,11 @@ const StorageStatusCard: React.FC = () => {
               <CheckCircleOutlined className="text-blue-500 mt-1" />
               <div>
                 <Text className="text-blue-900 font-medium text-sm">
-                  桌面端优化
+                  {t('storage.desktop')}优化
                 </Text>
                 <div className="mt-1">
                   <Text className="text-blue-700 text-xs">
-                    原生SQLite性能 • 无限存储空间 • 高级查询功能 • 文件系统访问
+                    {t('storage.sqlite')} • {t('storage.unlimitedStorage')} • {t('storage.highPerformanceQuery')} • {t('storage.filesystem')}
                   </Text>
                 </div>
               </div>

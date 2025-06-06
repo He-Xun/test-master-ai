@@ -208,10 +208,10 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
     {
       title: t('common.actions'),
       key: 'actions',
-      width: 150,
+      width: 120,
       fixed: 'right' as const,
       render: (record: TestSessionHistory) => (
-        <Space size="small">
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
           <Tooltip title={t('history.viewDetails')}>
             <Button
               type="text"
@@ -219,21 +219,21 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
               onClick={() => handleViewDetail(record)}
             />
           </Tooltip>
-          <Popconfirm
-            title={t('history.confirmDelete')}
-            onConfirm={() => handleDelete(record.id)}
-            okText={t('common.confirm')}
-            cancelText={t('common.cancel')}
-          >
-            <Tooltip title={t('common.delete')}>
+          <Tooltip title={t('common.delete')}>
+            <Popconfirm
+              title={t('history.confirmDelete')}
+              onConfirm={() => handleDelete(record.id)}
+              okText={t('common.confirm')}
+              cancelText={t('common.cancel')}
+            >
               <Button
                 type="text"
                 danger
                 icon={<DeleteOutlined />}
               />
-            </Tooltip>
-          </Popconfirm>
-        </Space>
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];
@@ -355,12 +355,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
             <div>
               {/* 添加调试信息 */}
               <div style={{ background: '#f0f0f0', padding: '8px', marginBottom: '16px', fontSize: '12px' }}>
-                <strong>调试信息:</strong> 
-                会话ID: {selectedSession.id}, 
-                结果数量: {selectedSession.results?.length || 0}, 
-                状态: {selectedSession.status}
+                <strong>{t('history.debugInfo')}:</strong> 
+                {t('history.sessionId')}: {selectedSession.id}, 
+                {t('history.resultCount')}: {selectedSession.results?.length || 0}, 
+                {t('history.status')}: {selectedSession.status}
                 {selectedSession.results?.length > 0 && (
-                  <div>第一个结果: {JSON.stringify(selectedSession.results[0], null, 2)}</div>
+                  <div>{t('history.firstResult')}: {JSON.stringify(selectedSession.results[0], null, 2)}</div>
                 )}
               </div>
               
@@ -389,7 +389,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                 </Space>
               </Card>
 
-              <Card title="测试结果" size="small">
+              <Card title={t('history.testResults')} size="small">
                 <div className="mb-4 flex justify-end" style={{ gap: 10 }}>
                   <Button
                     size="small"
@@ -397,12 +397,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                     onClick={() => {
                       if (selectedSession?.results) {
                         exportToExcel(selectedSession.results);
-                        message.success('Excel导出成功');
+                        message.success(t('history.excelExportSuccess'));
                       }
                     }}
                     className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
                   >
-                    导出Excel
+                    {t('history.exportExcel')}
                   </Button>
                   <Button
                     size="small"
@@ -410,12 +410,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                     onClick={() => {
                       if (selectedSession?.results) {
                         exportToCSV(selectedSession.results);
-                        message.success('CSV导出成功');
+                        message.success(t('history.csvExportSuccess'));
                       }
                     }}
                     className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                   >
-                    导出CSV
+                    {t('history.exportCSV')}
                   </Button>
                   <Button
                     size="small"
@@ -423,18 +423,18 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                     onClick={() => {
                       if (selectedSession?.results) {
                         copyResultsToClipboard(selectedSession.results);
-                        message.success('结果已复制到剪贴板');
+                        message.success(t('history.resultsCopied'));
                       }
                     }}
                     className="bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100"
                   >
-                    复制结果
+                    {t('history.copyResults')}
                   </Button>
                 </div>
                 <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                   {selectedSession.results && selectedSession.results.length > 0 ? (
                     <Collapse>
-                      <Panel header={<div>输入 <Button>切换</Button></div>} key="input">
+                      <Panel header={<div>{t('history.inputPanel')} <Button>{t('history.toggleView')}</Button></div>} key="input">
                         {selectedSession.results.map((result, index) => (
                           <div key={result.id}>
                             {inputRawMap[result.id] ? (
@@ -445,7 +445,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                           </div>
                         ))}
                       </Panel>
-                      <Panel header={<div>输出 <Button>切换</Button></div>} key="output">
+                      <Panel header={<div>{t('history.outputPanel')} <Button>{t('history.toggleView')}</Button></div>} key="output">
                         {selectedSession.results.map((result, index) => (
                           <div key={result.id}>
                             {result.status === 'success' ? (
@@ -462,7 +462,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                       </Panel>
                     </Collapse>
                   ) : (
-                    <Empty description="暂无测试结果数据" />
+                    <Empty description={t('history.noResultData')} />
                   )}
                 </div>
               </Card>
@@ -502,12 +502,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
           <div>
             {/* 添加调试信息 */}
             <div style={{ background: '#f0f0f0', padding: '8px', marginBottom: '16px', fontSize: '12px' }}>
-              <strong>调试信息:</strong> 
-              会话ID: {selectedSession.id}, 
-              结果数量: {selectedSession.results?.length || 0}, 
-              状态: {selectedSession.status}
+              <strong>{t('history.debugInfo')}:</strong> 
+              {t('history.sessionId')}: {selectedSession.id}, 
+              {t('history.resultCount')}: {selectedSession.results?.length || 0}, 
+              {t('history.status')}: {selectedSession.status}
               {selectedSession.results?.length > 0 && (
-                <div>第一个结果: {JSON.stringify(selectedSession.results[0], null, 2)}</div>
+                <div>{t('history.firstResult')}: {JSON.stringify(selectedSession.results[0], null, 2)}</div>
               )}
             </div>
             
@@ -536,7 +536,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
               </Space>
             </Card>
 
-            <Card title="测试结果" size="small">
+            <Card title={t('history.testResults')} size="small">
               <div className="mb-4 flex justify-end" style={{ gap: 10 }}>
                 <Button
                   size="small"
@@ -544,12 +544,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                   onClick={() => {
                     if (selectedSession?.results) {
                       exportToExcel(selectedSession.results);
-                      message.success('Excel导出成功');
+                      message.success(t('history.excelExportSuccess'));
                     }
                   }}
                   className="bg-green-50 text-green-600 border-green-200 hover:bg-green-100"
                 >
-                  导出Excel
+                  {t('history.exportExcel')}
                 </Button>
                 <Button
                   size="small"
@@ -557,12 +557,12 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                   onClick={() => {
                     if (selectedSession?.results) {
                       exportToCSV(selectedSession.results);
-                      message.success('CSV导出成功');
+                      message.success(t('history.csvExportSuccess'));
                     }
                   }}
                   className="bg-blue-50 text-blue-600 border-blue-200 hover:bg-blue-100"
                 >
-                  导出CSV
+                  {t('history.exportCSV')}
                 </Button>
                 <Button
                   size="small"
@@ -570,18 +570,18 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                   onClick={() => {
                     if (selectedSession?.results) {
                       copyResultsToClipboard(selectedSession.results);
-                      message.success('结果已复制到剪贴板');
+                      message.success(t('history.resultsCopied'));
                     }
                   }}
                   className="bg-purple-50 text-purple-600 border-purple-200 hover:bg-purple-100"
                 >
-                  复制结果
+                  {t('history.copyResults')}
                 </Button>
               </div>
               <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
                 {selectedSession.results && selectedSession.results.length > 0 ? (
                   <Collapse>
-                    <Panel header={<div>输入 <Button>切换</Button></div>} key="input">
+                    <Panel header={<div>{t('history.inputPanel')} <Button>{t('history.toggleView')}</Button></div>} key="input">
                       {selectedSession.results.map((result, index) => (
                         <div key={result.id}>
                           {inputRawMap[result.id] ? (
@@ -592,7 +592,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                         </div>
                       ))}
                     </Panel>
-                    <Panel header={<div>输出 <Button>切换</Button></div>} key="output">
+                    <Panel header={<div>{t('history.outputPanel')} <Button>{t('history.toggleView')}</Button></div>} key="output">
                       {selectedSession.results.map((result, index) => (
                         <div key={result.id}>
                           {result.status === 'success' ? (
@@ -609,7 +609,7 @@ const TestSessionHistoryComponent: React.FC<TestSessionHistoryProps> = ({
                     </Panel>
                   </Collapse>
                 ) : (
-                  <Empty description="暂无测试结果数据" />
+                  <Empty description={t('history.noResultData')} />
                 )}
               </div>
             </Card>

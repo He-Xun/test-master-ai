@@ -12,6 +12,7 @@ import {
   Typography,
   Tabs,
   Select,
+  Tooltip,
 } from 'antd';
 import {
   PlusOutlined,
@@ -209,44 +210,44 @@ const PromptsManagement: React.FC = () => {
     {
       title: t('prompts.actions'),
       key: 'action',
-      width: 200,
+      width: 120,
       render: (_: any, record: Prompt) => (
-        <Space size="small">
-          <Button
-            type="default"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => viewPrompt(record)}
-            className="border-blue-300 text-blue-600 hover:bg-blue-50"
-          >
-{t('prompts.view')}
-          </Button>
-          <Button
-            type="default"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openModal(record)}
-            className="border-green-300 text-green-600 hover:bg-green-50"
-          >
-{t('prompts.edit')}
-          </Button>
-          <Popconfirm
-            title={t('prompts.confirmDeletePrompt')}
-            onConfirm={() => deletePrompt(record.id)}
-            okText={t('prompts.confirmText')}
-            cancelText={t('prompts.cancelText')}
-          >
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
+          <Tooltip title={t('prompts.view')}>
             <Button
-              type="default"
+              type="text"
               size="small"
-              danger
-              icon={<DeleteOutlined />}
-              className="border-red-300 text-red-600 hover:bg-red-50"
+              icon={<EyeOutlined />}
+              onClick={() => viewPrompt(record)}
+              className="text-blue-500 hover:bg-blue-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('prompts.edit')}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => openModal(record)}
+              className="text-green-500 hover:bg-green-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('prompts.delete')}>
+            <Popconfirm
+              title={t('prompts.confirmDeletePrompt')}
+              onConfirm={() => deletePrompt(record.id)}
+              okText={t('prompts.confirmText')}
+              cancelText={t('prompts.cancelText')}
             >
-  {t('prompts.delete')}
-            </Button>
-          </Popconfirm>
-        </Space>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                className="text-red-500 hover:bg-red-50"
+              />
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];
@@ -290,44 +291,44 @@ const PromptsManagement: React.FC = () => {
     {
       title: t('prompts.actions'),
       key: 'action',
-      width: 200,
+      width: 120,
       render: (_: any, record: DefaultTestInput) => (
-        <Space size="small">
-          <Button
-            type="default"
-            size="small"
-            icon={<EyeOutlined />}
-            onClick={() => viewDefaultInput(record)}
-            className="border-blue-300 text-blue-600 hover:bg-blue-50"
-          >
-{t('prompts.view')}
-          </Button>
-          <Button
-            type="default"
-            size="small"
-            icon={<EditOutlined />}
-            onClick={() => openInputModal(record)}
-            className="border-green-300 text-green-600 hover:bg-green-50"
-          >
-{t('prompts.edit')}
-          </Button>
-          <Popconfirm
-            title={t('prompts.confirmDeleteTemplate')}
-            onConfirm={() => deleteDefaultInput(record.id)}
-            okText={t('prompts.confirmText')}
-            cancelText={t('prompts.cancelText')}
-          >
+        <div style={{ display: 'flex', flexDirection: 'row', gap: 8, flexWrap: 'nowrap' }}>
+          <Tooltip title={t('prompts.view')}>
             <Button
-              type="default"
+              type="text"
               size="small"
-              danger
-              icon={<DeleteOutlined />}
-              className="border-red-300 text-red-600 hover:bg-red-50"
+              icon={<EyeOutlined />}
+              onClick={() => viewDefaultInput(record)}
+              className="text-blue-500 hover:bg-blue-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('prompts.edit')}>
+            <Button
+              type="text"
+              size="small"
+              icon={<EditOutlined />}
+              onClick={() => openInputModal(record)}
+              className="text-green-500 hover:bg-green-50"
+            />
+          </Tooltip>
+          <Tooltip title={t('prompts.delete')}>
+            <Popconfirm
+              title={t('prompts.confirmDeleteTemplate')}
+              onConfirm={() => deleteDefaultInput(record.id)}
+              okText={t('prompts.confirmText')}
+              cancelText={t('prompts.cancelText')}
             >
-  {t('prompts.delete')}
-            </Button>
-          </Popconfirm>
-        </Space>
+              <Button
+                type="text"
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                className="text-red-500 hover:bg-red-50"
+              />
+            </Popconfirm>
+          </Tooltip>
+        </div>
       ),
     },
   ];

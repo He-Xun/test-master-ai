@@ -208,11 +208,11 @@ const TestSessionDetail: React.FC = () => {
   }, [sessionId]);
 
   if (loading) {
-    return <div className="p-6">加载中...</div>;
+    return <div className="p-6">{t('common.loading')}</div>;
   }
 
   if (!session) {
-    return <div className="p-6">测试记录不存在</div>;
+    return <div className="p-6">{t('history.sessionNotFound')}</div>;
   }
 
   return (
@@ -438,14 +438,14 @@ const TestSessionDetail: React.FC = () => {
               ) : null,
             },
             {
-              title: '请求耗时',
+              title: t('testing.requestDuration'),
               dataIndex: 'requestDuration',
               key: 'requestDuration',
               width: 90,
               render: (duration?: number) => duration ? `${duration}ms` : '-',
             },
             {
-              title: '处理耗时',
+              title: t('testing.processingDuration'),
               dataIndex: 'processingDuration',
               key: 'processingDuration',
               width: 90,
