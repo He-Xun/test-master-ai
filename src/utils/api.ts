@@ -185,7 +185,7 @@ export const callOpenAIAPI = async (
           'Authorization': `Bearer ${config.apiKey}`,
           'Content-Type': 'application/json',
         },
-        timeout: 45000, // 45秒超时
+        timeout: 60000, // 60秒超时
         signal, // 添加中止信号支持
       }
     );
