@@ -1,5 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
 /* light github markdown theme */
-.markdown-body {
+/* .markdown-body {
   color-scheme: light;
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
@@ -7,9 +11,7 @@
   color: #1f2328;
   background-color: #ffffff;
   font-family: -apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji";
-  font-size: 16px;
+  font-size: 14px;
   line-height: 1.5;
   word-wrap: break-word;
-}
-
-/* ... 其余内容为你刚刚提供的 GitHub markdown 主题 ... */
+} */
